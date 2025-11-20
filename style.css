@@ -123,6 +123,29 @@ body {
   font-size: 0.8rem;
   opacity: 0.9;
 }
+/* Burger button (スマホ用) */
+.burger-button {
+  display: none; /* デスクトップでは非表示 */
+  border: none;
+  background: transparent;
+  padding: 4px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.burger-button span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #ffffff;
+  margin: 3px 0;
+}
+
+/* サイドバーの基本トランジション */
+.sidebar {
+  transition: transform 0.2s ease-out;
+}
 
 .user-chip {
   display: flex;
@@ -247,6 +270,39 @@ body {
   border-radius: var(--radius-lg);
   padding: 10px 12px;
   border: 1px solid #e0e7ff;
+}
+.summary-card .summary-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* デフォルトアイコン */
+.summary-card .summary-label::before {
+  content: "📦";
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+/* 2枚目: 不良 */
+.summary-card:nth-child(2) .summary-label::before {
+  content: "⚠️";
+}
+
+/* 3枚目: 端末 */
+.summary-card:nth-child(3) .summary-label::before {
+  content: "🖥️";
+}
+
+/* 4枚目: 計画 */
+.summary-card:nth-child(4) .summary-label::before {
+  content: "🗂️";
 }
 
 .warning-card {
@@ -580,16 +636,55 @@ tbody tr:hover {
   .app-shell {
     flex-direction: column;
   }
+
+  /* サイドバーをオーバーレイ＆スライドにする */
   .sidebar {
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
+    width: 220px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(0);
   }
-  .sidebar-nav {
-    flex-direction: row;
-    overflow-x: auto;
+
+  .sidebar.sidebar-hidden {
+    transform: translateX(-100%);
   }
+
+  /* コンテンツは常に全幅 */
   .main-area {
     flex: none;
   }
+
+  /* バーガーボタンを表示 */
+  .burger-button {
+    display: inline-block;
+  }
+}
+.user-meta {
+  font-size: 0.8rem;
+}
+
+.user-role span {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.2);
+}
+
+/* role 別の色分け（admin / qc / operator） */
+.user-role span::before {
+  content: "●";
+  font-size: 0.6rem;
+  margin-right: 4px;
+}
+
+body .user-role span {
+  background: rgba(59, 130, 246, 0.18); /* デフォルト: 青 */
+  color: #e5e7eb;
+}
+
+body .user-role span:has(> .dummy) {
+  /* placeholder: 無視 */
 }
