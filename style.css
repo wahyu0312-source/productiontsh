@@ -149,8 +149,21 @@ body {
 
 .content {
   padding: 14px 20px 40px;
-  max-width: 1200px;
   width: 100%;
+  max-width: 1400px;   /* atau 1600 */
+  margin: 0 auto;
+}
+
+
+.manual-login-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.manual-login-row input {
+  flex: 1;
 }
 
 /* Cards */
