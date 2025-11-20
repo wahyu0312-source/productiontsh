@@ -32,7 +32,7 @@
       <button class="sidebar-link" data-section="scan-section">スキャン</button>
       <button class="sidebar-link" data-section="plan-section">生産計画</button>
       <button class="sidebar-link admin-only" data-section="admin-section">ユーザー / QR</button>
-      <button class="sidebar-link admin-only" data-section="terminalqr-section">端末QR一覧</button>
+      <button class="sidebar-link admin-only" data-section="terminalqr-section">工程QR一覧</button>
     </nav>
   </aside>
 
@@ -106,7 +106,7 @@
       <p class="summary-value" id="today-ng">0</p>
     </div>
     <div class="summary-card">
-      <p class="summary-label">登録端末数</p>
+      <p class="summary-label">登録工程数</p>
       <p class="summary-value" id="summary-terminals">0</p>
     </div>
     <div class="summary-card">
@@ -172,8 +172,8 @@
         </select>
       </div>
       <div class="form-group">
-        <label for="filter-terminal">端末フィルター</label>
-        <input id="filter-terminal" type="text" placeholder="端末IDまたは名称で検索">
+        <label for="filter-terminal">工程名フィルター</label>
+        <input id="filter-terminal" type="text" placeholder="工程IDまたは名称で検索">
       </div>
       <div class="form-group">
         <label for="filter-product">製品番号フィルター</label>
@@ -196,7 +196,7 @@
             <th>時刻(終了)</th>
             <th>製品番号</th>
             <th>工程</th>
-            <th>端末</th>
+            <th>工程名</th>
             <th>ユーザー</th>
             <th>数量(OK/不良)</th>
             <th>ステータス</th>
@@ -246,14 +246,15 @@
 
 
         <div class="card">
-          <h2 class="card-title">工程・端末スキャン</h2>
-          <p>端末のQRコードをスキャンし、開始/終了と数量を入力してください。</p>
-          <div class="terminal-info">
-            <div><strong>選択中端末:</strong> <span id="current-terminal-name">未選択</span></div>
+          <h2 class="card-title">工程スキャン</h2>
+<p>工程のQRコードをスキャンし、開始/終了と数量を入力してください。</p>
+<p>選択中工程名: <span id="current-terminal-name">未選択</span></p>
+
             <div><strong>工程:</strong> <span id="current-process-name">-</span></div>
             <div><strong>ロケーション:</strong> <span id="current-location">-</span></div>
           </div>
-          <button id="btn-start-terminal-scan" class="secondary-button">端末QRスキャン開始</button>
+          <button id="btn-start-terminal-scan" class="primary-button">工程QRスキャン開始</button>
+  
 
           <div class="form-grid">
             <div class="form-group">
@@ -299,7 +300,7 @@
 
           <p class="hint">
             ・「開始」を保存するとローカルに開始時刻が記憶されます。<br>
-            ・同じユーザー + 端末 + 製品番号で「終了」を保存すると、開始〜終了で所要時間が自動計算されます。
+            ・同じユーザー + 工程 + 製品番号で「終了」を保存すると、開始〜終了で所要時間が自動計算されます。
           </p>
 
           <p id="offline-indicator" class="warning hidden">
@@ -407,7 +408,7 @@
       <!-- Admin: user & terminal register -->
       <section id="admin-section" class="section">
         <div class="card">
-          <h2 class="card-title">管理者メニュー（ユーザー / 端末登録）</h2>
+          <h2 class="card-title">管理者メニュー（ユーザー / 工程登録）</h2>
           <p>管理者権限ユーザーでログインすると使用できます。（ロール: admin）</p>
           <p id="admin-guard-message" class="warning">
             現在のユーザーには管理者権限がありません。
@@ -439,14 +440,14 @@
             </div>
 
             <div class="admin-section">
-              <h3>端末登録</h3>
+              <h3>工程登録</h3>
               <div class="form-group">
-                <label for="admin-terminal-id">端末ID</label>
+                <label for="admin-terminal-id">工程ID</label>
                 <input id="admin-terminal-id" type="text" placeholder="例: T001">
               </div>
               <div class="form-group">
-                <label for="admin-terminal-name">端末名称</label>
-                <input id="admin-terminal-name" type="text" placeholder="例: レザー加工端末1">
+                <label for="admin-terminal-name">工程名称</label>
+                <input id="admin-terminal-name" type="text" placeholder="例: レザー加工工程1">
               </div>
               <div class="form-group">
                 <label for="admin-terminal-process">工程</label>
@@ -471,10 +472,10 @@
                 <label for="admin-terminal-location">ロケーション</label>
                 <input id="admin-terminal-location" type="text" placeholder="例: 第1工場 ラインA">
               </div>
-              <button id="btn-admin-create-terminal" class="primary-button">端末登録</button>
+              <button id="btn-admin-create-terminal" class="primary-button">工程登録</button>
 
-              <h4>端末QRコード</h4>
-              <p>登録後に下のQRコードを印刷して、各工程の端末に貼り付けてください。</p>
+              <h4>工程QRコード</h4>
+              <p>登録後に下のQRコードを印刷して、各工程の工程に貼り付けてください。</p>
               <div id="terminal-qr-container" class="qr-container"></div>
             </div>
           </div>
@@ -484,8 +485,8 @@
       <!-- Terminal QR List -->
       <section id="terminalqr-section" class="section">
         <div class="card">
-          <h2 class="card-title">端末QR一覧（印刷用）</h2>
-          <p>すべての端末のQRコードを一覧表示します。このページを印刷して現場に配布してください。</p>
+          <h2 class="card-title">工程QR一覧（印刷用）</h2>
+          <p>すべての工程のQRコードを一覧表示します。このページを印刷して現場に配布してください。</p>
           <p id="terminalqr-guard" class="warning">
             管理者としてログインすると表示されます。（ロール: admin）
           </p>
@@ -540,9 +541,9 @@
     <p>このシステムの基本的な使い方:</p>
     <ul class="help-list">
       <li>① 「スキャン」メニューでユーザーQRまたはユーザーIDでログインします。</li>
-      <li>② 端末QRをスキャンし、「開始」「終了」と数量を入力して保存します。</li>
+      <li>② 工程QRをスキャンし、「開始」「終了」と数量を入力して保存します。</li>
       <li>③ 「ダッシュボード」で最新の実績と生産計画を確認できます。</li>
-      <li>④ 「ユーザー / QR」でユーザーと端末を登録し、QRコードを印刷できます。（adminのみ）</li>
+      <li>④ 「ユーザー / QR」でユーザーと工程を登録し、QRコードを印刷できます。（adminのみ）</li>
       <li>⑤ 「生産計画」で計画を登録し、実績と比較できます。</li>
     </ul>
     <div class="button-row" style="margin-top:8px;">
