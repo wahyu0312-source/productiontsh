@@ -8,304 +8,443 @@
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2f80ed">
-
-  <!-- Favicon (opsional, bisa pakai tsh.png juga) -->
   <link rel="icon" type="image/png" href="tsh.png">
 
   <!-- CSS -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- QRコードスキャン用ライブラリ -->
+  <!-- Libs -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <!-- QRコード生成用ライブラリ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- Chart.js for analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<header class="app-header">
-  <div class="header-inner">
-    <div class="logo-block">
-      <img src="tsh.png" alt="ロゴ" class="logo-image">
-      <div class="logo-text">
-        <h1>生産進捗トラッキングシステム</h1>
-        <p class="subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
-      </div>
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="tsh.png" alt="ロゴ">
+      <span>生産進捗</span>
     </div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-link active" data-section="dashboard-section">ダッシュボード</button>
+      <button class="sidebar-link" data-section="scan-section">スキャン</button>
+      <button class="sidebar-link" data-section="plan-section">生産計画</button>
+      <button class="sidebar-link admin-only" data-section="admin-section">ユーザー / QR</button>
+      <button class="sidebar-link admin-only" data-section="terminalqr-section">端末QR一覧</button>
+    </nav>
+  </aside>
+
+  <!-- Main area -->
+  <div class="main-area">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="topbar-title">生産進捗トラッキングシステム</h1>
+        <p class="topbar-subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
+      </div>
+      <div class="topbar-right">
+        <div class="user-chip">
+          <div class="user-avatar">👤</div>
+          <div class="user-meta">
+            <div id="top-username">ゲスト</div>
+            <div class="user-role"><span id="top-userrole">未ログイン</span></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="content">
+
+      <!-- Dashboard -->
+      <section id="dashboard-section" class="section active">
+        <div class="card welcome-card">
+          <div class="welcome-main">
+            <div class="welcome-icon">👋</div>
+            <div>
+              <p class="welcome-title">ようこそ、<span id="welcome-name">ゲスト</span> さん。</p>
+              <p class="welcome-text">最新の進捗状況と生産計画を確認しましょう。</p>
+            </div>
+          </div>
+          <div class="welcome-meta">
+            <div class="welcome-meta-item">
+              <span class="meta-label">本日</span>
+              <span id="welcome-date"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p class="summary-label">本日の総生産数量</p>
+            <p class="summary-value" id="today-total">0</p>
+          </div>
+          <div class="summary-card warning-card">
+            <p class="summary-label">本日の不良数量</p>
+            <p class="summary-value" id="today-ng">0</p>
+          </div>
+          <div class="summary-card">
+            <p class="summary-label">登録端末数</p>
+            <p class="summary-value" id="summary-terminals">0</p>
+          </div>
+          <div class="summary-card">
+            <p class="summary-label">登録生産計画数</p>
+            <p class="summary-value" id="summary-plans">0</p>
+          </div>
+        </div>
+
+        <div id="alert-banner" class="alert-banner hidden">
+          最近の工程で不良または検査保留が発生しています。詳細は一覧を確認してください。
+        </div>
+
+        <div class="card small-gap">
+          <h2 class="card-title">工程別 生産量（直近7日）</h2>
+          <div class="chart-wrapper">
+            <canvas id="process-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header-row">
+            <h2 class="card-title">最新の実績一覧</h2>
+            <div class="button-row">
+              <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
+              <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
+            </div>
+          </div>
+
+          <div class="filter-grid">
+            <div class="form-group">
+              <label for="filter-process">工程フィルター</label>
+              <select id="filter-process">
+                <option value="">すべて</option>
+                <option>レザー加工</option>
+                <option>外注工程</option>
+                <option>曲げ加工</option>
+                <option>準備工程</option>
+                <option>外枠組立工程</option>
+                <option>パンタ組立工程</option>
+                <option>シャッター組立工程</option>
+                <option>スポット工程</option>
+                <option>コーキング工程</option>
+                <option>溶接工程</option>
+                <option>組立工程</option>
+                <option>検査工程</option>
+                <option>検査保留</option>
+                <option>出荷準備</option>
+                <option>出荷完成</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="filter-terminal">端末フィルター</label>
+              <input id="filter-terminal" type="text" placeholder="端末IDまたは名称で検索">
+            </div>
+            <div class="form-group">
+              <label for="filter-product">製品番号フィルター</label>
+              <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
+            </div>
+            <div class="form-group">
+              <label>期間フィルター</label>
+              <div class="date-range">
+                <input id="filter-date-from" type="date">
+                <span>〜</span>
+                <input id="filter-date-to" type="date">
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>時刻(終了)</th>
+                  <th>製品番号</th>
+                  <th>工程</th>
+                  <th>端末</th>
+                  <th>ユーザー</th>
+                  <th>数量(OK/不良)</th>
+                  <th>ステータス</th>
+                  <th>所要時間(分)</th>
+                  <th>ロケーション</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scan -->
+      <section id="scan-section" class="section">
+        <div class="card">
+          <h2 class="card-title">ユーザー認証</h2>
+          <p>ユーザーQRコードをスキャンしてログインしてください。</p>
+          <div class="user-info">
+            <div><strong>ログインユーザー:</strong> <span id="current-user-name">未ログイン</span></div>
+            <div><strong>ユーザーID:</strong> <span id="current-user-id">-</span></div>
+            <div><strong>権限:</strong> <span id="current-user-role">-</span></div>
+          </div>
+          <button id="btn-start-user-scan" class="primary-button">ユーザーQRスキャン開始</button>
+          <div id="qr-reader" class="qr-reader"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">工程・端末スキャン</h2>
+          <p>端末のQRコードをスキャンし、開始/終了と数量を入力してください。</p>
+          <div class="terminal-info">
+            <div><strong>選択中端末:</strong> <span id="current-terminal-name">未選択</span></div>
+            <div><strong>工程:</strong> <span id="current-process-name">-</span></div>
+            <div><strong>ロケーション:</strong> <span id="current-location">-</span></div>
+          </div>
+          <button id="btn-start-terminal-scan" class="secondary-button">端末QRスキャン開始</button>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="product-code-input">製品番号 / ロット番号</label>
+              <input id="product-code-input" type="text" placeholder="例: P-20251120-001">
+            </div>
+            <div class="form-group">
+              <label>処理モード</label>
+              <div class="radio-group">
+                <label><input type="radio" name="mode" value="start" checked> 開始</label>
+                <label><input type="radio" name="mode" value="end"> 終了</label>
+              </div>
+              <small>開始を選択すると開始時刻が記録され、終了で実績が保存されます。</small>
+            </div>
+            <div class="form-group">
+              <label for="status-select">ステータス</label>
+              <select id="status-select">
+                <option value="通常">通常</option>
+                <option value="検査保留">検査保留（検査工程のみ）</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="qty-total-input">総数量</label>
+              <input id="qty-total-input" type="number" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="qty-ok-input">OK数量</label>
+              <input id="qty-ok-input" type="number" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="qty-ng-input">不良数量</label>
+              <input id="qty-ng-input" type="number" min="0" value="0">
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="btn-save-log" class="primary-button">保存</button>
+            <button id="btn-clear-form" class="ghost-button">クリア</button>
+          </div>
+
+          <p class="hint">
+            ・「開始」を保存するとローカルに開始時刻が記憶されます。<br>
+            ・同じユーザー + 端末 + 製品番号で「終了」を保存すると、開始〜終了で所要時間が自動計算されます。
+          </p>
+
+          <p id="offline-indicator" class="warning hidden">
+            オフラインモードです。保存したデータはオンライン復帰後に自動送信されます。
+          </p>
+        </div>
+      </section>
+
+      <!-- Plan -->
+      <section id="plan-section" class="section">
+        <div class="card">
+          <h2 class="card-title">生産計画入力</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="plan-product-code">製品番号</label>
+              <input id="plan-product-code" type="text" placeholder="例: P-20251120-001">
+            </div>
+            <div class="form-group">
+              <label for="plan-product-name">製品名</label>
+              <input id="plan-product-name" type="text" placeholder="例: シャッターA">
+            </div>
+            <div class="form-group">
+              <label for="plan-process">工程名</label>
+              <select id="plan-process">
+                <option>レザー加工</option>
+                <option>外注工程</option>
+                <option>曲げ加工</option>
+                <option>準備工程</option>
+                <option>外枠組立工程</option>
+                <option>パンタ組立工程</option>
+                <option>シャッター組立工程</option>
+                <option>スポット工程</option>
+                <option>コーキング工程</option>
+                <option>溶接工程</option>
+                <option>組立工程</option>
+                <option>検査工程</option>
+                <option>出荷準備</option>
+                <option>出荷完成</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="plan-qty">計画数量</label>
+              <input id="plan-qty" type="number" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="plan-start">計画開始</label>
+              <input id="plan-start" type="datetime-local">
+            </div>
+            <div class="form-group">
+              <label for="plan-end">計画終了</label>
+              <input id="plan-end" type="datetime-local">
+            </div>
+            <div class="form-group">
+              <label for="plan-status">ステータス</label>
+              <select id="plan-status">
+                <option>計画</option>
+                <option>進行中</option>
+                <option>完了</option>
+              </select>
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="btn-save-plan" class="primary-button">計画保存</button>
+            <button id="btn-clear-plan" class="ghost-button">クリア</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header-row">
+            <h2 class="card-title">生産計画一覧</h2>
+            <div class="button-row">
+              <button id="btn-refresh-plans" class="secondary-button">更新</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>製品番号</th>
+                  <th>製品名</th>
+                  <th>工程名</th>
+                  <th>計画数量</th>
+                  <th>計画開始</th>
+                  <th>計画終了</th>
+                  <th>ステータス</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="plans-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">生産計画インポート（CSV）</h2>
+          <p>Excelから「CSV UTF-8」で保存し、1行目をヘッダーとして貼り付けてください。<br>
+             列順: 製品番号, 製品名, 工程名, 計画数量, 計画開始, 計画終了, ステータス</p>
+          <div class="form-group">
+            <textarea id="plan-import-text" rows="6" placeholder="製品番号,製品名,工程名,計画数量,計画開始,計画終了,ステータス"></textarea>
+          </div>
+          <button id="btn-import-plans" class="secondary-button">インポート実行</button>
+        </div>
+      </section>
+
+      <!-- Admin: user & terminal register -->
+      <section id="admin-section" class="section">
+        <div class="card">
+          <h2 class="card-title">管理者メニュー（ユーザー / 端末登録）</h2>
+          <p>管理者権限ユーザーでログインすると使用できます。（ロール: admin）</p>
+          <p id="admin-guard-message" class="warning">
+            現在のユーザーには管理者権限がありません。
+          </p>
+          <div id="admin-content" class="admin-grid hidden">
+            <div class="admin-section">
+              <h3>ユーザー登録</h3>
+              <div class="form-group">
+                <label for="admin-user-id">ユーザーID</label>
+                <input id="admin-user-id" type="text" placeholder="例: U001">
+              </div>
+              <div class="form-group">
+                <label for="admin-user-name">氏名（日本語）</label>
+                <input id="admin-user-name" type="text" placeholder="例: 山田 太郎">
+              </div>
+              <div class="form-group">
+                <label for="admin-user-role">権限</label>
+                <select id="admin-user-role">
+                  <option value="operator">オペレーター</option>
+                  <option value="qc">QC</option>
+                  <option value="admin">管理者</option>
+                </select>
+              </div>
+              <button id="btn-admin-create-user" class="primary-button">ユーザー登録</button>
+
+              <h4>ユーザーQRコード</h4>
+              <p>登録後に下のQRコードを印刷して、現場で使用してください。</p>
+              <div id="user-qr-container" class="qr-container"></div>
+            </div>
+
+            <div class="admin-section">
+              <h3>端末登録</h3>
+              <div class="form-group">
+                <label for="admin-terminal-id">端末ID</label>
+                <input id="admin-terminal-id" type="text" placeholder="例: T001">
+              </div>
+              <div class="form-group">
+                <label for="admin-terminal-name">端末名称</label>
+                <input id="admin-terminal-name" type="text" placeholder="例: レザー加工端末1">
+              </div>
+              <div class="form-group">
+                <label for="admin-terminal-process">工程</label>
+                <select id="admin-terminal-process">
+                  <option>レザー加工</option>
+                  <option>外注工程</option>
+                  <option>曲げ加工</option>
+                  <option>準備工程</option>
+                  <option>外枠組立工程</option>
+                  <option>パンタ組立工程</option>
+                  <option>シャッター組立工程</option>
+                  <option>スポット工程</option>
+                  <option>コーキング工程</option>
+                  <option>溶接工程</option>
+                  <option>組立工程</option>
+                  <option>検査工程</option>
+                  <option>出荷準備</option>
+                  <option>出荷完成</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="admin-terminal-location">ロケーション</label>
+                <input id="admin-terminal-location" type="text" placeholder="例: 第1工場 ラインA">
+              </div>
+              <button id="btn-admin-create-terminal" class="primary-button">端末登録</button>
+
+              <h4>端末QRコード</h4>
+              <p>登録後に下のQRコードを印刷して、各工程の端末に貼り付けてください。</p>
+              <div id="terminal-qr-container" class="qr-container"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Terminal QR List -->
+      <section id="terminalqr-section" class="section">
+        <div class="card">
+          <h2 class="card-title">端末QR一覧（印刷用）</h2>
+          <p>すべての端末のQRコードを一覧表示します。このページを印刷して現場に配布してください。</p>
+          <p id="terminalqr-guard" class="warning">
+            管理者としてログインすると表示されます。（ロール: admin）
+          </p>
+          <div id="terminal-qr-list" class="terminalqr-grid hidden"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      Design by Wahyu
+    </footer>
+
   </div>
-</header>
-
-<nav class="app-nav">
-  <button class="nav-button active" data-tab="scan-tab">スキャン</button>
-  <button class="nav-button" data-tab="dashboard-tab">ダッシュボード</button>
-  <button class="nav-button" data-tab="admin-tab">管理者</button>
-</nav>
-
-<main class="app-main">
-
-  <!-- スキャンタブ -->
-  <section id="scan-tab" class="tab-panel active">
-    <div class="card">
-      <h2>1. ユーザー認証</h2>
-      <p>ユーザーQRコードをスキャンしてログインしてください。</p>
-      <div class="user-info">
-        <div><strong>ログインユーザー:</strong> <span id="current-user-name">未ログイン</span></div>
-        <div><strong>ユーザーID:</strong> <span id="current-user-id">-</span></div>
-        <div><strong>権限:</strong> <span id="current-user-role">-</span></div>
-      </div>
-      <button id="btn-start-user-scan" class="primary-button">ユーザーQRスキャン開始</button>
-      <div id="qr-reader" class="qr-reader"></div>
-    </div>
-
-    <div class="card">
-      <h2>2. 工程・端末スキャン</h2>
-      <p>端末のQRコードをスキャンし、開始/終了と数量を入力してください。</p>
-
-      <div class="terminal-info">
-        <div><strong>選択中端末:</strong> <span id="current-terminal-name">未選択</span></div>
-        <div><strong>工程:</strong> <span id="current-process-name">-</span></div>
-        <div><strong>ロケーション:</strong> <span id="current-location">-</span></div>
-      </div>
-
-      <button id="btn-start-terminal-scan" class="secondary-button">端末QRスキャン開始</button>
-
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="product-code-input">製品番号 / ロット番号</label>
-          <input id="product-code-input" type="text" placeholder="例: P-20251120-001">
-        </div>
-
-        <div class="form-group">
-          <label>処理モード</label>
-          <div class="radio-group">
-            <label><input type="radio" name="mode" value="start" checked> 開始</label>
-            <label><input type="radio" name="mode" value="end"> 終了</label>
-          </div>
-          <small>開始を選択すると開始時刻が記録され、終了で実績が保存されます。</small>
-        </div>
-
-        <div class="form-group">
-          <label for="status-select">ステータス</label>
-          <select id="status-select">
-            <option value="通常">通常</option>
-            <option value="検査保留">検査保留（検査工程のみ）</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="qty-total-input">総数量</label>
-          <input id="qty-total-input" type="number" min="0" value="0">
-        </div>
-
-        <div class="form-group">
-          <label for="qty-ok-input">OK数量</label>
-          <input id="qty-ok-input" type="number" min="0" value="0">
-        </div>
-
-        <div class="form-group">
-          <label for="qty-ng-input">不良数量</label>
-          <input id="qty-ng-input" type="number" min="0" value="0">
-        </div>
-      </div>
-
-      <div class="button-row">
-        <button id="btn-save-log" class="primary-button">保存</button>
-        <button id="btn-clear-form" class="ghost-button">クリア</button>
-      </div>
-
-      <p class="hint">
-        ・「開始」を保存するとローカルに開始時刻が記憶されます。<br>
-        ・同じユーザー + 端末 + 製品番号で「終了」を保存すると、開始〜終了の時間差で「所要時間」が自動計算されます。
-      </p>
-
-      <p id="offline-indicator" class="warning hidden">
-        オフラインモードです。保存したデータはオンライン復帰後に自動送信されます。
-      </p>
-    </div>
-  </section>
-
-  <!-- ダッシュボードタブ -->
-  <section id="dashboard-tab" class="tab-panel">
-    <div class="card">
-      <h2>ダッシュボード（進捗状況）</h2>
-      <p>最新の工程実績が新しい順に表示されます。フィルターで絞り込みできます。</p>
-
-      <div id="alert-banner" class="alert-banner hidden">
-        最近の工程で不良または検査保留が発生しています。詳細は下の一覧を確認してください。
-      </div>
-
-      <!-- Analytics summary -->
-      <div class="analytics-grid">
-        <div class="analytics-card">
-          <h3>本日の総数量</h3>
-          <p class="analytics-value"><span id="today-total">0</span></p>
-        </div>
-        <div class="analytics-card">
-          <h3>本日の不良数量</h3>
-          <p class="analytics-value ng"><span id="today-ng">0</span></p>
-        </div>
-      </div>
-
-      <div class="card analytics-chart-card">
-        <h3>工程別 生産量（直近7日）</h3>
-        <canvas id="process-chart" height="180"></canvas>
-      </div>
-
-      <div class="filter-grid">
-        <div class="form-group">
-          <label for="filter-process">工程フィルター</label>
-          <select id="filter-process">
-            <option value="">すべて</option>
-            <option>レザー加工</option>
-            <option>外注工程</option>
-            <option>曲げ加工</option>
-            <option>準備工程</option>
-            <option>外枠組立工程</option>
-            <option>パンタ組立工程</option>
-            <option>シャッター組立工程</option>
-            <option>スポット工程</option>
-            <option>コーキング工程</option>
-            <option>溶接工程</option>
-            <option>組立工程</option>
-            <option>検査工程</option>
-            <option>検査保留</option>
-            <option>出荷準備</option>
-            <option>出荷完成</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="filter-terminal">端末フィルター</label>
-          <input id="filter-terminal" type="text" placeholder="端末IDまたは名称で検索">
-        </div>
-
-        <div class="form-group">
-          <label for="filter-product">製品番号フィルター</label>
-          <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
-        </div>
-
-        <div class="form-group">
-          <label>期間フィルター（開始〜終了）</label>
-          <div class="date-range">
-            <input id="filter-date-from" type="date">
-            <span>〜</span>
-            <input id="filter-date-to" type="date">
-          </div>
-        </div>
-      </div>
-
-      <div class="button-row">
-        <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
-        <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
-      </div>
-
-      <div class="table-wrapper">
-        <table id="logs-table">
-          <thead>
-            <tr>
-              <th>時刻(終了)</th>
-              <th>製品番号</th>
-              <th>工程</th>
-              <th>端末</th>
-              <th>ユーザー</th>
-              <th>数量(OK/不良)</th>
-              <th>ステータス</th>
-              <th>所要時間(分)</th>
-              <th>ロケーション</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="logs-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- 管理者タブ -->
-  <section id="admin-tab" class="tab-panel">
-    <div class="card">
-      <h2>管理者メニュー</h2>
-      <p>管理者権限ユーザーでログインすると使用できます。（ロール: admin）</p>
-      <p id="admin-guard-message" class="warning">
-        現在のユーザーには管理者権限がありません。
-      </p>
-
-      <div id="admin-content" class="admin-grid hidden">
-        <!-- ユーザー登録 -->
-        <div class="admin-section">
-          <h3>ユーザー登録</h3>
-          <div class="form-group">
-            <label for="admin-user-id">ユーザーID</label>
-            <input id="admin-user-id" type="text" placeholder="例: U001">
-          </div>
-          <div class="form-group">
-            <label for="admin-user-name">氏名（日本語）</label>
-            <input id="admin-user-name" type="text" placeholder="例: 山田 太郎">
-          </div>
-          <div class="form-group">
-            <label for="admin-user-role">権限</label>
-            <select id="admin-user-role">
-              <option value="operator">オペレーター</option>
-              <option value="qc">QC</option>
-              <option value="admin">管理者</option>
-            </select>
-          </div>
-          <button id="btn-admin-create-user" class="primary-button">ユーザー登録</button>
-
-          <h4>ユーザーQRコード</h4>
-          <p>登録後に下のQRコードを印刷して、現場で使用してください。</p>
-          <div id="user-qr-container" class="qr-container"></div>
-        </div>
-
-        <!-- 端末登録 -->
-        <div class="admin-section">
-          <h3>端末登録</h3>
-          <div class="form-group">
-            <label for="admin-terminal-id">端末ID</label>
-            <input id="admin-terminal-id" type="text" placeholder="例: T001">
-          </div>
-          <div class="form-group">
-            <label for="admin-terminal-name">端末名称</label>
-            <input id="admin-terminal-name" type="text" placeholder="例: レザー加工端末1">
-          </div>
-          <div class="form-group">
-            <label for="admin-terminal-process">工程</label>
-            <select id="admin-terminal-process">
-              <option>レザー加工</option>
-              <option>外注工程</option>
-              <option>曲げ加工</option>
-              <option>準備工程</option>
-              <option>外枠組立工程</option>
-              <option>パンタ組立工程</option>
-              <option>シャッター組立工程</option>
-              <option>スポット工程</option>
-              <option>コーキング工程</option>
-              <option>溶接工程</option>
-              <option>組立工程</option>
-              <option>検査工程</option>
-              <option>出荷準備</option>
-              <option>出荷完成</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="admin-terminal-location">ロケーション</label>
-            <input id="admin-terminal-location" type="text" placeholder="例: 第1工場 ラインA">
-          </div>
-          <button id="btn-admin-create-terminal" class="primary-button">端末登録</button>
-
-          <h4>端末QRコード</h4>
-          <p>登録後に下のQRコードを印刷して、各工程の端末に貼り付けてください。</p>
-          <div id="terminal-qr-container" class="qr-container"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-</main>
-
-<footer class="app-footer">
-  <span>Design by Wahyu</span>
-</footer>
+</div>
 
 <!-- 編集モーダル -->
 <div id="edit-modal" class="modal hidden">
@@ -341,7 +480,6 @@
 
 <script src="app.js"></script>
 <script>
-  // PWA: サービスワーカー登録
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('service-worker.js').catch(function (err) {
