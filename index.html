@@ -41,11 +41,18 @@
 
     <!-- Top bar -->
     <header class="topbar">
-      <div class="topbar-left">
-        <h1 class="topbar-title">生産進捗トラッキングシステム</h1>
-        <p class="topbar-subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
-      </div>
-      <div class="topbar-right">
+  <div class="topbar-left">
+    <!-- ここが追加：スマホ用のバーガーボタン -->
+    <button id="btn-menu-toggle" class="burger-button" aria-label="メニュー">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div>
+      <h1 class="topbar-title">生産進捗トラッキングシステム</h1>
+      <p class="topbar-subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
+    </div>
+  </div>
+  <div class="topbar-right">
         <div class="user-chip">
           <div class="user-avatar">👤</div>
           <div class="user-meta">
@@ -60,123 +67,126 @@
     <main class="content">
 
       <!-- Dashboard -->
-      <section id="dashboard-section" class="section active">
-        <div class="card welcome-card">
-          <div class="welcome-main">
-            <div class="welcome-icon">👋</div>
-            <div>
-              <p class="welcome-title">ようこそ、<span id="welcome-name">ゲスト</span> さん。</p>
-              <p class="welcome-text">最新の進捗状況と生産計画を確認しましょう。</p>
-            </div>
-          </div>
-          <div class="welcome-meta">
-            <div class="welcome-meta-item">
-              <span class="meta-label">本日</span>
-              <span id="welcome-date"></span>
-            </div>
-          </div>
+     <section id="dashboard-section" class="section active">
+  <div class="card welcome-card">
+    <div class="welcome-main">
+      <div class="welcome-icon">👋</div>
+      <div>
+        <p class="welcome-title">ようこそ、<span id="welcome-name">ゲスト</span> さん。</p>
+        <p class="welcome-text">最新の進捗状況と生産計画を確認しましょう。</p>
+      </div>
+    </div>
+    <div class="welcome-meta">
+      <div class="welcome-meta-item">
+        <span class="meta-label">本日</span>
+        <span id="welcome-date"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- サマリーカード -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <p class="summary-label">本日の総生産数量</p>
+      <p class="summary-value" id="today-total">0</p>
+    </div>
+    <div class="summary-card warning-card">
+      <p class="summary-label">本日の不良数量</p>
+      <p class="summary-value" id="today-ng">0</p>
+    </div>
+    <div class="summary-card">
+      <p class="summary-label">登録端末数</p>
+      <p class="summary-value" id="summary-terminals">0</p>
+    </div>
+    <div class="summary-card">
+      <p class="summary-label">登録生産計画数</p>
+      <p class="summary-value" id="summary-plans">0</p>
+    </div>
+  </div>
+
+  <div id="alert-banner" class="alert-banner hidden">
+    最近の工程で不良または検査保留が発生しています。詳細は一覧を確認してください。
+  </div>
+
+  <!-- ★ ここを先に：最新の実績一覧 -->
+  <div class="card">
+    <div class="card-header-row">
+      <h2 class="card-title">最新の実績一覧</h2>
+      <div class="button-row">
+        <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
+        <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
+      </div>
+    </div>
+
+    <div class="filter-grid">
+      <div class="form-group">
+        <label for="filter-process">工程フィルター</label>
+        <select id="filter-process">
+          <option value="">すべて</option>
+          <option>レザー加工</option>
+          <option>外注工程</option>
+          <option>曲げ加工</option>
+          <option>準備工程</option>
+          <option>外枠組立工程</option>
+          <option>パンタ組立工程</option>
+          <option>シャッター組立工程</option>
+          <option>スポット工程</option>
+          <option>コーキング工程</option>
+          <option>溶接工程</option>
+          <option>組立工程</option>
+          <option>検査工程</option>
+          <option>検査保留</option>
+          <option>出荷準備</option>
+          <option>出荷完成</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="filter-terminal">端末フィルター</label>
+        <input id="filter-terminal" type="text" placeholder="端末IDまたは名称で検索">
+      </div>
+      <div class="form-group">
+        <label for="filter-product">製品番号フィルター</label>
+        <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
+      </div>
+      <div class="form-group">
+        <label>期間フィルター</label>
+        <div class="date-range">
+          <input id="filter-date-from" type="date">
+          <span>〜</span>
+          <input id="filter-date-to" type="date">
         </div>
+      </div>
+    </div>
 
-        <div class="summary-grid">
-          <div class="summary-card">
-            <p class="summary-label">本日の総生産数量</p>
-            <p class="summary-value" id="today-total">0</p>
-          </div>
-          <div class="summary-card warning-card">
-            <p class="summary-label">本日の不良数量</p>
-            <p class="summary-value" id="today-ng">0</p>
-          </div>
-          <div class="summary-card">
-            <p class="summary-label">登録端末数</p>
-            <p class="summary-value" id="summary-terminals">0</p>
-          </div>
-          <div class="summary-card">
-            <p class="summary-label">登録生産計画数</p>
-            <p class="summary-value" id="summary-plans">0</p>
-          </div>
-        </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>時刻(終了)</th>
+            <th>製品番号</th>
+            <th>工程</th>
+            <th>端末</th>
+            <th>ユーザー</th>
+            <th>数量(OK/不良)</th>
+            <th>ステータス</th>
+            <th>所要時間(分)</th>
+            <th>ロケーション</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="logs-tbody"></tbody>
+      </table>
+    </div>
+  </div>
 
-        <div id="alert-banner" class="alert-banner hidden">
-          最近の工程で不良または検査保留が発生しています。詳細は一覧を確認してください。
-        </div>
-
-        <div class="card small-gap">
-          <h2 class="card-title">工程別 生産量（直近7日）</h2>
-          <div class="chart-wrapper">
-            <canvas id="process-chart"></canvas>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header-row">
-            <h2 class="card-title">最新の実績一覧</h2>
-            <div class="button-row">
-              <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
-              <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
-            </div>
-          </div>
-
-          <div class="filter-grid">
-            <div class="form-group">
-              <label for="filter-process">工程フィルター</label>
-              <select id="filter-process">
-                <option value="">すべて</option>
-                <option>レザー加工</option>
-                <option>外注工程</option>
-                <option>曲げ加工</option>
-                <option>準備工程</option>
-                <option>外枠組立工程</option>
-                <option>パンタ組立工程</option>
-                <option>シャッター組立工程</option>
-                <option>スポット工程</option>
-                <option>コーキング工程</option>
-                <option>溶接工程</option>
-                <option>組立工程</option>
-                <option>検査工程</option>
-                <option>検査保留</option>
-                <option>出荷準備</option>
-                <option>出荷完成</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="filter-terminal">端末フィルター</label>
-              <input id="filter-terminal" type="text" placeholder="端末IDまたは名称で検索">
-            </div>
-            <div class="form-group">
-              <label for="filter-product">製品番号フィルター</label>
-              <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
-            </div>
-            <div class="form-group">
-              <label>期間フィルター</label>
-              <div class="date-range">
-                <input id="filter-date-from" type="date">
-                <span>〜</span>
-                <input id="filter-date-to" type="date">
-              </div>
-            </div>
-          </div>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>時刻(終了)</th>
-                  <th>製品番号</th>
-                  <th>工程</th>
-                  <th>端末</th>
-                  <th>ユーザー</th>
-                  <th>数量(OK/不良)</th>
-                  <th>ステータス</th>
-                  <th>所要時間(分)</th>
-                  <th>ロケーション</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody id="logs-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+  <!-- ★ 工程別 生産量（直近7日）を下に -->
+  <div class="card small-gap">
+    <h2 class="card-title">工程別 生産量（直近7日）</h2>
+    <div class="chart-wrapper">
+      <canvas id="process-chart"></canvas>
+    </div>
+  </div>
+</section>
 
       <!-- Scan -->
       <section id="scan-section" class="section">
