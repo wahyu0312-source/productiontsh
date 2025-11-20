@@ -50,6 +50,22 @@ function showToast(message, type = 'info') {
     el.classList.add('hidden');
   }, 3000);
 }
+let dashboardAutoTimer = null;
+
+function startDashboardAutoRefresh() {
+  // すでにタイマーがあれば一旦クリア
+  if (dashboardAutoTimer) clearInterval(dashboardAutoTimer);
+
+  // 60秒ごとにダッシュボードを更新
+  dashboardAutoTimer = setInterval(() => {
+    const dashSection = document.getElementById('dashboard-section');
+    if (dashSection && dashSection.classList.contains('active')) {
+      loadDashboard();
+      loadAnalytics();
+    }
+  }, 60000); // 60000ms = 60秒
+}
+
 function escapeHtml(text) {
   if (text == null) return '';
   return String(text)
@@ -299,8 +315,28 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMasterData();
   loadDashboard();
   loadAnalytics();
+  startDashboardAutoRefresh();
   loadPlans();
 });
+async function loginWithUserId(userId) {
+  try {
+    setGlobalLoading(true, 'ユーザー認証中...');
+    const user = await callApi('getUser', { userId });
+    currentUser = user;
+    // ... update UI ...
+    updateAdminVisibility();
+    renderDashboardTable();
+    renderTerminalQrListIfAdmin();
+
+    startDashboardAutoRefresh(); // ★ login後に再スタート
+
+    showToast('ログインしました: ' + user.name_ja, 'success');
+  } catch (err) {
+    // ...
+  } finally {
+    setGlobalLoading(false);
+  }
+}
 
 // ----------------------------------
 // Sidebar navigation
