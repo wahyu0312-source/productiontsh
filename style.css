@@ -129,6 +129,17 @@ body {
   align-items: center;
   gap: 10px;
 }
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
 .quick-search {
   display: flex;
@@ -715,11 +726,15 @@ tbody tr:hover {
     left: 0;
     bottom: 0;
     z-index: 40;
-    transform: translateX(0);
+    transform: translateX(-100%); /* 初期は隠す */
   }
 
   .sidebar.sidebar-hidden {
     transform: translateX(-100%);
+  }
+
+  .sidebar:not(.sidebar-hidden) {
+    transform: translateX(0);
   }
 
   /* コンテンツは常に全幅 */
@@ -727,11 +742,90 @@ tbody tr:hover {
     flex: none;
   }
 
+  /* コンテンツの余白を少し小さく */
+  .content {
+    padding: 10px 10px 24px;
+  }
+
+  /* トップバーを2段構成にして崩れないようにする */
+  .topbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 10px 12px;
+  }
+
+  .topbar-left {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topbar-right {
+    width: 100%;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .quick-search {
+    flex: 1;
+  }
+
+  .quick-search input {
+    width: 100%;
+  }
+
+  .user-chip {
+    margin-left: auto;
+  }
+
   /* バーガーボタンを表示 */
   .burger-button {
     display: inline-block;
   }
+
+  /* カードを少しコンパクトに */
+  .card {
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  /* Admin セクションは画面幅いっぱいに */
+  #admin-section > .card {
+    max-width: none;
+    margin: 8px 0;
+    border-radius: 0;
+  }
+
+  /* フォームグリッドは1列寄りに */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* テーブルの文字を少し小さく（はみ出し対策） */
+  table {
+    font-size: 0.75rem;
+  }
+
+  th, td {
+    padding: 4px 6px;
+  }
+
+  /* チャート高さを少し下げて見やすく */
+  .chart-wrapper {
+    height: 180px;
+  }
 }
+
+
 .user-meta {
   font-size: 0.8rem;
 }
