@@ -257,7 +257,8 @@
 
           <div class="form-grid">
             <div class="form-group">
-              <label for="product-code-input">製品番号 / ロット番号</label>
+             <label for="product-code-input" class="required-label">製品番号 / ロット番号</label>
+
               <input id="product-code-input" type="text" placeholder="例: P-20251120-001">
             </div>
             <div class="form-group">
@@ -269,14 +270,16 @@
               <small>開始を選択すると開始時刻が記録され、終了で実績が保存されます。</small>
             </div>
             <div class="form-group">
-              <label for="status-select">ステータス</label>
+              <label for="status-select" class="required-label">ステータス</label>
+
               <select id="status-select">
                 <option value="通常">通常</option>
                 <option value="検査保留">検査保留（検査工程のみ）</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="qty-total-input">総数量</label>
+              <label for="qty-total-input" class="required-label">総数量</label>
+
               <input id="qty-total-input" type="number" min="0" value="0">
             </div>
             <div class="form-group">
