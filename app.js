@@ -64,6 +64,12 @@ function setupButtons() {
   document.getElementById('btn-start-terminal-scan').addEventListener('click', () => {
     startQrScan('terminal');
   });
+
+  const manualBtn = document.getElementById('btn-manual-login');
+  if (manualBtn) {
+    manualBtn.addEventListener('click', handleManualLogin);
+  }
+
   document.getElementById('btn-save-log').addEventListener('click', handleSaveLog);
   document.getElementById('btn-clear-form').addEventListener('click', clearForm);
 
@@ -224,6 +230,16 @@ async function loginWithUserId(userId) {
     console.error(err);
     alert('ユーザー認証に失敗しました: ' + err.message);
   }
+}
+async function handleManualLogin() {
+  const input = document.getElementById('manual-user-id');
+  if (!input) return;
+  const userId = input.value.trim();
+  if (!userId) {
+    alert('ユーザーIDを入力してください。');
+    return;
+  }
+  await loginWithUserId(userId);
 }
 
 // ----------------------------------
