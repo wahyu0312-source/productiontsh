@@ -181,16 +181,28 @@
       <!-- Scan -->
       <section id="scan-section" class="section">
         <div class="card">
-          <h2 class="card-title">ユーザー認証</h2>
-          <p>ユーザーQRコードをスキャンしてログインしてください。</p>
-          <div class="user-info">
-            <div><strong>ログインユーザー:</strong> <span id="current-user-name">未ログイン</span></div>
-            <div><strong>ユーザーID:</strong> <span id="current-user-id">-</span></div>
-            <div><strong>権限:</strong> <span id="current-user-role">-</span></div>
-          </div>
-          <button id="btn-start-user-scan" class="primary-button">ユーザーQRスキャン開始</button>
-          <div id="qr-reader" class="qr-reader"></div>
-        </div>
+  <h2 class="card-title">ユーザー認証</h2>
+  <p>ユーザーQRコードをスキャンするか、ユーザーIDを入力してログインしてください。</p>
+
+  <div class="user-info">
+    <div><strong>ログインユーザー:</strong> <span id="current-user-name">未ログイン</span></div>
+    <div><strong>ユーザーID:</strong> <span id="current-user-id">-</span></div>
+    <div><strong>権限:</strong> <span id="current-user-role">-</span></div>
+  </div>
+
+  <!-- Login manual -->
+  <div class="manual-login-row">
+    <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
+    <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
+  </div>
+
+  <div style="margin-top:8px;">
+    <button id="btn-start-user-scan" class="primary-button">ユーザーQRスキャン開始</button>
+  </div>
+
+  <div id="qr-reader" class="qr-reader"></div>
+</div>
+
 
         <div class="card">
           <h2 class="card-title">工程・端末スキャン</h2>
