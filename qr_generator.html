@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>端末QRコード生成</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body { font-family: system-ui; padding: 12px; }
+    input { padding: 4px; margin: 2px 0; width: 100%; }
+    button { padding: 6px 12px; margin: 4px 0; }
+    .qr-card {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 8px;
+      margin: 8px 0;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+<h1>端末 QR コード生成</h1>
+
+<label>フロントエンドURL (index.html)</label>
+<input type="text" id="frontendUrl" placeholder="https://xxx.github.io/your-repo/index.html">
+
+<label>端末ID (カンマ区切り)</label>
+<input type="text" id="terminalIds" placeholder="T-001,T-002,T-003">
+
+<button onclick="generate()">生成</button>
+
+<div id="result"></div>
+
+<script>
+  function generate() {
+    const base = document.getElementById('frontendUrl').value.trim();
+    const list = document.getElementById('terminalIds').value.split(',').map(s => s.trim()).filter(Boolean);
+    const result = document.getElementById('result');
+    result.innerHTML = '';
+
+    list.forEach(id => {
+      const url = base + '?terminalId=' + encodeURIComponent(id);
+      const card = document.createElement('div');
+      card.className = 'qr-card';
+      const title = document.createElement('div');
+      title.textContent = '端末ID: ' + id;
+      const div = document.createElement('div');
+      new QRCode(div, {
+        text: url,
+        width: 128,
+        height: 128
+      });
+      const caption = document.createElement('div');
+      caption.textContent = url;
+      caption.style.fontSize = '10px';
+      card.appendChild(title);
+      card.appendChild(div);
+      card.appendChild(caption);
+      result.appendChild(card);
+    });
+  }
+</script>
+</body>
+</html>
