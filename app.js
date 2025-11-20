@@ -1,80 +1,69 @@
-// ================================
+// =====================================
 // 生産進捗トラッキング フロントエンド
-// ================================
+// =====================================
 
-// ★Apps Script Web App のURLをここに設定
-// 例: const API_URL = 'https://script.google.com/macros/s/XXXXX/exec';
+// ★Apps Script Web App URL（/exec）をセット
 const API_URL = 'https://script.google.com/macros/s/AKfycby_U7mv3AavS2AFgRE3mm-1ZKbT9cJodZwq_xayPy_twJQK74wp3nrO-Fgi5-0eO9v1/exec';
 
-// 現在ログイン中のユーザー情報
+// 状態
 let currentUser = null;
-
-// 現在選択中の端末情報
 let currentTerminal = null;
-
-// Users / Terminals マスターデータ
 let masterUsers = [];
 let masterTerminals = [];
-
-// html5-qrcode インスタンス
-let html5Qrcode = null;
-let currentScanMode = null; // 'user' or 'terminal'
-
-// 開始時刻セッション
-const ACTIVE_SESSION_KEY = 'active_sessions_v1';
-
-// オフラインキュー（送信待ちログ）
-const OFFLINE_QUEUE_KEY = 'offline_log_queue_v1';
-
-// ダッシュボードデータ
 let dashboardLogs = [];
-
-// Chart.js インスタンス
+let plans = [];
+let html5Qrcode = null;
+let currentScanMode = null;
 let processChart = null;
 
-// --------------------------------
+// localStorage keys
+const ACTIVE_SESSION_KEY = 'active_sessions_v1';
+const OFFLINE_QUEUE_KEY = 'offline_log_queue_v1';
+
+// ----------------------------------
 // 初期化
-// --------------------------------
+// ----------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
-  setupTabs();
+  setupSidebar();
   setupButtons();
+  setupOnlineOfflineHandlers();
+  setWelcomeDate();
+
   loadMasterData();
   loadDashboard();
   loadAnalytics();
-  setupOnlineOfflineHandlers();
+  loadPlans();
 });
 
-// --------------------------------
-// タブ切り替え
-// --------------------------------
+// ----------------------------------
+// Sidebar navigation
+// ----------------------------------
 
-function setupTabs() {
-  const buttons = document.querySelectorAll('.nav-button');
-  const panels = document.querySelectorAll('.tab-panel');
+function setupSidebar() {
+  const links = document.querySelectorAll('.sidebar-link');
+  const sections = document.querySelectorAll('.section');
 
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const target = btn.dataset.tab;
-      buttons.forEach(b => b.classList.toggle('active', b === btn));
-      panels.forEach(p => p.classList.toggle('active', p.id === target));
+  links.forEach(link => {
+    link.addEventListener('click', () => {
+      const target = link.dataset.section;
+      links.forEach(l => l.classList.toggle('active', l === link));
+      sections.forEach(sec => sec.classList.toggle('active', sec.id === target));
     });
   });
 }
 
-// --------------------------------
+// ----------------------------------
 // ボタンイベント
-// --------------------------------
+// ----------------------------------
 
 function setupButtons() {
   document.getElementById('btn-start-user-scan').addEventListener('click', () => {
     startQrScan('user');
   });
-
   document.getElementById('btn-start-terminal-scan').addEventListener('click', () => {
     startQrScan('terminal');
   });
-
   document.getElementById('btn-save-log').addEventListener('click', handleSaveLog);
   document.getElementById('btn-clear-form').addEventListener('click', clearForm);
 
@@ -82,24 +71,30 @@ function setupButtons() {
     loadDashboard();
     loadAnalytics();
   });
-
   document.getElementById('btn-export-product').addEventListener('click', handleExportProduct);
 
   document.getElementById('btn-edit-save').addEventListener('click', handleEditSave);
   document.getElementById('btn-edit-cancel').addEventListener('click', closeEditModal);
 
+  // Admin
   document.getElementById('btn-admin-create-user').addEventListener('click', handleCreateUser);
   document.getElementById('btn-admin-create-terminal').addEventListener('click', handleCreateTerminal);
+
+  // Plans
+  document.getElementById('btn-save-plan').addEventListener('click', handleSavePlan);
+  document.getElementById('btn-clear-plan').addEventListener('click', clearPlanForm);
+  document.getElementById('btn-refresh-plans').addEventListener('click', loadPlans);
+  document.getElementById('btn-import-plans').addEventListener('click', handleImportPlans);
 }
 
-// --------------------------------
-// オンライン/オフライン表示
-// --------------------------------
+// ----------------------------------
+// Online / Offline Indicator
+// ----------------------------------
 
 function setupOnlineOfflineHandlers() {
   const offlineIndicator = document.getElementById('offline-indicator');
 
-  function updateOnlineState() {
+  function updateState() {
     if (navigator.onLine) {
       offlineIndicator.classList.add('hidden');
       flushOfflineQueue();
@@ -107,103 +102,84 @@ function setupOnlineOfflineHandlers() {
       offlineIndicator.classList.remove('hidden');
     }
   }
-
-  window.addEventListener('online', updateOnlineState);
-  window.addEventListener('offline', updateOnlineState);
-  updateOnlineState();
+  window.addEventListener('online', updateState);
+  window.addEventListener('offline', updateState);
+  updateState();
 }
 
-// --------------------------------
-// API 呼び出しヘルパー
-// --------------------------------
+// ----------------------------------
+// Utils: API
+// ----------------------------------
 
-/**
- * Apps Script API 呼び出し
- * - application/x-www-form-urlencoded で送信し、CORSプリフライトを避ける
- */
 async function callApi(action, body) {
   const payload = Object.assign({}, body || {}, { action });
-  const payloadStr = JSON.stringify(payload);
-  const formBody = 'payload=' + encodeURIComponent(payloadStr);
+  const formBody = 'payload=' + encodeURIComponent(JSON.stringify(payload));
 
   const res = await fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
-    },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
     body: formBody
   });
 
   let json;
   try {
     json = await res.json();
-  } catch (err) {
-    throw new Error('サーバー応答が不正です (JSON 解析失敗)');
+  } catch (e) {
+    throw new Error('サーバー応答の解析に失敗しました');
   }
-
   if (!json.ok) {
     throw new Error(json.error || 'API エラー');
   }
   return json.data;
 }
 
-// --------------------------------
-// マスターデータ読み込み
-// --------------------------------
+// ----------------------------------
+// Master data
+// ----------------------------------
 
 async function loadMasterData() {
   try {
     const data = await callApi('getMasterData', {});
     masterUsers = data.users || [];
     masterTerminals = data.terminals || [];
+    renderTerminalQrListIfAdmin();
   } catch (err) {
     console.error(err);
     alert('マスターデータ取得に失敗しました: ' + err.message);
   }
 }
 
-// --------------------------------
-// QRコード スキャン
-// --------------------------------
+// ----------------------------------
+// QR Scan
+// ----------------------------------
 
 function startQrScan(mode) {
   currentScanMode = mode;
-
-  const readerElem = document.getElementById('qr-reader');
+  const readerElemId = 'qr-reader';
 
   if (html5Qrcode) {
-    try {
-      html5Qrcode.stop().catch(() => {});
-    } catch (e) {}
+    try { html5Qrcode.stop().catch(() => {}); } catch (e) {}
   }
 
-  html5Qrcode = new Html5Qrcode('qr-reader');
+  html5Qrcode = new Html5Qrcode(readerElemId);
+  const config = { fps: 10, qrbox: 250 };
 
   const onScanSuccess = async (decodedText) => {
-    try {
-      await html5Qrcode.stop();
-    } catch (e) {}
-
-    try {
-      await handleDecodedText(decodedText, mode);
-    } catch (err) {
+    try { await html5Qrcode.stop(); } catch (e) {}
+    try { await handleDecodedText(decodedText, mode); } catch (err) {
       alert('QR処理中にエラーが発生しました: ' + err.message);
     }
   };
 
-  const config = { fps: 10, qrbox: 250 };
-
   html5Qrcode.start({ facingMode: 'environment' }, config, onScanSuccess)
-    .catch(err => {
-      alert('カメラの起動に失敗しました: ' + err);
-    });
+    .catch(err => alert('カメラの起動に失敗しました: ' + err));
 }
 
 async function handleDecodedText(decodedText, mode) {
   let payload;
   try {
     payload = JSON.parse(decodedText);
-  } catch (e) {
+  } catch {
     payload = { type: mode, id: decodedText };
   }
 
@@ -213,7 +189,7 @@ async function handleDecodedText(decodedText, mode) {
       return;
     }
     await loginWithUserId(payload.id);
-  } else if (mode === 'terminal') {
+  } else {
     if (payload.type !== 'terminal') {
       alert('端末QRではありません。');
       return;
@@ -222,9 +198,9 @@ async function handleDecodedText(decodedText, mode) {
   }
 }
 
-// --------------------------------
-// ユーザー認証
-// --------------------------------
+// ----------------------------------
+// Login
+// ----------------------------------
 
 async function loginWithUserId(userId) {
   try {
@@ -235,8 +211,14 @@ async function loginWithUserId(userId) {
     document.getElementById('current-user-id').textContent = user.user_id;
     document.getElementById('current-user-role').textContent = user.role;
 
+    document.getElementById('top-username').textContent = user.name_ja;
+    document.getElementById('top-userrole').textContent = user.role;
+    document.getElementById('welcome-name').textContent = user.name_ja;
+
     updateAdminVisibility();
-    renderDashboardTable(); // 操作列の権限反映
+    renderDashboardTable();
+    renderTerminalQrListIfAdmin();
+
     alert('ログインしました: ' + user.name_ja);
   } catch (err) {
     console.error(err);
@@ -244,21 +226,21 @@ async function loginWithUserId(userId) {
   }
 }
 
-// --------------------------------
-// 端末選択（マスタから取得）
-// --------------------------------
+// ----------------------------------
+// Terminal select
+// ----------------------------------
 
 function selectTerminalById(terminalId) {
   const t = masterTerminals.find(x => x.terminal_id === terminalId);
-  if (!t) {
+  if (t) {
+    currentTerminal = t;
+  } else {
     currentTerminal = {
       terminal_id: terminalId,
       name_ja: '端末 ' + terminalId,
       process_name: '不明工程',
       location: '不明ロケーション'
     };
-  } else {
-    currentTerminal = t;
   }
 
   document.getElementById('current-terminal-name').textContent = currentTerminal.name_ja;
@@ -268,9 +250,9 @@ function selectTerminalById(terminalId) {
   alert('端末を選択しました: ' + currentTerminal.terminal_id);
 }
 
-// --------------------------------
-// 開始/終了 保存処理 + オフラインキュー
-// --------------------------------
+// ----------------------------------
+// Save Log (start / end)
+// ----------------------------------
 
 async function handleSaveLog() {
   if (!currentUser) {
@@ -283,42 +265,33 @@ async function handleSaveLog() {
   }
 
   const productCode = document.getElementById('product-code-input').value.trim();
-  if (!productCode) {
-    if (!confirm('製品番号が未入力です。空のまま保存してもよろしいですか？')) {
-      return;
-    }
-  }
+  if (!productCode && !confirm('製品番号が未入力です。空のまま保存しますか？')) return;
 
   const mode = document.querySelector('input[name="mode"]:checked').value;
-  const status = document.getElementById('status-select').value;
+  const statusInput = document.getElementById('status-select').value;
   const qtyTotal = Number(document.getElementById('qty-total-input').value || 0);
   const qtyOk = Number(document.getElementById('qty-ok-input').value || 0);
   const qtyNg = Number(document.getElementById('qty-ng-input').value || 0);
 
   const now = new Date();
   const sessionKey = buildSessionKey(currentUser.user_id, currentTerminal.terminal_id, productCode);
-  let activeSessions = loadActiveSessions();
+  let sessions = loadActiveSessions();
 
   if (mode === 'start') {
-    activeSessions[sessionKey] = now.toISOString();
-    saveActiveSessions(activeSessions);
-    alert('開始時刻を記録しました。終了時に同じユーザー + 端末 + 製品番号で「終了」を保存してください。');
+    sessions[sessionKey] = now.toISOString();
+    saveActiveSessions(sessions);
+    alert('開始時刻を記録しました。終了時に同じ組み合わせで保存してください。');
     return;
   }
 
-  const startIso = activeSessions[sessionKey];
-  if (!startIso) {
-    if (!confirm('開始時刻が見つかりません。現在時刻を開始として保存しますか？')) {
-      return;
-    }
+  const startIso = sessions[sessionKey];
+  if (!startIso && !confirm('開始時刻が見つかりません。現在時刻を開始として保存しますか？')) {
+    return;
   }
 
-  const startDate = startIso ? new Date(startIso) : now;
-  const endDate = now;
-  const durationSec = Math.round((endDate - startDate) / 1000);
-
-  const timestampStartStr = formatDateTime(startDate);
-  const timestampEndStr = formatDateTime(endDate);
+  const start = startIso ? new Date(startIso) : now;
+  const end = now;
+  const durationSec = Math.round((end - start) / 1000);
 
   const log = {
     product_code: productCode,
@@ -328,20 +301,20 @@ async function handleSaveLog() {
     user_id: currentUser.user_id,
     user_name: currentUser.name_ja,
     role: currentUser.role,
-    status: status === '検査保留' ? '検査保留' : '終了',
+    status: statusInput === '検査保留' ? '検査保留' : '終了',
     qty_total: qtyTotal,
     qty_ok: qtyOk,
     qty_ng: qtyNg,
-    timestamp_start: timestampStartStr,
-    timestamp_end: timestampEndStr,
+    timestamp_start: formatDateTime(start),
+    timestamp_end: formatDateTime(end),
     duration_sec: durationSec,
     location: currentTerminal.location
   };
 
   try {
     await callApi('logEvent', { log });
-    delete activeSessions[sessionKey];
-    saveActiveSessions(activeSessions);
+    delete sessions[sessionKey];
+    saveActiveSessions(sessions);
 
     alert('ログを保存しました。');
     clearForm();
@@ -349,19 +322,16 @@ async function handleSaveLog() {
     loadAnalytics();
   } catch (err) {
     console.error(err);
-    // ネットワーク系エラーの場合はオフラインキューに入れる
-    if (!navigator.onLine || err.message.includes('サーバー応答')) {
+    if (!navigator.onLine) {
       enqueueOfflineLog(log);
-      alert('ネットワークエラーのため、オフラインキューに保存しました。オンライン復帰後に自動送信されます。');
+      alert('オフラインのためキューに保存しました。オンライン復帰後に送信します。');
     } else {
       alert('ログ保存に失敗しました: ' + err.message);
     }
   }
 }
 
-// --------------------------------
-// 開始セッション管理（localStorage）
-// --------------------------------
+// Active session
 
 function buildSessionKey(userId, terminalId, productCode) {
   return `${userId}__${terminalId}__${productCode || ''}`;
@@ -371,58 +341,54 @@ function loadActiveSessions() {
   try {
     const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
     return raw ? JSON.parse(raw) : {};
-  } catch (e) {
+  } catch {
     return {};
   }
 }
 
-function saveActiveSessions(sessions) {
-  localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(sessions || {}));
+function saveActiveSessions(obj) {
+  localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(obj || {}));
 }
 
-// --------------------------------
-// オフラインキュー管理
-// --------------------------------
+// Offline queue
 
 function enqueueOfflineLog(log) {
-  const queue = loadOfflineQueue();
-  queue.push(log);
-  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  const q = loadOfflineQueue();
+  q.push(log);
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q));
 }
 
 function loadOfflineQueue() {
   try {
     const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch (e) {
+  } catch {
     return [];
   }
 }
 
 async function flushOfflineQueue() {
-  let queue = loadOfflineQueue();
-  if (queue.length === 0) return;
-
-  const remaining = [];
-  for (const log of queue) {
+  const q = loadOfflineQueue();
+  if (q.length === 0) return;
+  const remain = [];
+  for (const log of q) {
     try {
       await callApi('logEvent', { log });
     } catch (err) {
       console.error('オフラインキュー送信失敗', err);
-      remaining.push(log);
+      remain.push(log);
     }
   }
-  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
-  if (queue.length !== remaining.length) {
-    alert('オフライン中のデータの一部をサーバーへ送信しました。');
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remain));
+  if (q.length !== remain.length) {
     loadDashboard();
     loadAnalytics();
   }
 }
 
-// --------------------------------
-// フォームクリア + 日付ユーティリティ
-// --------------------------------
+// ----------------------------------
+// Form utils
+// ----------------------------------
 
 function clearForm() {
   document.getElementById('product-code-input').value = '';
@@ -432,19 +398,20 @@ function clearForm() {
 }
 
 function formatDateTime(date) {
-  const pad = (n) => String(n).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  const mm = pad(date.getMonth() + 1);
-  const dd = pad(date.getDate());
-  const hh = pad(date.getHours());
-  const mi = pad(date.getMinutes());
-  const ss = pad(date.getSeconds());
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+  const pad = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-// --------------------------------
-// ダッシュボード読み込み・描画
-// --------------------------------
+function setWelcomeDate() {
+  const el = document.getElementById('welcome-date');
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  el.textContent = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+}
+
+// ----------------------------------
+// Dashboard: load & render
+// ----------------------------------
 
 async function loadDashboard() {
   try {
@@ -454,7 +421,7 @@ async function loadDashboard() {
     updateAlertBanner();
   } catch (err) {
     console.error(err);
-    alert('ダッシュボードデータ取得に失敗しました: ' + err.message);
+    alert('ダッシュボード取得に失敗しました: ' + err.message);
   }
 }
 
@@ -470,12 +437,10 @@ function renderDashboardTable() {
   const dateTo = document.getElementById('filter-date-to').value;
 
   const filtered = dashboardLogs.filter(log => {
-    if (processFilter) {
-      if (log.process_name !== processFilter && log.status !== processFilter) return false;
-    }
+    if (processFilter && log.process_name !== processFilter && log.status !== processFilter) return false;
     if (terminalFilter) {
-      const target = (log.terminal_id + ' ' + log.terminal_name).toLowerCase();
-      if (!target.includes(terminalFilter)) return false;
+      const t = (log.terminal_id + ' ' + log.terminal_name).toLowerCase();
+      if (!t.includes(terminalFilter)) return false;
     }
     if (productFilter) {
       if (!String(log.product_code || '').toLowerCase().includes(productFilter)) return false;
@@ -500,13 +465,9 @@ function renderDashboardTable() {
     const statusCell = document.createElement('td');
     const badge = document.createElement('span');
     badge.classList.add('badge');
-    if (log.status === '検査保留') {
-      badge.classList.add('badge-hold');
-    } else if (log.status === '終了' || log.status === '通常') {
-      badge.classList.add('badge-normal');
-    } else {
-      badge.classList.add('badge-error');
-    }
+    if (log.status === '検査保留') badge.classList.add('badge-hold');
+    else if (log.status === '終了' || log.status === '通常') badge.classList.add('badge-normal');
+    else badge.classList.add('badge-error');
     badge.textContent = log.status || '-';
     statusCell.appendChild(badge);
 
@@ -524,9 +485,9 @@ function renderDashboardTable() {
     tdDuration.textContent = durationMin || '';
     tr.appendChild(tdDuration);
 
-    const tdLocation = document.createElement('td');
-    tdLocation.textContent = log.location || '';
-    tr.appendChild(tdLocation);
+    const tdLoc = document.createElement('td');
+    tdLoc.textContent = log.location || '';
+    tr.appendChild(tdLoc);
 
     const tdActions = document.createElement('td');
     if (currentUser && currentUser.role === 'admin') {
@@ -554,21 +515,16 @@ function renderDashboardTable() {
   });
 }
 
-// 不良または検査保留が最近あるかどうかでバナー表示
 function updateAlertBanner() {
   const banner = document.getElementById('alert-banner');
-  const recent = dashboardLogs.slice(0, 50); // 直近50件だけ確認
-  const hasProblem = recent.some(log => (log.qty_ng || 0) > 0 || log.status === '検査保留');
-  if (hasProblem) {
-    banner.classList.remove('hidden');
-  } else {
-    banner.classList.add('hidden');
-  }
+  const hasProblem = dashboardLogs.slice(0, 50).some(l => (l.qty_ng || 0) > 0 || l.status === '検査保留');
+  if (hasProblem) banner.classList.remove('hidden');
+  else banner.classList.add('hidden');
 }
 
-// --------------------------------
-// ログ編集・削除
-// --------------------------------
+// ----------------------------------
+// Log edit / delete
+// ----------------------------------
 
 function openEditModal(log) {
   document.getElementById('edit-log-id').value = log.log_id;
@@ -600,7 +556,7 @@ async function handleEditSave() {
     loadAnalytics();
   } catch (err) {
     console.error(err);
-    alert('ログの更新に失敗しました: ' + err.message);
+    alert('ログ更新に失敗しました: ' + err.message);
   }
 }
 
@@ -613,13 +569,13 @@ async function handleDeleteLog(log) {
     loadAnalytics();
   } catch (err) {
     console.error(err);
-    alert('ログの削除に失敗しました: ' + err.message);
+    alert('ログ削除に失敗しました: ' + err.message);
   }
 }
 
-// --------------------------------
-// Excelエクスポート
-// --------------------------------
+// ----------------------------------
+// Export logs CSV (per product)
+// ----------------------------------
 
 async function handleExportProduct() {
   const productCode = prompt('エクスポートする製品番号を入力してください:');
@@ -637,41 +593,40 @@ async function handleExportProduct() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const now = new Date();
-    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const pad = n => String(n).padStart(2, '0');
     a.href = url;
-    a.download = `logs_${productCode}_${ts}.csv`;
+    a.download = `logs_${productCode}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
-    alert('CSVファイルをダウンロードしました。Excelで開いてください。');
   } catch (err) {
     console.error(err);
     alert('エクスポートに失敗しました: ' + err.message);
   }
 }
 
-// --------------------------------
-// 管理者メニュー表示制御
-// --------------------------------
+// ----------------------------------
+// Admin visibility & QR
+// ----------------------------------
 
 function updateAdminVisibility() {
-  const guardMsg = document.getElementById('admin-guard-message');
+  const guard = document.getElementById('admin-guard-message');
   const adminContent = document.getElementById('admin-content');
+  const adminLinks = document.querySelectorAll('.admin-only');
 
-  if (currentUser && currentUser.role === 'admin') {
-    guardMsg.classList.add('hidden');
+  const isAdmin = currentUser && currentUser.role === 'admin';
+
+  if (isAdmin) {
+    guard.classList.add('hidden');
     adminContent.classList.remove('hidden');
+    adminLinks.forEach(l => l.classList.remove('hidden'));
   } else {
-    guardMsg.classList.remove('hidden');
+    guard.classList.remove('hidden');
     adminContent.classList.add('hidden');
+    adminLinks.forEach(l => l.classList.add('hidden'));
   }
 }
-
-// --------------------------------
-// 管理者: ユーザー登録 + QR生成
-// --------------------------------
 
 async function handleCreateUser() {
   if (!currentUser || currentUser.role !== 'admin') {
@@ -697,17 +652,12 @@ async function handleCreateUser() {
     container.innerHTML = '';
     new QRCode(container, { text: qrData, width: 160, height: 160 });
 
-    // もう一度マスタを更新
     loadMasterData();
   } catch (err) {
     console.error(err);
     alert('ユーザー登録に失敗しました: ' + err.message);
   }
 }
-
-// --------------------------------
-// 管理者: 端末登録 + QR生成
-// --------------------------------
 
 async function handleCreateTerminal() {
   if (!currentUser || currentUser.role !== 'admin') {
@@ -731,7 +681,6 @@ async function handleCreateTerminal() {
     await callApi('createTerminal', {
       terminal: { terminal_id: terminalId, name_ja: nameJa, process_name: processName, location, qr_value: qrValue }
     });
-
     alert('端末を登録しました。');
 
     const container = document.getElementById('terminal-qr-container');
@@ -745,28 +694,64 @@ async function handleCreateTerminal() {
   }
 }
 
-// --------------------------------
-// Analytics (Chart.js)
-// --------------------------------
+// 端末QR 一覧（印刷用）
+
+function renderTerminalQrListIfAdmin() {
+  const listEl = document.getElementById('terminal-qr-list');
+  const guardEl = document.getElementById('terminalqr-guard');
+  if (!listEl || !guardEl) return;
+
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  if (!isAdmin) {
+    listEl.classList.add('hidden');
+    guardEl.classList.remove('hidden');
+    return;
+  }
+
+  guardEl.classList.add('hidden');
+  listEl.classList.remove('hidden');
+  listEl.innerHTML = '';
+
+  masterTerminals.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'terminalqr-card';
+    const qrDiv = document.createElement('div');
+    const qrData = t.qr_value || JSON.stringify({ type: 'terminal', id: t.terminal_id });
+
+    new QRCode(qrDiv, { text: qrData, width: 120, height: 120 });
+
+    card.innerHTML = `
+      <h4>${t.name_ja || ''}</h4>
+      <div style="font-size:0.75rem;color:#6b7280;">工程: ${t.process_name || ''}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">ID: ${t.terminal_id || ''}</div>
+    `;
+    card.appendChild(qrDiv);
+    listEl.appendChild(card);
+  });
+}
+
+// ----------------------------------
+// Analytics (Chart + summary)
+// ----------------------------------
 
 async function loadAnalytics() {
   try {
     const data = await callApi('getAnalytics', {});
     const today = data.today || { total: 0, ng: 0 };
     const byProcess = data.byProcess || [];
+    const counts = data.counts || { terminals: 0, plans: 0 };
 
     document.getElementById('today-total').textContent = today.total;
     document.getElementById('today-ng').textContent = today.ng;
+    document.getElementById('summary-terminals').textContent = counts.terminals;
+    document.getElementById('summary-plans').textContent = counts.plans;
 
     const labels = byProcess.map(x => x.process_name || '不明');
     const totals = byProcess.map(x => x.total || 0);
 
     const ctx = document.getElementById('process-chart');
     if (!ctx) return;
-
-    if (processChart) {
-      processChart.destroy();
-    }
+    if (processChart) processChart.destroy();
 
     processChart = new Chart(ctx, {
       type: 'bar',
@@ -780,16 +765,167 @@ async function loadAnalytics() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          y: { beginAtZero: true }
-        }
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+        animation: false
       }
     });
   } catch (err) {
     console.error(err);
-    // 分析は必須ではないため、アラートは出さずログのみ
+  }
+}
+
+// ----------------------------------
+// Plans (生産計画)
+// ----------------------------------
+
+async function loadPlans() {
+  try {
+    const data = await callApi('getPlans', {});
+    plans = data || [];
+    renderPlanTable();
+  } catch (err) {
+    console.error(err);
+    alert('生産計画の取得に失敗しました: ' + err.message);
+  }
+}
+
+function renderPlanTable() {
+  const tbody = document.getElementById('plans-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  plans.forEach(plan => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${plan.product_code || ''}</td>
+      <td>${plan.product_name || ''}</td>
+      <td>${plan.process_name || ''}</td>
+      <td>${plan.planned_qty || 0}</td>
+      <td>${plan.planned_start || ''}</td>
+      <td>${plan.planned_end || ''}</td>
+      <td>${plan.status || ''}</td>
+    `;
+
+    const tdActions = document.createElement('td');
+    const detailBtn = document.createElement('button');
+    detailBtn.textContent = '詳細';
+    detailBtn.className = 'ghost-button';
+    detailBtn.style.fontSize = '0.7rem';
+    detailBtn.addEventListener('click', () => showPlanDetail(plan));
+
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = '実績CSV';
+    exportBtn.className = 'ghost-button';
+    exportBtn.style.fontSize = '0.7rem';
+    exportBtn.style.marginLeft = '4px';
+    exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
+
+    tdActions.appendChild(detailBtn);
+    tdActions.appendChild(exportBtn);
+    tr.appendChild(tdActions);
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function showPlanDetail(plan) {
+  // 簡易版: ダッシュボードログから同じ製品番号をフィルタしてalertで表示
+  const related = dashboardLogs.filter(l => l.product_code === plan.product_code);
+  let msg = `【計画情報】\n製品番号: ${plan.product_code}\n製品名: ${plan.product_name}\n工程: ${plan.process_name}\n計画数量: ${plan.planned_qty}\n計画期間: ${plan.planned_start} ～ ${plan.planned_end}\nステータス: ${plan.status}\n\n【実績一覧】\n`;
+  if (related.length === 0) {
+    msg += '実績はまだありません。';
+  } else {
+    related.slice(0, 20).forEach(l => {
+      msg += `- ${l.timestamp_end || l.timestamp_start} 端末:${l.terminal_name} 数量:${l.qty_total} (NG:${l.qty_ng})\n`;
+    });
+    if (related.length > 20) msg += `... ほか ${related.length - 20} 件\n`;
+  }
+  alert(msg);
+}
+
+async function exportLogsForProduct(productCode) {
+  if (!productCode) return;
+  const fakeEvent = { preventDefault: () => {} };
+  await handleExportProductForCode(productCode);
+}
+
+async function handleExportProductForCode(productCode) {
+  try {
+    const data = await callApi('exportLogsByProduct', { productCode });
+    const csv = data.csv || '';
+    if (!csv) {
+      alert('対象データがありません。');
+      return;
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    a.href = url;
+    a.download = `logs_${productCode}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert('エクスポートに失敗しました: ' + err.message);
+  }
+}
+
+async function handleSavePlan() {
+  const product_code = document.getElementById('plan-product-code').value.trim();
+  const product_name = document.getElementById('plan-product-name').value.trim();
+  const process_name = document.getElementById('plan-process').value;
+  const planned_qty = Number(document.getElementById('plan-qty').value || 0);
+  const planned_start = document.getElementById('plan-start').value;
+  const planned_end = document.getElementById('plan-end').value;
+  const status = document.getElementById('plan-status').value;
+
+  if (!product_code) {
+    alert('製品番号を入力してください。');
+    return;
+  }
+
+  const plan = { product_code, product_name, process_name, planned_qty, planned_start, planned_end, status };
+
+  try {
+    await callApi('upsertPlan', { plan });
+    alert('生産計画を保存しました。');
+    clearPlanForm();
+    loadPlans();
+    loadAnalytics();
+  } catch (err) {
+    console.error(err);
+    alert('生産計画の保存に失敗しました: ' + err.message);
+  }
+}
+
+function clearPlanForm() {
+  document.getElementById('plan-product-code').value = '';
+  document.getElementById('plan-product-name').value = '';
+  document.getElementById('plan-qty').value = 0;
+  document.getElementById('plan-start').value = '';
+  document.getElementById('plan-end').value = '';
+}
+
+async function handleImportPlans() {
+  const text = document.getElementById('plan-import-text').value.trim();
+  if (!text) {
+    alert('CSVテキストを貼り付けてください。');
+    return;
+  }
+  try {
+    const data = await callApi('importPlansCsv', { csvText: text });
+    alert(`インポートしました: ${data.imported} 件`);
+    document.getElementById('plan-import-text').value = '';
+    loadPlans();
+    loadAnalytics();
+  } catch (err) {
+    console.error(err);
+    alert('インポートに失敗しました: ' + err.message);
   }
 }
