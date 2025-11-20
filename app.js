@@ -318,25 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startDashboardAutoRefresh();
   loadPlans();
 });
-async function loginWithUserId(userId) {
-  try {
-    setGlobalLoading(true, 'ユーザー認証中...');
-    const user = await callApi('getUser', { userId });
-    currentUser = user;
-    // ... update UI ...
-    updateAdminVisibility();
-    renderDashboardTable();
-    renderTerminalQrListIfAdmin();
 
-    startDashboardAutoRefresh(); // ★ login後に再スタート
-
-    showToast('ログインしました: ' + user.name_ja, 'success');
-  } catch (err) {
-    // ...
-  } finally {
-    setGlobalLoading(false);
-  }
-}
 
 // ----------------------------------
 // Sidebar navigation
