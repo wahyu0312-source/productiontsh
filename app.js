@@ -387,66 +387,100 @@ function setupSidebar() {
 // ----------------------------------
 
 function setupButtons() {
-  document.getElementById('btn-start-user-scan').addEventListener('click', () => {
-    startQrScan('user');
-  });
-  document.getElementById('btn-start-terminal-scan').addEventListener('click', () => {
-    startQrScan('terminal');
-  });
+  // ユーザーQRスキャン
+  const btnUserScan = document.getElementById('btn-start-user-scan');
+  if (btnUserScan) {
+    btnUserScan.addEventListener('click', () => startQrScan('user'));
+  }
 
-  // ★ login manual: klik tombol
+  // 工程QRスキャン
+  const btnTerminalScan = document.getElementById('btn-start-terminal-scan');
+  if (btnTerminalScan) {
+    btnTerminalScan.addEventListener('click', () => startQrScan('terminal'));
+  }
+
+  // 手動ログイン（ボタン）
   const manualBtn = document.getElementById('btn-manual-login');
   const manualInput = document.getElementById('manual-user-id');
   if (manualBtn) {
     manualBtn.addEventListener('click', handleManualLogin);
   }
-  // ★ login manual: tekan Enter di入力欄
+  // 手動ログイン（Enter）
   if (manualInput) {
-    manualInput.addEventListener('keypress', (e) => {
+    manualInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
+        e.preventDefault();
         handleManualLogin();
       }
     });
-  
-     // ヘルプモーダル
+  }
+
+  // ヘルプモーダル
   const helpBtn = document.getElementById('btn-help');
   const helpClose = document.getElementById('btn-help-close');
   if (helpBtn && helpClose) {
     helpBtn.addEventListener('click', openHelpModal);
     helpClose.addEventListener('click', closeHelpModal);
   }
-  }
-// ★ ヘッダー製品検索
+
+  // ヘッダー製品検索
   const headerSearchBtn = document.getElementById('btn-header-search');
   const headerSearchInput = document.getElementById('header-product-search');
   if (headerSearchBtn && headerSearchInput) {
     headerSearchBtn.addEventListener('click', handleHeaderSearch);
-    headerSearchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') handleHeaderSearch();
+    headerSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleHeaderSearch();
+      }
     });
   }
 
-  document.getElementById('btn-save-log').addEventListener('click', handleSaveLog);
-  document.getElementById('btn-clear-form').addEventListener('click', clearForm);
+  // スキャン画面 保存 / クリア
+  const btnSaveLog = document.getElementById('btn-save-log');
+  if (btnSaveLog) btnSaveLog.addEventListener('click', handleSaveLog);
 
-  document.getElementById('btn-refresh-dashboard').addEventListener('click', () => {
-    loadDashboard();
-    loadAnalytics();
-  });
-  document.getElementById('btn-export-product').addEventListener('click', handleExportProduct);
+  const btnClearForm = document.getElementById('btn-clear-form');
+  if (btnClearForm) btnClearForm.addEventListener('click', clearForm);
 
-  document.getElementById('btn-edit-save').addEventListener('click', handleEditSave);
-  document.getElementById('btn-edit-cancel').addEventListener('click', closeEditModal);
+  // ダッシュボード更新 / エクスポート
+  const btnRefreshDashboard = document.getElementById('btn-refresh-dashboard');
+  if (btnRefreshDashboard) {
+    btnRefreshDashboard.addEventListener('click', () => {
+      loadDashboard();
+      loadAnalytics();
+    });
+  }
 
-  // Admin
-  document.getElementById('btn-admin-create-user').addEventListener('click', handleCreateUser);
-  document.getElementById('btn-admin-create-terminal').addEventListener('click', handleCreateTerminal);
+  const btnExportProduct = document.getElementById('btn-export-product');
+  if (btnExportProduct) btnExportProduct.addEventListener('click', handleExportProduct);
 
-  // Plans
-  document.getElementById('btn-save-plan').addEventListener('click', handleSavePlan);
-  document.getElementById('btn-clear-plan').addEventListener('click', clearPlanForm);
-  document.getElementById('btn-refresh-plans').addEventListener('click', loadPlans);
-  document.getElementById('btn-import-plans').addEventListener('click', handleImportPlans);
+  // ログ編集モーダル
+  const btnEditSave = document.getElementById('btn-edit-save');
+  if (btnEditSave) btnEditSave.addEventListener('click', handleEditSave);
+
+  const btnEditCancel = document.getElementById('btn-edit-cancel');
+  if (btnEditCancel) btnEditCancel.addEventListener('click', closeEditModal);
+
+  // Admin: ユーザー / 工程登録
+  const btnCreateUser = document.getElementById('btn-admin-create-user');
+  if (btnCreateUser) btnCreateUser.addEventListener('click', handleCreateUser);
+
+  const btnCreateTerminal = document.getElementById('btn-admin-create-terminal');
+  if (btnCreateTerminal) btnCreateTerminal.addEventListener('click', handleCreateTerminal);
+
+  // 生産計画
+  const btnSavePlan = document.getElementById('btn-save-plan');
+  if (btnSavePlan) btnSavePlan.addEventListener('click', handleSavePlan);
+
+  const btnClearPlan = document.getElementById('btn-clear-plan');
+  if (btnClearPlan) btnClearPlan.addEventListener('click', clearPlanForm);
+
+  const btnRefreshPlans = document.getElementById('btn-refresh-plans');
+  if (btnRefreshPlans) btnRefreshPlans.addEventListener('click', loadPlans);
+
+  const btnImportPlans = document.getElementById('btn-import-plans');
+  if (btnImportPlans) btnImportPlans.addEventListener('click', handleImportPlans);
 }
 
 // ----------------------------------
