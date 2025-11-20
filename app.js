@@ -43,15 +43,42 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupSidebar() {
   const links = document.querySelectorAll('.sidebar-link');
   const sections = document.querySelectorAll('.section');
+  const sidebar = document.querySelector('.sidebar');
+  const burger = document.getElementById('btn-menu-toggle');
 
   links.forEach(link => {
     link.addEventListener('click', () => {
       const target = link.dataset.section;
       links.forEach(l => l.classList.toggle('active', l === link));
       sections.forEach(sec => sec.classList.toggle('active', sec.id === target));
+
+      // スマホではメニュー選択後にサイドバーを閉じる
+      if (window.innerWidth <= 800 && sidebar) {
+        sidebar.classList.add('sidebar-hidden');
+      }
     });
   });
+
+  if (burger && sidebar) {
+    burger.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-hidden');
+    });
+
+    // 初回ロード時、小さい画面なら閉じた状態から開始
+    if (window.innerWidth <= 800) {
+      sidebar.classList.add('sidebar-hidden');
+    }
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 800) {
+        sidebar.classList.remove('sidebar-hidden');
+      } else {
+        sidebar.classList.add('sidebar-hidden');
+      }
+    });
+  }
 }
+
 
 // ----------------------------------
 // ボタンイベント
