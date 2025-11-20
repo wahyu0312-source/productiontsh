@@ -371,7 +371,7 @@ function setupButtons() {
         handleManualLogin();
       }
     });
-  }
+  
      // ヘルプモーダル
   const helpBtn = document.getElementById('btn-help');
   const helpClose = document.getElementById('btn-help-close');
