@@ -836,11 +836,42 @@ async function loadAnalytics() {
     const today = data.today || { total: 0, ng: 0 };
     const byProcess = data.byProcess || [];
     const counts = data.counts || { terminals: 0, plans: 0 };
+const planVsActual = data.planVsActual || { plan_total: 0, actual_total: 0 };
 
     document.getElementById('today-total').textContent = today.total;
     document.getElementById('today-ng').textContent = today.ng;
     document.getElementById('summary-terminals').textContent = counts.terminals;
     document.getElementById('summary-plans').textContent = counts.plans;
+// 計画 vs 実績
+const planTotalEl = document.getElementById('plan-total');
+const actualTotalEl = document.getElementById('actual-total');
+const planRateEl = document.getElementById('plan-rate');
+const planProgressEl = document.getElementById('plan-progress');
+
+if (planTotalEl && actualTotalEl && planRateEl && planProgressEl) {
+  const planTotal = planVsActual.plan_total || 0;
+  const actualTotal = planVsActual.actual_total || 0;
+  const rate = planTotal > 0 ? Math.round((actualTotal * 100) / planTotal) : 0;
+  planTotalEl.textContent = planTotal;
+  actualTotalEl.textContent = actualTotal;
+  planRateEl.textContent = planTotal > 0 ? Math.min(rate, 200) : 0; // 表示は最大200%ぐらいまで
+
+  const width = planTotal > 0 ? Math.min(100, (actualTotal * 100) / planTotal) : 0;
+  planProgressEl.style.width = width + '%';
+}
+// ティッカーのメッセージ
+const tickerEl = document.getElementById('ticker-text');
+if (tickerEl) {
+  let msg;
+  if (today.ng > 0) {
+    msg = `本日、不良が ${today.ng} 個発生しています。原因と対策を確認してください。`;
+  } else if (today.total > 0) {
+    msg = `本日の生産数量は ${today.total} 個です。安全第一で作業を続けましょう。`;
+  } else {
+    msg = '生産データはまだありません。スキャン画面から実績を登録してください。';
+  }
+  tickerEl.textContent = msg;
+}
 
     const labels = byProcess.map(x => x.process_name || '不明');
     const totals = byProcess.map(x => x.total || 0);
