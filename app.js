@@ -50,6 +50,241 @@ function showToast(message, type = 'info') {
     el.classList.add('hidden');
   }, 3000);
 }
+function escapeHtml(text) {
+  if (text == null) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getRoleLabel(role) {
+  if (role === 'admin') return '管理者';
+  if (role === 'qc') return 'QC';
+  if (role === 'operator') return 'オペレーター';
+  return role || '';
+}
+
+function getQrImageData(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return null;
+  const img = container.querySelector('img');
+  const canvas = container.querySelector('canvas');
+  if (img && img.src) return img.src;
+  if (canvas && canvas.toDataURL) return canvas.toDataURL('image/png');
+  return null;
+}
+
+function downloadQrLabel(containerId, filename) {
+  const dataUrl = getQrImageData(containerId);
+  if (!dataUrl) {
+    showToast('QRコードが見つかりません。', 'error');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename || 'qr.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function printQrLabel(containerId, titleText, subtitleText) {
+  const dataUrl = getQrImageData(containerId);
+  if (!dataUrl) {
+    showToast('QRコードが見つかりません。', 'error');
+    return;
+  }
+  const win = window.open('', '_blank', 'width=400,height=400');
+  if (!win) {
+    showToast('ポップアップがブロックされています。', 'error');
+    return;
+  }
+  win.document.write(`
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>QRラベル</title>
+        <style>
+          body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 16px; }
+          .label-wrap { text-align: center; }
+          img { width: 140px; height: 140px; }
+          .title { margin-top: 8px; font-size: 14px; font-weight: 600; }
+          .sub { font-size: 12px; color: #4b5563; }
+        </style>
+      </head>
+      <body>
+        <div class="label-wrap">
+          <img src="${dataUrl}">
+          <div class="title">${titleText || ''}</div>
+          <div class="sub">${subtitleText || ''}</div>
+        </div>
+        <script>window.print();<\/script>
+      </body>
+    </html>
+  `);
+  win.document.close();
+}
+function renderAdminUserList() {
+  const tbody = document.getElementById('admin-user-list-tbody');
+  if (!tbody || !masterUsers || !currentUser || currentUser.role !== 'admin') return;
+
+  tbody.innerHTML = '';
+
+  masterUsers.forEach(user => {
+    const tr = document.createElement('tr');
+    const qrId = `admin-user-qr-${user.user_id}`;
+
+    tr.innerHTML = `
+      <td><div class="qr-mini" id="${qrId}"></div></td>
+      <td>${escapeHtml(user.user_id)}</td>
+      <td>${escapeHtml(user.name_ja || user.name || '')}</td>
+      <td>${escapeHtml(getRoleLabel(user.role))}</td>
+      <td>
+        <div class="list-action-buttons">
+          <button class="mini-btn mini-btn-edit" data-id="${user.user_id}">編集</button>
+          <button class="mini-btn mini-btn-print" data-id="${user.user_id}">印刷</button>
+          <button class="mini-btn mini-btn-dl" data-id="${user.user_id}">DL</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+
+    const container = document.getElementById(qrId);
+    if (container) {
+      container.innerHTML = '';
+      new QRCode(container, {
+        text: user.user_id,
+        width: 64,
+        height: 64
+      });
+    }
+  });
+
+  // 編集 → 左フォームに読み込み
+  tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const user = masterUsers.find(u => u.user_id === id);
+      if (!user) return;
+
+      const idInput = document.getElementById('admin-user-id');
+      const nameInput = document.getElementById('admin-user-name');
+      const roleSelect = document.getElementById('admin-user-role');
+
+      if (idInput) idInput.value = user.user_id;
+      if (nameInput) nameInput.value = user.name_ja || user.name || '';
+      if (roleSelect && user.role) roleSelect.value = user.role;
+
+      showToast('ユーザー情報を編集フォームに読み込みました。', 'info');
+    });
+  });
+
+  // 印刷
+  tbody.querySelectorAll('.mini-btn-print').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const user = masterUsers.find(u => u.user_id === id);
+      if (!user) return;
+      const qrId = `admin-user-qr-${id}`;
+      const title = `ID: ${user.user_id}`;
+      const sub = `${user.name_ja || user.name || ''} / ${getRoleLabel(user.role)}`;
+      printQrLabel(qrId, title, sub);
+    });
+  });
+
+  // ダウンロード
+  tbody.querySelectorAll('.mini-btn-dl').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const qrId = `admin-user-qr-${id}`;
+      downloadQrLabel(qrId, `USER_${id}.png`);
+    });
+  });
+}
+
+function renderAdminTerminalList() {
+  const tbody = document.getElementById('admin-terminal-list-tbody');
+  if (!tbody || !masterTerminals || !currentUser || currentUser.role !== 'admin') return;
+
+  tbody.innerHTML = '';
+
+  masterTerminals.forEach(t => {
+    const tr = document.createElement('tr');
+    const qrId = `admin-terminal-qr-${t.terminal_id}`;
+
+    tr.innerHTML = `
+      <td><div class="qr-mini" id="${qrId}"></div></td>
+      <td>${escapeHtml(t.terminal_id)}</td>
+      <td>${escapeHtml(t.name_ja || t.name || '')}</td>
+      <td>${escapeHtml(t.process_name || '')}</td>
+      <td>${escapeHtml(t.location || '')}</td>
+      <td>
+        <div class="list-action-buttons">
+          <button class="mini-btn mini-btn-edit" data-id="${t.terminal_id}">編集</button>
+          <button class="mini-btn mini-btn-print" data-id="${t.terminal_id}">印刷</button>
+          <button class="mini-btn mini-btn-dl" data-id="${t.terminal_id}">DL</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+
+    const container = document.getElementById(qrId);
+    if (container) {
+      container.innerHTML = '';
+      new QRCode(container, {
+        text: t.terminal_id,
+        width: 64,
+        height: 64
+      });
+    }
+  });
+
+  // 編集 → 右フォームへロード
+  tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const t = masterTerminals.find(x => x.terminal_id === id);
+      if (!t) return;
+
+      const idInput = document.getElementById('admin-terminal-id');
+      const nameInput = document.getElementById('admin-terminal-name');
+      const processSelect = document.getElementById('admin-terminal-process');
+      const locInput = document.getElementById('admin-terminal-location');
+
+      if (idInput) idInput.value = t.terminal_id;
+      if (nameInput) nameInput.value = t.name_ja || t.name || '';
+      if (processSelect && t.process_name) processSelect.value = t.process_name;
+      if (locInput) locInput.value = t.location || '';
+
+      showToast('工程情報を編集フォームに読み込みました。', 'info');
+    });
+  });
+
+  // 印刷
+  tbody.querySelectorAll('.mini-btn-print').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const t = masterTerminals.find(x => x.terminal_id === id);
+      if (!t) return;
+      const qrId = `admin-terminal-qr-${id}`;
+      const title = t.process_name || '';
+      const sub = `ID: ${t.terminal_id} / ${t.name_ja || t.name || ''}`;
+      printQrLabel(qrId, title, sub);
+    });
+  });
+
+  // ダウンロード
+  tbody.querySelectorAll('.mini-btn-dl').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const qrId = `admin-terminal-qr-${id}`;
+      downloadQrLabel(qrId, `PROC_${id}.png`);
+    });
+  });
+}
 
 // ----------------------------------
 // 初期化
@@ -223,6 +458,9 @@ async function loadMasterData() {
     masterUsers = data.users || [];
     masterTerminals = data.terminals || [];
     renderTerminalQrListIfAdmin();
+    renderAdminUserList();
+renderAdminTerminalList();
+
   } catch (err) {
     console.error(err);
     alert('マスターデータ取得に失敗しました: ' + err.message);
@@ -777,22 +1015,30 @@ async function handleExportProduct() {
 // ----------------------------------
 
 function updateAdminVisibility() {
-  const guard = document.getElementById('admin-guard-message');
   const adminContent = document.getElementById('admin-content');
-  const adminLinks = document.querySelectorAll('.admin-only');
+  const guard = document.getElementById('admin-guard-message');
+  const userListCard = document.getElementById('admin-user-list-card');
+  const terminalListCard = document.getElementById('admin-terminal-list-card');
 
   const isAdmin = currentUser && currentUser.role === 'admin';
 
   if (isAdmin) {
-    guard.classList.add('hidden');
-    adminContent.classList.remove('hidden');
-    adminLinks.forEach(l => l.classList.remove('hidden'));
+    if (adminContent) adminContent.classList.remove('hidden');
+    if (guard) guard.classList.add('hidden');
+    if (userListCard) userListCard.classList.remove('hidden');
+    if (terminalListCard) terminalListCard.classList.remove('hidden');
+
+    // admin ならリストを描画
+    renderAdminUserList();
+    renderAdminTerminalList();
   } else {
-    guard.classList.remove('hidden');
-    adminContent.classList.add('hidden');
-    adminLinks.forEach(l => l.classList.add('hidden'));
+    if (adminContent) adminContent.classList.add('hidden');
+    if (guard) guard.classList.remove('hidden');
+    if (userListCard) userListCard.classList.add('hidden');
+    if (terminalListCard) terminalListCard.classList.add('hidden');
   }
 }
+
 
 async function handleCreateUser() {
   if (!currentUser || currentUser.role !== 'admin') {
