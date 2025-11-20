@@ -5,18 +5,34 @@
   <title>生産進捗トラッキングシステム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2f80ed">
+
+  <!-- Favicon (opsional, bisa pakai tsh.png juga) -->
+  <link rel="icon" type="image/png" href="tsh.png">
+
   <!-- CSS -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- QRコードスキャン用ライブラリ (html5-qrcode) -->
+  <!-- QRコードスキャン用ライブラリ -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <!-- QRコード生成用ライブラリ (qrcodejs) -->
+  <!-- QRコード生成用ライブラリ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <header class="app-header">
-  <h1>生産進捗トラッキングシステム</h1>
-  <p class="subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
+  <div class="header-inner">
+    <div class="logo-block">
+      <img src="tsh.png" alt="ロゴ" class="logo-image">
+      <div class="logo-text">
+        <h1>生産進捗トラッキングシステム</h1>
+        <p class="subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
+      </div>
+    </div>
+  </div>
 </header>
 
 <nav class="app-nav">
@@ -29,7 +45,6 @@
 
   <!-- スキャンタブ -->
   <section id="scan-tab" class="tab-panel active">
-    <!-- ユーザー情報 -->
     <div class="card">
       <h2>1. ユーザー認証</h2>
       <p>ユーザーQRコードをスキャンしてログインしてください。</p>
@@ -42,7 +57,6 @@
       <div id="qr-reader" class="qr-reader"></div>
     </div>
 
-    <!-- 端末スキャンと作業 -->
     <div class="card">
       <h2>2. 工程・端末スキャン</h2>
       <p>端末のQRコードをスキャンし、開始/終了と数量を入力してください。</p>
@@ -103,6 +117,10 @@
         ・「開始」を保存するとローカルに開始時刻が記憶されます。<br>
         ・同じユーザー + 端末 + 製品番号で「終了」を保存すると、開始〜終了の時間差で「所要時間」が自動計算されます。
       </p>
+
+      <p id="offline-indicator" class="warning hidden">
+        オフラインモードです。保存したデータはオンライン復帰後に自動送信されます。
+      </p>
     </div>
   </section>
 
@@ -111,6 +129,27 @@
     <div class="card">
       <h2>ダッシュボード（進捗状況）</h2>
       <p>最新の工程実績が新しい順に表示されます。フィルターで絞り込みできます。</p>
+
+      <div id="alert-banner" class="alert-banner hidden">
+        最近の工程で不良または検査保留が発生しています。詳細は下の一覧を確認してください。
+      </div>
+
+      <!-- Analytics summary -->
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <h3>本日の総数量</h3>
+          <p class="analytics-value"><span id="today-total">0</span></p>
+        </div>
+        <div class="analytics-card">
+          <h3>本日の不良数量</h3>
+          <p class="analytics-value ng"><span id="today-ng">0</span></p>
+        </div>
+      </div>
+
+      <div class="card analytics-chart-card">
+        <h3>工程別 生産量（直近7日）</h3>
+        <canvas id="process-chart" height="180"></canvas>
+      </div>
 
       <div class="filter-grid">
         <div class="form-group">
@@ -176,8 +215,7 @@
               <th>操作</th>
             </tr>
           </thead>
-          <tbody id="logs-tbody">
-          </tbody>
+          <tbody id="logs-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -265,6 +303,10 @@
 
 </main>
 
+<footer class="app-footer">
+  <span>Design by Wahyu</span>
+</footer>
+
 <!-- 編集モーダル -->
 <div id="edit-modal" class="modal hidden">
   <div class="modal-content">
@@ -298,5 +340,15 @@
 </div>
 
 <script src="app.js"></script>
+<script>
+  // PWA: サービスワーカー登録
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('service-worker.js').catch(function (err) {
+        console.log('SW registration failed:', err);
+      });
+    });
+  }
+</script>
 </body>
 </html>
