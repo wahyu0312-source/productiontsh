@@ -20,6 +20,37 @@ let processChart = null;
 const ACTIVE_SESSION_KEY = 'active_sessions_v1';
 const OFFLINE_QUEUE_KEY = 'offline_log_queue_v1';
 
+function setGlobalLoading(isLoading, text) {
+  const el = document.getElementById('global-loading');
+  const t = document.getElementById('loading-text');
+  if (!el) return;
+  if (isLoading) {
+    if (t && text) t.textContent = text;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+let toastTimer = null;
+function showToast(message, type = 'info') {
+  const el = document.getElementById('global-toast');
+  if (!el) return;
+
+  el.textContent = message;
+  el.className = 'toast';   // reset kelas
+  if (type === 'success') el.classList.add('toast-success');
+  else if (type === 'error') el.classList.add('toast-error');
+  else el.classList.add('toast-info');
+
+  el.classList.remove('hidden');
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.add('hidden');
+  }, 3000);
+}
+
 // ----------------------------------
 // 初期化
 // ----------------------------------
@@ -253,6 +284,7 @@ async function handleDecodedText(decodedText, mode) {
 
 async function loginWithUserId(userId) {
   try {
+    setGlobalLoading(true, 'ユーザー認証中...');
     const user = await callApi('getUser', { userId });
     currentUser = user;
 
@@ -268,12 +300,16 @@ async function loginWithUserId(userId) {
     renderDashboardTable();
     renderTerminalQrListIfAdmin();
 
-    alert('ログインしました: ' + user.name_ja);
+    // ★ toast login
+    showToast('ログインしました: ' + user.name_ja, 'success');
   } catch (err) {
     console.error(err);
-    alert('ユーザー認証に失敗しました: ' + err.message);
+    showToast('ユーザー認証に失敗しました: ' + err.message, 'error');
+  } finally {
+    setGlobalLoading(false);
   }
 }
+
 async function handleManualLogin() {
   const input = document.getElementById('manual-user-id');
   if (!input) return;
@@ -369,17 +405,37 @@ async function handleSaveLog() {
   const qtyTotal = Number(document.getElementById('qty-total-input').value || 0);
   const qtyOk = Number(document.getElementById('qty-ok-input').value || 0);
   const qtyNg = Number(document.getElementById('qty-ng-input').value || 0);
+  const productInput = document.getElementById('product-code-input');
+  const totalInput = document.getElementById('qty-total-input');
+
+  // bersihkan state sebelumnya
+  [productInput, totalInput].forEach(el => el && el.classList.remove('required-missing'));
+
+  const missing = [];
+
+  // Untuk mode "終了" kita paksa isi
+  if (mode === 'end') {
+    if (!productCode) missing.push(productInput);
+    if (qtyTotal <= 0) missing.push(totalInput);
+  }
+
+  if (missing.length > 0) {
+    missing.forEach(el => el && el.classList.add('required-missing'));
+    showToast('必須項目を入力してください。', 'error');
+    return;
+  }
 
   const now = new Date();
   const sessionKey = buildSessionKey(currentUser.user_id, currentTerminal.terminal_id, productCode);
   let sessions = loadActiveSessions();
 
-  if (mode === 'start') {
+   if (mode === 'start') {
     sessions[sessionKey] = now.toISOString();
     saveActiveSessions(sessions);
-    alert('開始時刻を記録しました。終了時に同じ組み合わせで保存してください。');
+    showToast('開始時刻を記録しました。終了時に同じ組み合わせで保存してください。', 'info');
     return;
   }
+
 
   const startIso = sessions[sessionKey];
   if (!startIso && !confirm('開始時刻が見つかりません。現在時刻を開始として保存しますか？')) {
@@ -408,12 +464,13 @@ async function handleSaveLog() {
     location: currentTerminal.location
   };
 
-  try {
+    try {
+    setGlobalLoading(true, '実績を保存中...');
     await callApi('logEvent', { log });
     delete sessions[sessionKey];
     saveActiveSessions(sessions);
 
-    alert('ログを保存しました。');
+    showToast('ログを保存しました。', 'success');
     clearForm();
     loadDashboard();
     loadAnalytics();
@@ -421,11 +478,14 @@ async function handleSaveLog() {
     console.error(err);
     if (!navigator.onLine) {
       enqueueOfflineLog(log);
-      alert('オフラインのためキューに保存しました。オンライン復帰後に送信します。');
+      showToast('オフラインのためキューに保存しました。オンライン復帰後に自動送信します。', 'info');
     } else {
-      alert('ログ保存に失敗しました: ' + err.message);
+      showToast('ログ保存に失敗しました: ' + err.message, 'error');
     }
+  } finally {
+    setGlobalLoading(false);
   }
+
 }
 
 // Active session
