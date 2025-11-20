@@ -358,9 +358,20 @@ function setupButtons() {
     startQrScan('terminal');
   });
 
+  // ★ login manual: klik tombol
   const manualBtn = document.getElementById('btn-manual-login');
+  const manualInput = document.getElementById('manual-user-id');
   if (manualBtn) {
     manualBtn.addEventListener('click', handleManualLogin);
+  }
+  // ★ login manual: tekan Enter di入力欄
+  if (manualInput) {
+    manualInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        handleManualLogin();
+      }
+    });
+  }
      // ヘルプモーダル
   const helpBtn = document.getElementById('btn-help');
   const helpClose = document.getElementById('btn-help-close');
