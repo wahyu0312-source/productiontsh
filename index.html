@@ -53,14 +53,25 @@
     </div>
   </div>
   <div class="topbar-right">
-        <div class="user-chip">
-          <div class="user-avatar">👤</div>
-          <div class="user-meta">
-            <div id="top-username">ゲスト</div>
-            <div class="user-role"><span id="top-userrole">未ログイン</span></div>
-          </div>
-        </div>
-      </div>
+  <!-- クイック製品検索 -->
+  <div class="quick-search">
+    <input id="header-product-search" type="text" placeholder="製品番号検索">
+    <button id="btn-header-search" class="ghost-button ghost-small">検索</button>
+  </div>
+
+  <!-- ヘルプボタン -->
+  <button id="btn-help" class="ghost-icon-button" title="ヘルプ">?</button>
+
+  <!-- ユーザー情報 -->
+  <div class="user-chip">
+    <div class="user-avatar">👤</div>
+    <div class="user-meta">
+      <div id="top-username">ゲスト</div>
+      <div class="user-role"><span id="top-userrole">未ログイン</span></div>
+    </div>
+  </div>
+</div>
+
     </header>
 
     <!-- Content -->
@@ -107,6 +118,26 @@
   <div id="alert-banner" class="alert-banner hidden">
     最近の工程で不良または検査保留が発生しています。詳細は一覧を確認してください。
   </div>
+       <div class="ticker-card">
+  <div class="ticker-label">INFO</div>
+  <div class="ticker-content">
+    <div id="ticker-text" class="ticker-text">
+      生産システムへようこそ。最新の実績と生産計画を確認してください。
+    </div>
+  </div>
+</div>
+
+<div class="card plan-actual-card">
+  <h2 class="card-title">全体 計画 vs 実績</h2>
+  <p class="plan-actual-text">
+    計画数量: <span id="plan-total">0</span> ／
+    実績数量: <span id="actual-total">0</span>
+    （達成率 <span id="plan-rate">0</span>%）
+  </p>
+  <div class="progress-bar">
+    <div class="progress-fill" id="plan-progress"></div>
+  </div>
+</div>
 
   <!-- ★ ここを先に：最新の実績一覧 -->
   <div class="card">
@@ -499,7 +530,23 @@
     </div>
   </div>
 </div>
-
+<!-- ★ ヘルプモーダル -->
+<div id="help-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>ヘルプ</h3>
+    <p>このシステムの基本的な使い方:</p>
+    <ul class="help-list">
+      <li>① 「スキャン」メニューでユーザーQRまたはユーザーIDでログインします。</li>
+      <li>② 端末QRをスキャンし、「開始」「終了」と数量を入力して保存します。</li>
+      <li>③ 「ダッシュボード」で最新の実績と生産計画を確認できます。</li>
+      <li>④ 「ユーザー / QR」でユーザーと端末を登録し、QRコードを印刷できます。（adminのみ）</li>
+      <li>⑤ 「生産計画」で計画を登録し、実績と比較できます。</li>
+    </ul>
+    <div class="button-row" style="margin-top:8px;">
+      <button id="btn-help-close" class="primary-button">閉じる</button>
+    </div>
+  </div>
+</div>
 <script src="app.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
