@@ -573,6 +573,33 @@ tbody tr:hover {
 .admin-section h3 {
   margin-top: 0;
 }
+.list-action-buttons {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.mini-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 3px 7px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: #fff;
+}
+
+.mini-btn-edit  { background: #6366f1; } /* ungu */
+.mini-btn-print { background: #0ea5e9; } /* biru */
+.mini-btn-dl    { background: #22c55e; } /* hijau */
+
+.mini-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.6);
+}
+
+.qr-mini {
+  width: 64px;
+  height: 64px;
+}
 
 .qr-container {
   margin-top: 8px;
