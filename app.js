@@ -334,8 +334,18 @@ function selectTerminalById(terminalId) {
   document.getElementById('current-process-name').textContent = currentTerminal.process_name;
   document.getElementById('current-location').textContent = currentTerminal.location;
 
-  alert('端末を選択しました: ' + currentTerminal.terminal_id);
+  // ★ ganti alert dengan toast elegan
+  showToast('端末を選択しました: ' + currentTerminal.terminal_id, 'info');
+
+  // ★ langsung fokus ke 製品番号 / ロット番号 dan highlight sebentar
+  const productInput = document.getElementById('product-code-input');
+  if (productInput) {
+    productInput.focus();
+    productInput.classList.add('highlight-once');
+    setTimeout(() => productInput.classList.remove('highlight-once'), 800);
+  }
 }
+
 
 // ----------------------------------
 // Save Log (start / end)
