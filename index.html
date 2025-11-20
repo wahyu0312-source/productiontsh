@@ -1,918 +1,302 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>進捗状況</title>
+  <meta charset="utf-8">
+  <title>生産進捗トラッキングシステム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- QRコード読み取り用ライブラリ -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-  <style>
-    :root {
-      --primary: #00bcd4;
-      --primary-dark: #0097a7;
-      --accent: #ff9800;
-      --bg: #f4faff;
-      --card-bg: #ffffff;
-      --text-main: #123;
-    }
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
 
-    * {
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text-main);
-    }
-
-    header {
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      color: #fff;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-    }
-
-    header h1 {
-      font-size: 18px;
-      margin: 0;
-    }
-
-    header .subtitle {
-      font-size: 12px;
-      opacity: 0.9;
-    }
-
-    .container {
-      padding: 12px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-
-    .tab {
-      padding: 8px 16px;
-      border-radius: 999px;
-      border: 1px solid var(--primary);
-      background: #fff;
-      cursor: pointer;
-      font-size: 13px;
-    }
-
-    .tab.active {
-      background: var(--primary);
-      color: #fff;
-      font-weight: 600;
-    }
-
-    .card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .card-title {
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      margin-bottom: 2px;
-      color: #555;
-    }
-
-    input, select, button {
-      font-size: 14px;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    select {
-      width: 100%;
-      padding: 6px 8px;
-      border-radius: 8px;
-      border: 1px solid #ccd;
-      margin-bottom: 8px;
-    }
-
-    button.primary {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-weight: 600;
-      margin-right: 8px;
-    }
-
-    button.secondary {
-      background: #fff;
-      color: var(--primary-dark);
-      border-radius: 999px;
-      border: 1px solid var(--primary-dark);
-      padding: 8px 16px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    button.danger {
-      background: #f44336;
-      color: #fff;
-      border-radius: 999px;
-      border: none;
-      padding: 4px 10px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    button.small {
-      padding: 4px 8px;
-      font-size: 12px;
-    }
-
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .col {
-      flex: 1;
-      min-width: 180px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    th, td {
-      padding: 4px 6px;
-      border-bottom: 1px solid #eee;
-      text-align: left;
-      white-space: nowrap;
-    }
-
-    th {
-      background: #f5fafe;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    .table-container {
-      max-height: 320px;
-      overflow: auto;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .badge.running {
-      background: #e0f7fa;
-      color: #006064;
-    }
-
-    .badge.done {
-      background: #e8f5e9;
-      color: #1b5e20;
-    }
-
-    .badge.hold {
-      background: #fff3e0;
-      color: #e65100;
-    }
-
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    .filters > * {
-      flex: 1;
-      min-width: 150px;
-    }
-
-    .status-bar {
-      font-size: 12px;
-      color: #555;
-      margin-top: 6px;
-    }
-
-    @media (min-width: 900px) {
-      .layout-2col {
-        display: grid;
-        grid-template-columns: 1.2fr 1fr;
-        gap: 12px;
-      }
-    }
-
-    /* デジタルサイネージ用の強調 */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 8px;
-    }
-
-    .kpi-card {
-      background: linear-gradient(135deg, #fff, #e0f7fa);
-      border-radius: 14px;
-      padding: 8px;
-      text-align: left;
-    }
-
-    .kpi-label {
-      font-size: 11px;
-      opacity: 0.7;
-    }
-
-    .kpi-value {
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .kpi-sub {
-      font-size: 11px;
-      opacity: 0.7;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-  </style>
+  <!-- QRコードスキャン用ライブラリ (html5-qrcode) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- QRコード生成用ライブラリ (qrcodejs) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<header>
-  <div>
-    <h1>生産トラッキングシステム</h1>
-    <div class="subtitle">QRコードで工程開始・終了を記録</div>
-  </div>
-  <div id="header-info" style="font-size: 12px;"></div>
+<header class="app-header">
+  <h1>生産進捗トラッキングシステム</h1>
+  <p class="subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
 </header>
 
-<div class="container">
-  <!-- タブ -->
-  <div class="tabs">
-    <button class="tab active" data-tab="scan">スキャン</button>
-    <button class="tab" data-tab="dashboard">ダッシュボード</button>
-    <button class="tab" data-tab="logs">ログ一覧</button>
-  </div>
+<nav class="app-nav">
+  <button class="nav-button active" data-tab="scan-tab">スキャン</button>
+  <button class="nav-button" data-tab="dashboard-tab">ダッシュボード</button>
+  <button class="nav-button" data-tab="admin-tab">管理者</button>
+</nav>
+
+<main class="app-main">
 
   <!-- スキャンタブ -->
-  <div id="tab-scan">
-    <div class="layout-2col">
-      <div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">スキャン情報</div>
+  <section id="scan-tab" class="tab-panel active">
+    <!-- ユーザー情報 -->
+    <div class="card">
+      <h2>1. ユーザー認証</h2>
+      <p>ユーザーQRコードをスキャンしてログインしてください。</p>
+      <div class="user-info">
+        <div><strong>ログインユーザー:</strong> <span id="current-user-name">未ログイン</span></div>
+        <div><strong>ユーザーID:</strong> <span id="current-user-id">-</span></div>
+        <div><strong>権限:</strong> <span id="current-user-role">-</span></div>
+      </div>
+      <button id="btn-start-user-scan" class="primary-button">ユーザーQRスキャン開始</button>
+      <div id="qr-reader" class="qr-reader"></div>
+    </div>
+
+    <!-- 端末スキャンと作業 -->
+    <div class="card">
+      <h2>2. 工程・端末スキャン</h2>
+      <p>端末のQRコードをスキャンし、開始/終了と数量を入力してください。</p>
+
+      <div class="terminal-info">
+        <div><strong>選択中端末:</strong> <span id="current-terminal-name">未選択</span></div>
+        <div><strong>工程:</strong> <span id="current-process-name">-</span></div>
+        <div><strong>ロケーション:</strong> <span id="current-location">-</span></div>
+      </div>
+
+      <button id="btn-start-terminal-scan" class="secondary-button">端末QRスキャン開始</button>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="product-code-input">製品番号 / ロット番号</label>
+          <input id="product-code-input" type="text" placeholder="例: P-20251120-001">
+        </div>
+
+        <div class="form-group">
+          <label>処理モード</label>
+          <div class="radio-group">
+            <label><input type="radio" name="mode" value="start" checked> 開始</label>
+            <label><input type="radio" name="mode" value="end"> 終了</label>
           </div>
-          <div class="row">
-            <div class="col">
-              <label>端末ID</label>
-              <input type="text" id="terminalIdInput" readonly>
-            </div>
-            <div class="col">
-              <label>端末名 / 工程</label>
-              <input type="text" id="terminalInfoInput" readonly>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col">
-              <label>ユーザID</label>
-              <input type="text" id="userIdInput" placeholder="例: U001">
-            </div>
-            <div class="col">
-              <label>製品ID</label>
-              <input type="text" id="productIdInput" placeholder="製品QRをスキャン / 手入力">
-            </div>
-          </div>
-          <div class="row">
-            <div class="col">
-              <label>工程</label>
-              <select id="processSelect"></select>
-            </div>
-            <div class="col">
-              <label>モード</label>
-              <select id="modeSelect">
-                <option value="start">開始スキャン</option>
-                <option value="finish">終了スキャン</option>
-              </select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col">
-              <label>数量（処理数）</label>
-              <input type="number" id="qtyTotalInput" min="0" value="0">
-            </div>
-            <div class="col">
-              <label>数量OK</label>
-              <input type="number" id="qtyOkInput" min="0" value="0">
-            </div>
-            <div class="col">
-              <label>数量不良</label>
-              <input type="number" id="qtyNgInput" min="0" value="0">
-            </div>
-          </div>
-          <div class="row">
-            <div class="col">
-              <label>
-                <input type="checkbox" id="holdCheck">
-                検査保留（検査工程のみ）
-              </label>
-            </div>
-          </div>
-          <div style="margin-top: 8px;">
-            <button class="primary" id="executeButton">記録する</button>
-          </div>
-          <div class="status-bar" id="scanStatus"></div>
+          <small>開始を選択すると開始時刻が記録され、終了で実績が保存されます。</small>
+        </div>
+
+        <div class="form-group">
+          <label for="status-select">ステータス</label>
+          <select id="status-select">
+            <option value="通常">通常</option>
+            <option value="検査保留">検査保留（検査工程のみ）</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="qty-total-input">総数量</label>
+          <input id="qty-total-input" type="number" min="0" value="0">
+        </div>
+
+        <div class="form-group">
+          <label for="qty-ok-input">OK数量</label>
+          <input id="qty-ok-input" type="number" min="0" value="0">
+        </div>
+
+        <div class="form-group">
+          <label for="qty-ng-input">不良数量</label>
+          <input id="qty-ng-input" type="number" min="0" value="0">
         </div>
       </div>
 
-      <div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">QRコードスキャナ</div>
-          </div>
-          <div id="qr-reader" style="width: 100%;"></div>
-          <div class="status-bar">
-            カメラが利用できない場合は製品IDを手入力してください。
-          </div>
-        </div>
+      <div class="button-row">
+        <button id="btn-save-log" class="primary-button">保存</button>
+        <button id="btn-clear-form" class="ghost-button">クリア</button>
       </div>
+
+      <p class="hint">
+        ・「開始」を保存するとローカルに開始時刻が記憶されます。<br>
+        ・同じユーザー + 端末 + 製品番号で「終了」を保存すると、開始〜終了の時間差で「所要時間」が自動計算されます。
+      </p>
     </div>
-  </div>
+  </section>
 
   <!-- ダッシュボードタブ -->
-  <div id="tab-dashboard" class="hidden">
+  <section id="dashboard-tab" class="tab-panel">
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">進捗状況</div>
-        <button class="secondary small" id="refreshDashboardButton">更新</button>
-      </div>
-      <div class="kpi-grid" id="kpiContainer">
-        <!-- JS で埋める -->
-      </div>
-    </div>
+      <h2>ダッシュボード（進捗状況）</h2>
+      <p>最新の工程実績が新しい順に表示されます。フィルターで絞り込みできます。</p>
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">進行中の工程</div>
+      <div class="filter-grid">
+        <div class="form-group">
+          <label for="filter-process">工程フィルター</label>
+          <select id="filter-process">
+            <option value="">すべて</option>
+            <option>レザー加工</option>
+            <option>外注工程</option>
+            <option>曲げ加工</option>
+            <option>準備工程</option>
+            <option>外枠組立工程</option>
+            <option>パンタ組立工程</option>
+            <option>シャッター組立工程</option>
+            <option>スポット工程</option>
+            <option>コーキング工程</option>
+            <option>溶接工程</option>
+            <option>組立工程</option>
+            <option>検査工程</option>
+            <option>検査保留</option>
+            <option>出荷準備</option>
+            <option>出荷完成</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="filter-terminal">端末フィルター</label>
+          <input id="filter-terminal" type="text" placeholder="端末IDまたは名称で検索">
+        </div>
+
+        <div class="form-group">
+          <label for="filter-product">製品番号フィルター</label>
+          <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
+        </div>
+
+        <div class="form-group">
+          <label>期間フィルター（開始〜終了）</label>
+          <div class="date-range">
+            <input id="filter-date-from" type="date">
+            <span>〜</span>
+            <input id="filter-date-to" type="date">
+          </div>
+        </div>
       </div>
-      <div class="table-container">
-        <table>
+
+      <div class="button-row">
+        <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
+        <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="logs-table">
           <thead>
-          <tr>
-            <th>製品ID</th>
-            <th>工程</th>
-            <th>端末</th>
-            <th>ユーザ</th>
-            <th>開始時刻</th>
-            <th>経過(分)</th>
-          </tr>
+            <tr>
+              <th>時刻(終了)</th>
+              <th>製品番号</th>
+              <th>工程</th>
+              <th>端末</th>
+              <th>ユーザー</th>
+              <th>数量(OK/不良)</th>
+              <th>ステータス</th>
+              <th>所要時間(分)</th>
+              <th>ロケーション</th>
+              <th>操作</th>
+            </tr>
           </thead>
-          <tbody id="activeTableBody"></tbody>
+          <tbody id="logs-tbody">
+          </tbody>
         </table>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- ログ一覧タブ -->
-  <div id="tab-logs" class="hidden">
+  <!-- 管理者タブ -->
+  <section id="admin-tab" class="tab-panel">
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">ログ一覧</div>
-        <div>
-          <button class="secondary small" id="exportButton">Excelダウンロード(CSV)</button>
+      <h2>管理者メニュー</h2>
+      <p>管理者権限ユーザーでログインすると使用できます。（ロール: admin）</p>
+      <p id="admin-guard-message" class="warning">
+        現在のユーザーには管理者権限がありません。
+      </p>
+
+      <div id="admin-content" class="admin-grid hidden">
+        <!-- ユーザー登録 -->
+        <div class="admin-section">
+          <h3>ユーザー登録</h3>
+          <div class="form-group">
+            <label for="admin-user-id">ユーザーID</label>
+            <input id="admin-user-id" type="text" placeholder="例: U001">
+          </div>
+          <div class="form-group">
+            <label for="admin-user-name">氏名（日本語）</label>
+            <input id="admin-user-name" type="text" placeholder="例: 山田 太郎">
+          </div>
+          <div class="form-group">
+            <label for="admin-user-role">権限</label>
+            <select id="admin-user-role">
+              <option value="operator">オペレーター</option>
+              <option value="qc">QC</option>
+              <option value="admin">管理者</option>
+            </select>
+          </div>
+          <button id="btn-admin-create-user" class="primary-button">ユーザー登録</button>
+
+          <h4>ユーザーQRコード</h4>
+          <p>登録後に下のQRコードを印刷して、現場で使用してください。</p>
+          <div id="user-qr-container" class="qr-container"></div>
+        </div>
+
+        <!-- 端末登録 -->
+        <div class="admin-section">
+          <h3>端末登録</h3>
+          <div class="form-group">
+            <label for="admin-terminal-id">端末ID</label>
+            <input id="admin-terminal-id" type="text" placeholder="例: T001">
+          </div>
+          <div class="form-group">
+            <label for="admin-terminal-name">端末名称</label>
+            <input id="admin-terminal-name" type="text" placeholder="例: レザー加工端末1">
+          </div>
+          <div class="form-group">
+            <label for="admin-terminal-process">工程</label>
+            <select id="admin-terminal-process">
+              <option>レザー加工</option>
+              <option>外注工程</option>
+              <option>曲げ加工</option>
+              <option>準備工程</option>
+              <option>外枠組立工程</option>
+              <option>パンタ組立工程</option>
+              <option>シャッター組立工程</option>
+              <option>スポット工程</option>
+              <option>コーキング工程</option>
+              <option>溶接工程</option>
+              <option>組立工程</option>
+              <option>検査工程</option>
+              <option>出荷準備</option>
+              <option>出荷完成</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="admin-terminal-location">ロケーション</label>
+            <input id="admin-terminal-location" type="text" placeholder="例: 第1工場 ラインA">
+          </div>
+          <button id="btn-admin-create-terminal" class="primary-button">端末登録</button>
+
+          <h4>端末QRコード</h4>
+          <p>登録後に下のQRコードを印刷して、各工程の端末に貼り付けてください。</p>
+          <div id="terminal-qr-container" class="qr-container"></div>
         </div>
       </div>
-      <div class="filters">
-        <div>
-          <label>製品IDフィルタ</label>
-          <input type="text" id="filterProductId">
-        </div>
-        <div>
-          <label>工程フィルタ</label>
-          <select id="filterProcess">
-            <option value="">全て</option>
-          </select>
-        </div>
-        <div>
-          <label>ステータス</label>
-          <select id="filterStatus">
-            <option value="">全て</option>
-            <option value="進行中">進行中</option>
-            <option value="完了">完了</option>
-            <option value="保留">保留</option>
-          </select>
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <button class="secondary small" id="reloadLogsButton">再読込</button>
-        </div>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-          <tr>
-            <th>操作</th>
-            <th>ログID</th>
-            <th>製品ID</th>
-            <th>工程</th>
-            <th>サブ工程</th>
-            <th>端末</th>
-            <th>ユーザ</th>
-            <th>開始</th>
-            <th>終了</th>
-            <th>時間(秒)</th>
-            <th>数量</th>
-            <th>OK</th>
-            <th>不良</th>
-            <th>ステータス</th>
-          </tr>
-          </thead>
-          <tbody id="logsTableBody"></tbody>
-        </table>
-      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- 編集モーダル -->
+<div id="edit-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>ログ編集</h3>
+    <input type="hidden" id="edit-log-id">
+    <div class="form-group">
+      <label for="edit-qty-total">総数量</label>
+      <input id="edit-qty-total" type="number" min="0">
+    </div>
+    <div class="form-group">
+      <label for="edit-qty-ok">OK数量</label>
+      <input id="edit-qty-ok" type="number" min="0">
+    </div>
+    <div class="form-group">
+      <label for="edit-qty-ng">不良数量</label>
+      <input id="edit-qty-ng" type="number" min="0">
+    </div>
+    <div class="form-group">
+      <label for="edit-status">ステータス</label>
+      <select id="edit-status">
+        <option value="通常">通常</option>
+        <option value="検査保留">検査保留</option>
+        <option value="終了">終了</option>
+      </select>
+    </div>
+    <div class="button-row">
+      <button id="btn-edit-save" class="primary-button">更新</button>
+      <button id="btn-edit-cancel" class="ghost-button">キャンセル</button>
     </div>
   </div>
 </div>
 
-<script>
-  // ==============================
-  // 設定：Apps Script Web アプリ URL をここに貼り付けてください
-  // ==============================
-  const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzGiq9ilfu8IGCBQTYLXxJvV7VTbBymd6wy-OVS-KFqqKFnaW72pE2QWmAWqfIRVsI4/exec';
-
-  // マスタデータ
-  let master = {
-    processes: [],
-    terminals: [],
-    users: []
-  };
-
-  let html5QrcodeScanner = null;
-  let logsCache = []; // 最新取得済みログ
-
-  // 共通 GET
-  async function apiGet(action, params = {}) {
-    const url = new URL(API_BASE_URL);
-    url.searchParams.set('action', action);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) {
-        url.searchParams.set(k, v);
-      }
-    });
-    const res = await fetch(url.toString());
-    return res.json();
-  }
-
-  // 共通 POST (application/x-www-form-urlencoded)
-  async function apiPost(action, payload = {}) {
-    const body = new URLSearchParams({
-      action: action,
-      payload: JSON.stringify(payload)
-    }).toString();
-
-    const res = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body
-    });
-    return res.json();
-  }
-
-  // タブ切り替え
-  function setupTabs() {
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        const target = tab.dataset.tab;
-        document.getElementById('tab-scan').classList.add('hidden');
-        document.getElementById('tab-dashboard').classList.add('hidden');
-        document.getElementById('tab-logs').classList.add('hidden');
-
-        document.getElementById('tab-' + target).classList.remove('hidden');
-      });
-    });
-  }
-
-  // URL から terminalId を取得
-  function getTerminalIdFromUrl() {
-    const params = new URLSearchParams(location.search);
-    return params.get('terminalId') || '';
-  }
-
-  // マスタ読み込み
-  async function loadMaster() {
-    const data = await apiGet('getMaster');
-    if (!data.ok) {
-      console.error(data.error);
-      alert('マスタデータ取得に失敗しました: ' + data.error);
-      return;
-    }
-    master.processes = data.processes || [];
-    master.terminals = data.terminals || [];
-    master.users = data.users || [];
-
-    // 工程プルダウン
-    const processSelect = document.getElementById('processSelect');
-    const filterProcess = document.getElementById('filterProcess');
-    processSelect.innerHTML = '';
-    filterProcess.innerHTML = '<option value="">全て</option>';
-
-    master.processes
-      .filter(p => p.isActive !== false) // isActive があればそれを見てフィルタ
-      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
-      .forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.processCode;
-        option.textContent = p.processName + ' (' + p.processCode + ')';
-        processSelect.appendChild(option);
-
-        const option2 = document.createElement('option');
-        option2.value = p.processCode;
-        option2.textContent = p.processName;
-        filterProcess.appendChild(option2);
-      });
-
-    // 端末情報
-    const terminalId = getTerminalIdFromUrl();
-    const terminalInput = document.getElementById('terminalIdInput');
-    const terminalInfoInput = document.getElementById('terminalInfoInput');
-    terminalInput.value = terminalId;
-    if (terminalId) {
-      const t = master.terminals.find(t => String(t.terminalId) === terminalId);
-      if (t) {
-        const proc = master.processes.find(p => p.processCode === t.processCode);
-        terminalInfoInput.value =
-          (t.terminalName || '') + ' / ' + (proc ? proc.processName : t.processCode);
-        // 端末が紐づく工程をデフォルト選択
-        if (proc) {
-          processSelect.value = proc.processCode;
-        }
-      } else {
-        terminalInfoInput.value = '未登録端末';
-      }
-    } else {
-      terminalInfoInput.value = 'URL に ?terminalId=xxx を付けてください';
-    }
-
-    // ヘッダー表示
-    const headerInfo = document.getElementById('header-info');
-    headerInfo.textContent = terminalId ? `端末ID: ${terminalId}` : '端末ID未設定';
-  }
-
-  // QR スキャナセットアップ
-  function setupQrScanner() {
-    const qrReaderId = 'qr-reader';
-    html5QrcodeScanner = new Html5Qrcode(qrReaderId);
-
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-    function onScanSuccess(decodedText, decodedResult) {
-      // 製品IDにセット
-      document.getElementById('productIdInput').value = decodedText;
-      document.getElementById('scanStatus').textContent =
-        'QR読み取り: ' + decodedText;
-    }
-
-    function onScanFailure(error) {
-      // console.debug(error);
-    }
-
-    Html5Qrcode.getCameras().then(cameras => {
-      if (cameras && cameras.length) {
-        const cameraId = cameras[0].id;
-        html5QrcodeScanner.start(
-          cameraId,
-          config,
-          onScanSuccess,
-          onScanFailure
-        );
-      } else {
-        document.getElementById('scanStatus').textContent = 'カメラが見つかりませんでした。';
-      }
-    }).catch(err => {
-      console.error(err);
-      document.getElementById('scanStatus').textContent =
-        'カメラ初期化に失敗しました: ' + err;
-    });
-  }
-
-  // スキャン実行
-  async function executeScan() {
-    const mode = document.getElementById('modeSelect').value; // start / finish
-    const terminalId = document.getElementById('terminalIdInput').value.trim();
-    const userId = document.getElementById('userIdInput').value.trim();
-    const productId = document.getElementById('productIdInput').value.trim();
-    const processCode = document.getElementById('processSelect').value;
-    const qtyTotal = Number(document.getElementById('qtyTotalInput').value || 0);
-    const qtyOk = Number(document.getElementById('qtyOkInput').value || 0);
-    const qtyNg = Number(document.getElementById('qtyNgInput').value || 0);
-    const isHold = document.getElementById('holdCheck').checked;
-
-    const statusDiv = document.getElementById('scanStatus');
-    statusDiv.textContent = '';
-
-    if (!terminalId) {
-      alert('端末IDが未設定です（URL に ?terminalId=xxx を付けてください）。');
-      return;
-    }
-    if (!userId) {
-      alert('ユーザIDを入力してください。');
-      return;
-    }
-    if (!productId) {
-      alert('製品IDを入力またはスキャンしてください。');
-      return;
-    }
-
-    try {
-      let res;
-      if (mode === 'start') {
-        res = await apiPost('startProcess', {
-          productId,
-          processCode,
-          terminalId,
-          userId,
-          qtyTotal
-        });
-      } else {
-        res = await apiPost('finishProcess', {
-          productId,
-          processCode,
-          terminalId,
-          userId,
-          qtyTotal,
-          qtyOk,
-          qtyNg,
-          isHold
-        });
-      }
-      if (!res.ok) {
-        throw new Error(res.error || 'unknown error');
-      }
-      statusDiv.textContent = '記録しました。';
-      // ダッシュボード・ログを軽く更新
-      loadDashboard();
-      loadLogs();
-    } catch (err) {
-      console.error(err);
-      statusDiv.textContent = '記録に失敗しました: ' + err.message;
-    }
-  }
-
-  // ダッシュボード読み込み
-  async function loadDashboard() {
-    try {
-      const activeRes = await apiGet('getActive');
-      const logsRes = await apiGet('getLogs', { limit: 300 });
-      if (!activeRes.ok || !logsRes.ok) {
-        throw new Error('API error');
-      }
-
-      const active = activeRes.active || [];
-      const logs = logsRes.logs || [];
-
-      // KPI 計算
-      const totalCount = logs.length;
-      const runningCount = active.length;
-      const holdCount = logs.filter(l => l.status === '保留').length;
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const todayCompleted = logs.filter(l => {
-        if (!l.endTime) return false;
-        const d = new Date(l.endTime);
-        const s = d.toISOString().slice(0, 10);
-        return s === todayStr && l.status === '完了';
-      }).length;
-
-      const kpiContainer = document.getElementById('kpiContainer');
-      kpiContainer.innerHTML = '';
-
-      function addKpi(label, value, sub) {
-        const div = document.createElement('div');
-        div.className = 'kpi-card';
-        div.innerHTML = `
-          <div class="kpi-label">${label}</div>
-          <div class="kpi-value">${value}</div>
-          <div class="kpi-sub">${sub || ''}</div>
-        `;
-        kpiContainer.appendChild(div);
-      }
-
-      addKpi('登録済みログ件数', totalCount, 'Logs シート全体の件数（直近取得分）');
-      addKpi('進行中の工程数', runningCount, 'status = 進行中');
-      addKpi('保留件数', holdCount, 'status = 保留');
-      addKpi('本日完了数', todayCompleted, todayStr);
-
-      // 進行中一覧
-      const tbody = document.getElementById('activeTableBody');
-      tbody.innerHTML = '';
-      active.forEach(a => {
-        const tr = document.createElement('tr');
-        const start = a.startTime ? new Date(a.startTime) : null;
-        const elapsedMin = start
-          ? Math.round((Date.now() - new Date(start).getTime()) / 600) / 100
-          : '';
-
-        const proc = master.processes.find(p => p.processCode === a.processCode);
-        const term = master.terminals.find(t => String(t.terminalId) === String(a.terminalId));
-        const user = master.users.find(u => String(u.userId) === String(a.userId));
-
-        tr.innerHTML = `
-          <td>${a.productId || ''}</td>
-          <td>${proc ? proc.processName : a.processCode}</td>
-          <td>${term ? term.terminalName : a.terminalId}</td>
-          <td>${user ? user.userName : a.userId}</td>
-          <td>${start ? formatDateTime(start) : ''}</td>
-          <td>${elapsedMin}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-    } catch (err) {
-      console.error(err);
-      alert('ダッシュボード取得に失敗しました: ' + err.message);
-    }
-  }
-
-  // 日時表示用
-  function formatDateTime(d) {
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
-      + `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  }
-
-  // ログ読み込み
-  async function loadLogs() {
-    try {
-      const res = await apiGet('getLogs', { limit: 300 });
-      if (!res.ok) throw new Error(res.error || 'API error');
-      logsCache = res.logs || [];
-      renderLogsTable();
-    } catch (err) {
-      console.error(err);
-      alert('ログ取得に失敗しました: ' + err.message);
-    }
-  }
-
-  // ログテーブル描画
-  function renderLogsTable() {
-    const tbody = document.getElementById('logsTableBody');
-    tbody.innerHTML = '';
-
-    const filterProductId = document.getElementById('filterProductId').value.trim();
-    const filterProcess = document.getElementById('filterProcess').value;
-    const filterStatus = document.getElementById('filterStatus').value;
-
-    logsCache.forEach(log => {
-      if (filterProductId && String(log.productId).indexOf(filterProductId) === -1) {
-        return;
-      }
-      if (filterProcess && log.processCode !== filterProcess) {
-        return;
-      }
-      if (filterStatus && log.status !== filterStatus) {
-        return;
-      }
-
-      const tr = document.createElement('tr');
-
-      const proc = master.processes.find(p => p.processCode === log.processCode);
-
-      let badgeClass = '';
-      if (log.status === '進行中') badgeClass = 'running';
-      else if (log.status === '完了') badgeClass = 'done';
-      else if (log.status === '保留') badgeClass = 'hold';
-
-      tr.innerHTML = `
-        <td>
-          <button class="secondary small" onclick="onEditLog('${log.logId}')">編集</button>
-          <button class="danger" onclick="onDeleteLog('${log.logId}')">削除</button>
-        </td>
-        <td>${log.logId || ''}</td>
-        <td>${log.productId || ''}</td>
-        <td>${proc ? proc.processName : log.processCode}</td>
-        <td>${log.subProcess || ''}</td>
-        <td>${log.terminalId || ''}</td>
-        <td>${log.userId || ''}</td>
-        <td>${log.startTime ? formatDateTime(new Date(log.startTime)) : ''}</td>
-        <td>${log.endTime ? formatDateTime(new Date(log.endTime)) : ''}</td>
-        <td>${log.durationSec || ''}</td>
-        <td>${log.qtyTotal || ''}</td>
-        <td>${log.qtyOk || ''}</td>
-        <td>${log.qtyNg || ''}</td>
-        <td><span class="badge ${badgeClass}">${log.status || ''}</span></td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // 編集処理（簡易：promptベース）
-  async function onEditLog(logId) {
-    const log = logsCache.find(l => l.logId === logId);
-    if (!log) return;
-
-    const newQtyTotal = prompt('数量（処理数）を入力してください:', log.qtyTotal || '');
-    if (newQtyTotal === null) return;
-    const newQtyOk = prompt('数量OK を入力してください:', log.qtyOk || '');
-    if (newQtyOk === null) return;
-    const newQtyNg = prompt('数量不良 を入力してください:', log.qtyNg || '');
-    if (newQtyNg === null) return;
-
-    try {
-      const res = await apiPost('updateLog', {
-        logId,
-        fields: {
-          qtyTotal: Number(newQtyTotal),
-          qtyOk: Number(newQtyOk),
-          qtyNg: Number(newQtyNg)
-        }
-      });
-      if (!res.ok) throw new Error(res.error || 'API error');
-      await loadLogs();
-    } catch (err) {
-      alert('更新に失敗しました: ' + err.message);
-    }
-  }
-
-  // 削除
-  async function onDeleteLog(logId) {
-    if (!confirm('このログを削除しますか？')) return;
-    try {
-      const res = await apiPost('deleteLog', { logId });
-      if (!res.ok) throw new Error(res.error || 'API error');
-      await loadLogs();
-    } catch (err) {
-      alert('削除に失敗しました: ' + err.message);
-    }
-  }
-
-  // Excel(CSV) ダウンロード
-  function downloadCsv() {
-    const url = API_BASE_URL + '?action=exportLogs';
-    // 単純にリンクとして開くだけでブラウザがダウンロードする
-    window.open(url, '_blank');
-  }
-
-  // 初期化
-  async function initApp() {
-    setupTabs();
-    document.getElementById('executeButton').addEventListener('click', executeScan);
-    document.getElementById('refreshDashboardButton').addEventListener('click', loadDashboard);
-    document.getElementById('reloadLogsButton').addEventListener('click', loadLogs);
-    document.getElementById('exportButton').addEventListener('click', downloadCsv);
-    document.getElementById('filterProductId').addEventListener('input', renderLogsTable);
-    document.getElementById('filterProcess').addEventListener('change', renderLogsTable);
-    document.getElementById('filterStatus').addEventListener('change', renderLogsTable);
-
-    await loadMaster();
-    await loadDashboard();
-    await loadLogs();
-    setupQrScanner();
-  }
-
-  // グローバルに公開（onclickで使うため）
-  window.onEditLog = onEditLog;
-  window.onDeleteLog = onDeleteLog;
-
-  document.addEventListener('DOMContentLoaded', initApp);
-</script>
+<script src="app.js"></script>
 </body>
 </html>
