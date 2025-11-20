@@ -95,6 +95,22 @@ function setupButtons() {
   const manualBtn = document.getElementById('btn-manual-login');
   if (manualBtn) {
     manualBtn.addEventListener('click', handleManualLogin);
+     // ヘルプモーダル
+  const helpBtn = document.getElementById('btn-help');
+  const helpClose = document.getElementById('btn-help-close');
+  if (helpBtn && helpClose) {
+    helpBtn.addEventListener('click', openHelpModal);
+    helpClose.addEventListener('click', closeHelpModal);
+  }
+  }
+// ★ ヘッダー製品検索
+  const headerSearchBtn = document.getElementById('btn-header-search');
+  const headerSearchInput = document.getElementById('header-product-search');
+  if (headerSearchBtn && headerSearchInput) {
+    headerSearchBtn.addEventListener('click', handleHeaderSearch);
+    headerSearchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleHeaderSearch();
+    });
   }
 
   document.getElementById('btn-save-log').addEventListener('click', handleSaveLog);
@@ -267,6 +283,34 @@ async function handleManualLogin() {
     return;
   }
   await loginWithUserId(userId);
+}
+function handleHeaderSearch() {
+  const input = document.getElementById('header-product-search');
+  if (!input) return;
+  const value = input.value.trim();
+  if (!value) {
+    alert('製品番号を入力してください。');
+    return;
+  }
+
+  // ダッシュボードのフィルターに反映
+  const productFilter = document.getElementById('filter-product');
+  if (productFilter) {
+    productFilter.value = value;
+  }
+
+  // ダッシュボード画面へ切り替え
+  const links = document.querySelectorAll('.sidebar-link');
+  const sections = document.querySelectorAll('.section');
+  sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
+  links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
+
+  // データ再描画
+  if (!dashboardLogs || dashboardLogs.length === 0) {
+    loadDashboard().then(() => renderDashboardTable());
+  } else {
+    renderDashboardTable();
+  }
 }
 
 // ----------------------------------
@@ -601,6 +645,15 @@ async function handleEditSave() {
     console.error(err);
     alert('ログ更新に失敗しました: ' + err.message);
   }
+}
+function openHelpModal() {
+  const modal = document.getElementById('help-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeHelpModal() {
+  const modal = document.getElementById('help-modal');
+  if (modal) modal.classList.add('hidden');
 }
 
 async function handleDeleteLog(log) {
