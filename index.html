@@ -483,11 +483,48 @@
           </div>
         </div>
 
-        <!-- ユーザー一覧 / QRラベル -->
-        <div id="admin-user-list-card" class="card hidden">
-          <h3 class="card-title">ユーザー一覧 / QRラベル</h3>
-          <div class="table-wrapper">
-            <table>
+             <!-- ユーザー一覧 / QRラベル -->
+      <div id="admin-user-list-card" class="card hidden">
+        <h3 class="card-title">ユーザー一覧 / QRラベル</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>QR</th>
+                <th>ユーザーID</th>
+                <th>氏名</th>
+                <th>権限</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="admin-user-list-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 工程一覧 / QRラベル -->
+      <div id="admin-terminal-list-card" class="card hidden">
+        <h3 class="card-title">工程一覧 / QRラベル</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>QR</th>
+                <th>工程ID</th>
+                <th>工程名称</th>
+                <th>工程</th>
+                <th>ロケーション</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="admin-terminal-list-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      </section>
+
+      <!-- Terminal QR List -->
+
 
       <!-- Terminal QR List -->
       <section id="terminalqr-section" class="section">
