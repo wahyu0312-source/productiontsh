@@ -456,6 +456,11 @@ function setupButtons() {
         handleManualLogin();
       }
     });
+    
+  }
+  const logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
   }
 
   // ヘルプモーダル
@@ -682,6 +687,28 @@ async function handleManualLogin() {
   }
   await loginWithUserId(userId);
 }
+function handleLogout() {
+  currentUser = null;
+
+  const nameEl = document.getElementById('current-user-name');
+  const idEl = document.getElementById('current-user-id');
+  const roleEl = document.getElementById('current-user-role');
+  const topNameEl = document.getElementById('top-username');
+  const topRoleEl = document.getElementById('top-userrole');
+  const welcomeNameEl = document.getElementById('welcome-name');
+
+  if (nameEl) nameEl.textContent = '未ログイン';
+  if (idEl) idEl.textContent = '-';
+  if (roleEl) roleEl.textContent = '-';
+  if (topNameEl) topNameEl.textContent = 'ゲスト';
+  if (topRoleEl) topRoleEl.textContent = '未ログイン';
+  if (welcomeNameEl) welcomeNameEl.textContent = 'ゲスト';
+
+  updateAdminVisibility();
+  renderTerminalQrListIfAdmin();
+  showToast('ログアウトしました。', 'info');
+}
+
 function handleHeaderSearch() {
   const input = document.getElementById('header-product-search');
   if (!input) return;
@@ -1313,14 +1340,18 @@ if (tickerEl) {
   tickerEl.textContent = msg;
 }
 
-    const labels = byProcess.map(x => x.process_name || '不明');
+        const labels = byProcess.map(x => x.process_name || '不明');
     const totals = byProcess.map(x => x.total || 0);
 
     const ctx = document.getElementById('process-chart');
-    if (!ctx) return;
+    if (!ctx || typeof Chart === 'undefined') {
+      console.error('process-chart canvas or Chart.js is not available');
+      return;
+    }
     if (processChart) processChart.destroy();
 
     processChart = new Chart(ctx, {
+
       type: 'bar',
       data: {
         labels,
