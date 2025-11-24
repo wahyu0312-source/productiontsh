@@ -171,6 +171,28 @@ body {
   border-color: rgba(255,255,255,0.7);
   color: #fff;
 }
+/* Logout button (ユーザー認証用) */
+#btn-logout {
+  background: var(--danger); /* merah dari variable theme */
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+#btn-logout:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+#btn-logout:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
 
 /* Burger button (スマホ用) */
 .burger-button {
@@ -471,6 +493,26 @@ body {
   gap: 8px;
   align-items: center;
   font-size: 0.85rem;
+}
+/* label wajib */
+.required-label::after {
+  content: "＊";
+  color: #ef4444;
+  margin-left: 4px;
+  font-size: 0.75em;
+}
+
+/* highlight untuk field wajib (selalu terlihat) */
+.form-group .required-label + input {
+  background-color: #fff7f7;  /* sedikit merah muda */
+  border-color: #fecaca;
+}
+
+/* khusus radio-group status wajib */
+.form-group .required-label + .radio-group {
+  border-radius: 12px;
+  padding: 6px 10px;
+  border: 1px solid #fecaca;
 }
 
 /* Grids */
