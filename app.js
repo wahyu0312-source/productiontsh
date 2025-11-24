@@ -153,7 +153,7 @@ function renderAdminUserList() {
     const tr = document.createElement('tr');
     const qrId = `admin-user-qr-${user.user_id}`;
 
-    tr.innerHTML = `
+  tr.innerHTML = `
       <td><div class="qr-mini" id="${qrId}"></div></td>
       <td>${escapeHtml(user.user_id)}</td>
       <td>${escapeHtml(user.name_ja || user.name || '')}</td>
@@ -163,6 +163,7 @@ function renderAdminUserList() {
           <button class="mini-btn mini-btn-edit" data-id="${user.user_id}">編集</button>
           <button class="mini-btn mini-btn-print" data-id="${user.user_id}">印刷</button>
           <button class="mini-btn mini-btn-dl" data-id="${user.user_id}">DL</button>
+          <button class="mini-btn mini-btn-del" data-id="${user.user_id}">削除</button>
         </div>
       </td>
     `;
@@ -219,6 +220,35 @@ function renderAdminUserList() {
       downloadQrLabel(qrId, `USER_${id}.png`);
     });
   });
+    // ダウンロード
+  tbody.querySelectorAll('.mini-btn-dl').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const qrId = `admin-user-qr-${id}`;
+      downloadQrLabel(qrId, `USER_${id}.png`);
+    });
+  });
+
+  // 削除
+  tbody.querySelectorAll('.mini-btn-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const user = masterUsers.find(u => u.user_id === id);
+      if (!user) return;
+
+      if (!confirm(`ユーザー「${user.name_ja || user.name || id}」を削除しますか？`)) return;
+
+      try {
+        await callApi('deleteUser', { userId: id });
+        showToast('ユーザーを削除しました。', 'success');
+        loadMasterData(); // list & QR refresh
+      } catch (err) {
+        console.error(err);
+        showToast('ユーザー削除に失敗しました: ' + err.message, 'error');
+      }
+    });
+  });
+
 }
 
 function renderAdminTerminalList() {
@@ -231,7 +261,7 @@ function renderAdminTerminalList() {
     const tr = document.createElement('tr');
     const qrId = `admin-terminal-qr-${t.terminal_id}`;
 
-    tr.innerHTML = `
+        tr.innerHTML = `
       <td><div class="qr-mini" id="${qrId}"></div></td>
       <td>${escapeHtml(t.terminal_id)}</td>
       <td>${escapeHtml(t.name_ja || t.name || '')}</td>
@@ -242,9 +272,11 @@ function renderAdminTerminalList() {
           <button class="mini-btn mini-btn-edit" data-id="${t.terminal_id}">編集</button>
           <button class="mini-btn mini-btn-print" data-id="${t.terminal_id}">印刷</button>
           <button class="mini-btn mini-btn-dl" data-id="${t.terminal_id}">DL</button>
+          <button class="mini-btn mini-btn-del" data-id="${t.terminal_id}">削除</button>
         </div>
       </td>
     `;
+
     tbody.appendChild(tr);
 
     const container = document.getElementById(qrId);
@@ -300,6 +332,35 @@ function renderAdminTerminalList() {
       downloadQrLabel(qrId, `PROC_${id}.png`);
     });
   });
+    // ダウンロード
+  tbody.querySelectorAll('.mini-btn-dl').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const qrId = `admin-terminal-qr-${id}`;
+      downloadQrLabel(qrId, `PROC_${id}.png`);
+    });
+  });
+
+  // 削除
+  tbody.querySelectorAll('.mini-btn-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const t = masterTerminals.find(x => x.terminal_id === id);
+      if (!t) return;
+
+      if (!confirm(`工程「${t.name_ja || id}」を削除しますか？`)) return;
+
+      try {
+        await callApi('deleteTerminal', { terminalId: id });
+        showToast('工程を削除しました。', 'success');
+        loadMasterData(); // list & QR refresh
+      } catch (err) {
+        console.error(err);
+        showToast('工程削除に失敗しました: ' + err.message, 'error');
+      }
+    });
+  });
+
 }
 
 // ----------------------------------
