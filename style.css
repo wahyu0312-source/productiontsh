@@ -14,8 +14,10 @@
   --text-main: #111827;
   --text-sub: #6b7280;
   --danger: #ef4444;
+  --success: #22c55e;
   --radius-lg: 16px;
   --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --shadow-dropdown: 0 10px 30px rgba(15, 23, 42, 0.2);
 }
 
 *,
@@ -45,6 +47,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 16px 12px;
+  transition: transform 0.2s ease-out;
 }
 
 .sidebar-logo {
@@ -124,11 +127,6 @@ body {
   opacity: 0.9;
 }
 
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 .topbar-left {
   display: flex;
   align-items: center;
@@ -171,32 +169,98 @@ body {
   border-color: rgba(255,255,255,0.7);
   color: #fff;
 }
-/* Logout button (ユーザー認証用) */
-#btn-logout {
-  background: var(--danger); /* merah dari variable theme */
-  color: #fff;
-  border: none;
+
+/* User Chip Wrapper with Dropdown */
+.user-chip-wrapper {
+  position: relative;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
   border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 0.85rem;
+  background: rgba(15, 23, 42, 0.2);
   cursor: pointer;
-  transition: all 0.15s ease-out;
+  transition: background 0.15s;
 }
 
-#btn-logout:hover {
+.user-chip:hover {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+.user-avatar {
+  font-size: 1.1rem;
+}
+
+.user-meta {
+  font-size: 0.8rem;
+}
+
+.user-role {
   opacity: 0.9;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-soft);
 }
 
-#btn-logout:active {
-  transform: translateY(0);
-  box-shadow: none;
+/* User Dropdown Menu */
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-dropdown);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.user-dropdown.hidden {
+  display: none;
+}
+
+.user-dropdown-header {
+  background: linear-gradient(135deg, #2f80ed, #4f46e5);
+  color: #ffffff;
+  padding: 12px 16px;
+}
+
+.user-dropdown-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.user-dropdown-body {
+  padding: 16px;
+}
+
+.user-info-compact {
+  background: #f3f4ff;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.user-info-compact strong {
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.button-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-block {
+  width: 100%;
 }
 
 /* Burger button (スマホ用) */
 .burger-button {
-  display: none; /* デスクトップでは非表示 */
+  display: none;
   border: none;
   background: transparent;
   padding: 4px;
@@ -213,32 +277,6 @@ body {
   margin: 3px 0;
 }
 
-/* サイドバーの基本トランジション */
-.sidebar {
-  transition: transform 0.2s ease-out;
-}
-
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.2);
-}
-
-.user-avatar {
-  font-size: 1.1rem;
-}
-
-.user-meta {
-  font-size: 0.8rem;
-}
-
-.user-role {
-  opacity: 0.9;
-}
-
 /* Content */
 
 .content {
@@ -247,7 +285,6 @@ body {
   max-width: none;
   margin: 0;
 }
-
 
 .manual-login-row {
   display: flex;
@@ -280,17 +317,60 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-/* ===== PERBAIKAN UTAMA: Menghilangkan max-width dan margin auto ===== */
-/* Semua card di section plan-input, plan-list, admin, dan terminalqr 
-   tidak lagi dibatasi lebar dan tidak di-center dengan margin auto */
+/* Info Card */
+.info-card {
+  background: linear-gradient(135deg, #e0f2fe, #ffffff);
+  border-color: #bae6fd;
+}
+
+.info-text {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.info-subtext {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-sub);
+}
+
+/* Plan Info Display */
+.plan-info-display {
+  background: #f0fdf4;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.plan-info-row {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.9rem;
+}
+
+.plan-info-row strong {
+  min-width: 100px;
+  color: var(--text-sub);
+}
+
+/* Readonly fields */
+.readonly-field {
+  background: #f9fafb !important;
+  color: var(--text-sub) !important;
+  cursor: not-allowed;
+}
+
 #plan-input-section > .card,
 #plan-list-section > .card,
 #admin-section > .card,
 #terminalqr-section > .card {
-  /* Hapus max-width dan margin: auto */
-  /* Card akan mengikuti lebar .content secara penuh */
+  /* Full width cards */
 }
 
 .small-gap {
@@ -353,13 +433,13 @@ body {
   padding: 10px 12px;
   border: 1px solid #e0e7ff;
 }
+
 .summary-card .summary-label {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-/* デフォルトアイコン */
 .summary-card .summary-label::before {
   content: "📦";
   display: inline-flex;
@@ -372,17 +452,14 @@ body {
   font-size: 0.9rem;
 }
 
-/* 2枚目: 不良 */
 .summary-card:nth-child(2) .summary-label::before {
   content: "⚠️";
 }
 
-/* 3枚目: 端末 */
 .summary-card:nth-child(3) .summary-label::before {
   content: "🖥️";
 }
 
-/* 4枚目: 計画 */
 .summary-card:nth-child(4) .summary-label::before {
   content: "🗂️";
 }
@@ -435,15 +512,29 @@ body {
   color: #fff;
 }
 
+.primary-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 .secondary-button {
   background: var(--accent);
   color: #fff;
+}
+
+.secondary-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .ghost-button {
   background: transparent;
   color: var(--text-sub);
   border: 1px solid var(--border);
+}
+
+.ghost-button:hover {
+  background: #f9fafb;
 }
 
 .button-row {
@@ -494,26 +585,6 @@ body {
   align-items: center;
   font-size: 0.85rem;
 }
-/* label wajib */
-.required-label::after {
-  content: "＊";
-  color: #ef4444;
-  margin-left: 4px;
-  font-size: 0.75em;
-}
-
-/* highlight untuk field wajib (selalu terlihat) */
-.form-group .required-label + input {
-  background-color: #fff7f7;  /* sedikit merah muda */
-  border-color: #fecaca;
-}
-
-/* khusus radio-group status wajib */
-.form-group .required-label + .radio-group {
-  border-radius: 12px;
-  padding: 6px 10px;
-  border: 1px solid #fecaca;
-}
 
 /* Grids */
 
@@ -563,6 +634,11 @@ body {
 .qr-reader {
   margin-top: 8px;
   max-width: 360px;
+}
+
+.qr-reader-large {
+  margin-top: 12px;
+  max-width: 480px;
 }
 
 /* Sections */
@@ -626,6 +702,11 @@ tbody tr:hover {
   color: #b91c1c;
 }
 
+.badge-success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
 /* Admin */
 
 .admin-grid {
@@ -638,6 +719,7 @@ tbody tr:hover {
 .admin-section h3 {
   margin-top: 0;
 }
+
 .list-action-buttons {
   display: inline-flex;
   gap: 4px;
@@ -652,9 +734,10 @@ tbody tr:hover {
   color: #fff;
 }
 
-.mini-btn-edit  { background: #6366f1; } /* ungu */
-.mini-btn-print { background: #0ea5e9; } /* biru */
-.mini-btn-dl    { background: #22c55e; } /* hijau */
+.mini-btn-edit  { background: #6366f1; }
+.mini-btn-print { background: #0ea5e9; }
+.mini-btn-dl    { background: #22c55e; }
+.mini-btn-scan  { background: #f59e0b; }
 
 .mini-btn:focus {
   outline: none;
@@ -713,7 +796,7 @@ tbody tr:hover {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(15, 23, 42, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -729,7 +812,12 @@ tbody tr:hover {
   border-radius: var(--radius-lg);
   padding: 16px;
   width: 320px;
+  max-width: 90vw;
   box-shadow: var(--shadow-soft);
+}
+
+.modal-large {
+  width: 520px;
 }
 
 /* Hint & warning */
@@ -760,148 +848,6 @@ tbody tr:hover {
   display: none !important;
 }
 
-/* Responsive: kecilkan sidebar di mobile */
-
-@media (max-width: 800px) {
-  .app-shell {
-    flex-direction: column;
-  }
-
-  /* サイドバーをオーバーレイ＆スライドにする */
-  .sidebar {
-    width: 220px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 40;
-    transform: translateX(-100%); /* 初期は隠す */
-  }
-
-  .sidebar.sidebar-hidden {
-    transform: translateX(-100%);
-  }
-
-  .sidebar:not(.sidebar-hidden) {
-    transform: translateX(0);
-  }
-
-  /* コンテンツは常に全幅 */
-  .main-area {
-    flex: none;
-  }
-
-  /* コンテンツの余白を少し小さく */
-  .content {
-    padding: 10px 10px 24px;
-  }
-
-  /* トップバーを2段構成にして崩れないようにする */
-  .topbar {
-    flex-wrap: wrap;
-    align-items: flex-start;
-    padding: 10px 12px;
-  }
-
-  .topbar-left {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .topbar-right {
-    width: 100%;
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-
-  .quick-search {
-    flex: 1;
-  }
-
-  .quick-search input {
-    width: 100%;
-  }
-
-  .user-chip {
-    margin-left: auto;
-  }
-
-  /* バーガーボタンを表示 */
-  .burger-button {
-    display: inline-block;
-  }
-
-  /* カードを少しコンパクトに */
-  .card {
-    padding: 12px;
-    margin-bottom: 10px;
-  }
-
-  /* Mobile: card tetap full width tanpa batasan */
-  #plan-input-section > .card,
-  #plan-list-section > .card,
-  #admin-section > .card,
-  #terminalqr-section > .card {
-    /* Tidak ada override khusus - mengikuti .card default */
-  }
-
-  /* フォームグリッドは1列寄りに */
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* テーブルの文字を少し小さく（はみ出し対策） */
-  table {
-    font-size: 0.75rem;
-  }
-
-  th, td {
-    padding: 4px 6px;
-  }
-
-  /* チャート高さを少し下げて見やすく */
-  .chart-wrapper {
-    height: 180px;
-  }
-}
-
-
-.user-meta {
-  font-size: 0.8rem;
-}
-
-.user-role span {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.2);
-}
-
-/* role 別の色分け（admin / qc / operator） */
-.user-role span::before {
-  content: "●";
-  font-size: 0.6rem;
-  margin-right: 4px;
-}
-
-body .user-role span {
-  background: rgba(59, 130, 246, 0.18); /* デフォルト: 青 */
-  color: #e5e7eb;
-}
-
-body .user-role span:has(> .dummy) {
-  /* placeholder: 無視 */
-}
 .ghost-icon-button {
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.7);
@@ -927,6 +873,7 @@ body .user-role span:has(> .dummy) {
 .help-list li {
   margin-bottom: 4px;
 }
+
 .plan-actual-card .plan-actual-text {
   font-size: 0.85rem;
   color: var(--text-sub);
@@ -949,6 +896,7 @@ body .user-role span:has(> .dummy) {
   background: linear-gradient(90deg, #22c55e, #16a34a);
   transition: width 0.4s ease-out;
 }
+
 .ticker-card {
   background: #e0f2fe;
   border-radius: 999px;
@@ -985,7 +933,7 @@ body .user-role span:has(> .dummy) {
   0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
 }
-/* label wajib */
+
 .required-label::after {
   content: "＊";
   color: #ef4444;
@@ -993,17 +941,16 @@ body .user-role span:has(> .dummy) {
   font-size: 0.75em;
 }
 
-/* input yang belum diisi tapi wajib */
 .required-missing {
   border-color: #f97373 !important;
   box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.7);
 }
 
-/* highlight sekali setelah fokus dari scan */
 .highlight-once {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.7);
 }
-/* Loading badge (上部) */
+
+/* Loading badge */
 .loading-badge {
   position: fixed;
   top: 12px;
@@ -1034,7 +981,7 @@ body .user-role span:has(> .dummy) {
   to { transform: rotate(360deg); }
 }
 
-/* Toast (右下) */
+/* Toast */
 .toast {
   position: fixed;
   bottom: 16px;
@@ -1053,3 +1000,131 @@ body .user-role span:has(> .dummy) {
 .toast-success { background: #16a34a; }
 .toast-error   { background: #b91c1c; }
 .toast-info    { background: #111827; }
+
+.user-role span {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.2);
+}
+
+.user-role span::before {
+  content: "●";
+  font-size: 0.6rem;
+  margin-right: 4px;
+}
+
+body .user-role span {
+  background: rgba(59, 130, 246, 0.18);
+  color: #e5e7eb;
+}
+
+/* Responsive */
+
+@media (max-width: 800px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 220px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.sidebar-hidden {
+    transform: translateX(-100%);
+  }
+
+  .sidebar:not(.sidebar-hidden) {
+    transform: translateX(0);
+  }
+
+  .main-area {
+    flex: none;
+  }
+
+  .content {
+    padding: 10px 10px 24px;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 10px 12px;
+  }
+
+  .topbar-left {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topbar-right {
+    width: 100%;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .quick-search {
+    flex: 1;
+  }
+
+  .quick-search input {
+    width: 100%;
+  }
+
+  .user-chip {
+    margin-left: auto;
+  }
+
+  .user-dropdown {
+    right: -10px;
+    width: 280px;
+  }
+
+  .burger-button {
+    display: inline-block;
+  }
+
+  .card {
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  #plan-input-section > .card,
+  #plan-list-section > .card,
+  #admin-section > .card,
+  #terminalqr-section > .card {
+    /* Mobile: full width */
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  table {
+    font-size: 0.75rem;
+  }
+
+  th, td {
+    padding: 4px 6px;
+  }
+
+  .chart-wrapper {
+    height: 180px;
+  }
+}
