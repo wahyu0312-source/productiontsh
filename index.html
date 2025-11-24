@@ -33,8 +33,7 @@
       <button class="sidebar-link" data-section="plan-input-section">生産計画入力</button>
       <button class="sidebar-link" data-section="plan-list-section">生産一覧</button>
       <button class="sidebar-link admin-only" data-section="admin-section">ユーザー / QR</button>
-     <button class="sidebar-link admin-only" data-section="terminalqr-section">工程一覧</button>
-
+      <button class="sidebar-link admin-only" data-section="terminalqr-section">工程一覧</button>
     </nav>
   </aside>
 
@@ -43,213 +42,264 @@
 
     <!-- Top bar -->
     <header class="topbar">
-  <div class="topbar-left">
-    <!-- ここが追加：スマホ用のバーガーボタン -->
-    <button id="btn-menu-toggle" class="burger-button" aria-label="メニュー">
-      <span></span><span></span><span></span>
-    </button>
+      <div class="topbar-left">
+        <button id="btn-menu-toggle" class="burger-button" aria-label="メニュー">
+          <span></span><span></span><span></span>
+        </button>
 
-    <div>
-      <h1 class="topbar-title">生産進捗トラッキングシステム</h1>
-      <p class="topbar-subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
-    </div>
-  </div>
-  <div class="topbar-right">
-  <!-- クイック製品検索 -->
-  <div class="quick-search">
-    <input id="header-product-search" type="text" placeholder="製品番号検索">
-    <button id="btn-header-search" class="ghost-button ghost-small">検索</button>
-  </div>
+        <div>
+          <h1 class="topbar-title">生産進捗トラッキングシステム</h1>
+          <p class="topbar-subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="quick-search">
+          <input id="header-product-search" type="text" placeholder="製品番号検索">
+          <button id="btn-header-search" class="ghost-button ghost-small">検索</button>
+        </div>
 
-  <!-- ヘルプボタン -->
-  <button id="btn-help" class="ghost-icon-button" title="ヘルプ">?</button>
+        <button id="btn-help" class="ghost-icon-button" title="ヘルプ">?</button>
 
-  <!-- ユーザー情報 -->
-  <div class="user-chip">
-    <div class="user-avatar">👤</div>
-    <div class="user-meta">
-      <div id="top-username">ゲスト</div>
-      <div class="user-role"><span id="top-userrole">未ログイン</span></div>
-    </div>
-  </div>
-</div>
-
+        <!-- ユーザー情報 with dropdown -->
+        <div class="user-chip-wrapper">
+          <div class="user-chip" id="user-chip-button">
+            <div class="user-avatar">👤</div>
+            <div class="user-meta">
+              <div id="top-username">ゲスト</div>
+              <div class="user-role"><span id="top-userrole">未ログイン</span></div>
+            </div>
+          </div>
+          
+          <!-- User dropdown menu -->
+          <div class="user-dropdown hidden" id="user-dropdown">
+            <div class="user-dropdown-header">
+              <h3>ユーザー認証</h3>
+            </div>
+            <div class="user-dropdown-body">
+              <div class="user-info-compact">
+                <div><strong>ログインユーザー:</strong> <span id="dropdown-user-name">未ログイン</span></div>
+                <div><strong>ユーザーID:</strong> <span id="dropdown-user-id">-</span></div>
+                <div><strong>権限:</strong> <span id="dropdown-user-role">-</span></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="dropdown-user-id-input">ユーザーID</label>
+                <input id="dropdown-user-id-input" type="text" placeholder="例: ADMIN001">
+              </div>
+              
+              <div class="button-column">
+                <button id="btn-dropdown-login" class="primary-button btn-block">ユーザーIDでログイン</button>
+                <button id="btn-dropdown-qr-scan" class="secondary-button btn-block">ユーザーQRスキャン</button>
+                <button id="btn-dropdown-logout" class="ghost-button btn-block">ログアウト</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </header>
 
     <!-- Content -->
     <main class="content">
 
       <!-- Dashboard -->
-     <section id="dashboard-section" class="section active">
-  <div class="card welcome-card">
-    <div class="welcome-main">
-      <div class="welcome-icon">👋</div>
-      <div>
-        <p class="welcome-title">ようこそ、<span id="welcome-name">ゲスト</span> さん。</p>
-        <p class="welcome-text">最新の進捗状況と生産計画を確認しましょう。</p>
-      </div>
-    </div>
-    <div class="welcome-meta">
-      <div class="welcome-meta-item">
-        <span class="meta-label">本日</span>
-        <span id="welcome-date"></span>
-      </div>
-    </div>
-  </div>
-
-  <!-- サマリーカード -->
-  <div class="summary-grid">
-    <div class="summary-card">
-      <p class="summary-label">本日の総生産数量</p>
-      <p class="summary-value" id="today-total">0</p>
-    </div>
-    <div class="summary-card warning-card">
-      <p class="summary-label">本日の不良数量</p>
-      <p class="summary-value" id="today-ng">0</p>
-    </div>
-    <div class="summary-card">
-      <p class="summary-label">登録工程数</p>
-      <p class="summary-value" id="summary-terminals">0</p>
-    </div>
-    <div class="summary-card">
-      <p class="summary-label">登録生産計画数</p>
-      <p class="summary-value" id="summary-plans">0</p>
-    </div>
-  </div>
-
-  <div id="alert-banner" class="alert-banner hidden">
-    最近の工程で不良または検査保留が発生しています。詳細は一覧を確認してください。
-  </div>
-       <div class="ticker-card">
-  <div class="ticker-label">INFO</div>
-  <div class="ticker-content">
-    <div id="ticker-text" class="ticker-text">
-      生産システムへようこそ。最新の実績と生産計画を確認してください。
-    </div>
-  </div>
-</div>
-
-<div class="card plan-actual-card">
-  <h2 class="card-title">全体 計画 vs 実績</h2>
-  <p class="plan-actual-text">
-    計画数量: <span id="plan-total">0</span> ／
-    実績数量: <span id="actual-total">0</span>
-    （達成率 <span id="plan-rate">0</span>%）
-  </p>
-  <div class="progress-bar">
-    <div class="progress-fill" id="plan-progress"></div>
-  </div>
-</div>
-
-  <!-- ★ ここを先に：最新の実績一覧 -->
-  <div class="card">
-    <div class="card-header-row">
-      <h2 class="card-title">最新の実績一覧</h2>
-      <div class="button-row">
-        <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
-        <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
-      </div>
-    </div>
-
-    <div class="filter-grid">
-      <div class="form-group">
-        <label for="filter-process">工程フィルター</label>
-        <select id="filter-process">
-          <option value="">すべて</option>
-          <option>レザー加工</option>
-          <option>外注工程</option>
-          <option>曲げ加工</option>
-          <option>準備工程</option>
-          <option>外枠組立工程</option>
-          <option>パンタ組立工程</option>
-          <option>シャッター組立工程</option>
-          <option>スポット工程</option>
-          <option>コーキング工程</option>
-          <option>溶接工程</option>
-          <option>組立工程</option>
-          <option>検査工程</option>
-          <option>検査保留</option>
-          <option>出荷準備</option>
-          <option>出荷完成</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="filter-terminal">工程名フィルター</label>
-        <input id="filter-terminal" type="text" placeholder="工程IDまたは名称で検索">
-      </div>
-      <div class="form-group">
-        <label for="filter-product">製品番号フィルター</label>
-        <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
-      </div>
-      <div class="form-group">
-        <label>期間フィルター</label>
-        <div class="date-range">
-          <input id="filter-date-from" type="date">
-          <span>〜</span>
-          <input id="filter-date-to" type="date">
+      <section id="dashboard-section" class="section active">
+        <div class="card welcome-card">
+          <div class="welcome-main">
+            <div class="welcome-icon">👋</div>
+            <div>
+              <p class="welcome-title">ようこそ、<span id="welcome-name">ゲスト</span> さん。</p>
+              <p class="welcome-text">最新の進捗状況と生産計画を確認しましょう。</p>
+            </div>
+          </div>
+          <div class="welcome-meta">
+            <div class="welcome-meta-item">
+              <span class="meta-label">本日</span>
+              <span id="welcome-date"></span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>時刻(終了)</th>
-            <th>製品番号</th>
-            <th>工程</th>
-            <th>工程名</th>
-            <th>ユーザー</th>
-            <th>数量(OK/不良)</th>
-            <th>ステータス</th>
-            <th>所要時間(分)</th>
-            <th>ロケーション</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody id="logs-tbody"></tbody>
-      </table>
-    </div>
-  </div>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p class="summary-label">本日の総生産数量</p>
+            <p class="summary-value" id="today-total">0</p>
+          </div>
+          <div class="summary-card warning-card">
+            <p class="summary-label">本日の不良数量</p>
+            <p class="summary-value" id="today-ng">0</p>
+          </div>
+          <div class="summary-card">
+            <p class="summary-label">登録工程数</p>
+            <p class="summary-value" id="summary-terminals">0</p>
+          </div>
+          <div class="summary-card">
+            <p class="summary-label">登録生産計画数</p>
+            <p class="summary-value" id="summary-plans">0</p>
+          </div>
+        </div>
 
-  <!-- ★ 工程別 生産量（直近7日）を下に -->
-  <div class="card small-gap">
-    <h2 class="card-title">工程別 生産量（直近7日）</h2>
-    <div class="chart-wrapper">
-      <canvas id="process-chart"></canvas>
-    </div>
-  </div>
-</section>
+        <div id="alert-banner" class="alert-banner hidden">
+          最近の工程で不良または検査保留が発生しています。詳細は一覧を確認してください。
+        </div>
+
+        <div class="ticker-card">
+          <div class="ticker-label">INFO</div>
+          <div class="ticker-content">
+            <div id="ticker-text" class="ticker-text">
+              生産システムへようこそ。最新の実績と生産計画を確認してください。
+            </div>
+          </div>
+        </div>
+
+        <div class="card plan-actual-card">
+          <h2 class="card-title">全体 計画 vs 実績</h2>
+          <p class="plan-actual-text">
+            計画数量: <span id="plan-total">0</span> ／
+            実績数量: <span id="actual-total">0</span>
+            （達成率 <span id="plan-rate">0</span>%）
+          </p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="plan-progress"></div>
+          </div>
+        </div>
+
+        <!-- 今日の生産計画 -->
+        <div class="card">
+          <div class="card-header-row">
+            <h2 class="card-title">今日の生産計画</h2>
+            <button id="btn-refresh-today-plans" class="secondary-button">更新</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>製品番号</th>
+                  <th>製品名</th>
+                  <th>工程名</th>
+                  <th>計画数量</th>
+                  <th>実績数量</th>
+                  <th>進捗率</th>
+                  <th>ステータス</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="today-plans-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 最新の実績一覧 -->
+        <div class="card">
+          <div class="card-header-row">
+            <h2 class="card-title">最新の実績一覧</h2>
+            <div class="button-row">
+              <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
+              <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
+            </div>
+          </div>
+
+          <div class="filter-grid">
+            <div class="form-group">
+              <label for="filter-process">工程フィルター</label>
+              <select id="filter-process">
+                <option value="">すべて</option>
+                <option>レザー加工</option>
+                <option>外注工程</option>
+                <option>曲げ加工</option>
+                <option>準備工程</option>
+                <option>外枠組立工程</option>
+                <option>パンタ組立工程</option>
+                <option>シャッター組立工程</option>
+                <option>スポット工程</option>
+                <option>コーキング工程</option>
+                <option>溶接工程</option>
+                <option>組立工程</option>
+                <option>検査工程</option>
+                <option>検査保留</option>
+                <option>出荷準備</option>
+                <option>出荷完成</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="filter-terminal">工程名フィルター</label>
+              <input id="filter-terminal" type="text" placeholder="工程IDまたは名称で検索">
+            </div>
+            <div class="form-group">
+              <label for="filter-product">製品番号フィルター</label>
+              <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
+            </div>
+            <div class="form-group">
+              <label>期間フィルター</label>
+              <div class="date-range">
+                <input id="filter-date-from" type="date">
+                <span>〜</span>
+                <input id="filter-date-to" type="date">
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>時刻(終了)</th>
+                  <th>製品番号</th>
+                  <th>工程</th>
+                  <th>工程名</th>
+                  <th>ユーザー</th>
+                  <th>数量(OK/不良)</th>
+                  <th>ステータス</th>
+                  <th>所要時間(分)</th>
+                  <th>ロケーション</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card small-gap">
+          <h2 class="card-title">工程別 生産量（直近7日）</h2>
+          <div class="chart-wrapper">
+            <canvas id="process-chart"></canvas>
+          </div>
+        </div>
+      </section>
 
       <!-- Scan -->
       <section id="scan-section" class="section">
-        <div class="card">
-  <h2 class="card-title">ユーザー認証</h2>
-  <p>ユーザーQRコードをスキャンするか、ユーザーIDを入力してログインしてください。</p>
+        <div class="card info-card">
+          <p class="info-text">
+            📱 <strong>ユーザー認証は画面右上のメニューから行ってください。</strong>
+          </p>
+          <p class="info-subtext">
+            右上のユーザーアイコンをクリックして、ユーザーIDまたはQRコードでログインできます。
+          </p>
+        </div>
 
-  <div class="user-info">
-    <div><strong>ログインユーザー:</strong> <span id="current-user-name">未ログイン</span></div>
-    <div><strong>ユーザーID:</strong> <span id="current-user-id">-</span></div>
-    <div><strong>権限:</strong> <span id="current-user-role">-</span></div>
-  </div>
-
-  <!-- Login manual -->
-   <div class="manual-login-row">
-    <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
-    <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
-  </div>
-
-  <div style="margin-top:8px;">
-    <button id="btn-start-user-scan" class="primary-button">ユーザーQRスキャン開始</button>
-  </div>
-
-  <div style="margin-top:8px;">
-    <button id="btn-logout" class="ghost-button">ログアウト</button>
-  </div>
-
-  <div id="qr-reader" class="qr-reader"></div>
-</div>
-
+        <!-- 選択された生産計画 -->
+        <div class="card" id="selected-plan-card" style="display:none;">
+          <h2 class="card-title">選択された生産計画</h2>
+          <div class="plan-info-display">
+            <div class="plan-info-row">
+              <strong>製品番号:</strong> <span id="display-product-code">-</span>
+            </div>
+            <div class="plan-info-row">
+              <strong>製品名:</strong> <span id="display-product-name">-</span>
+            </div>
+            <div class="plan-info-row">
+              <strong>計画工程:</strong> <span id="display-plan-process">-</span>
+            </div>
+            <div class="plan-info-row">
+              <strong>計画数量:</strong> <span id="display-plan-qty">0</span>
+            </div>
+            <div class="plan-info-row">
+              <strong>実績数量:</strong> <span id="display-actual-qty">0</span>
+            </div>
+          </div>
+          <button id="btn-clear-plan-selection" class="ghost-button">選択をクリア</button>
+        </div>
 
         <div class="card">
           <h2 class="card-title">工程スキャン</h2>
@@ -271,16 +321,16 @@
 
         <div class="card">
           <h2 class="card-title">生産データ入力</h2>
-          <p>スキャン後に下記フォームで生産データを登録してください。</p>
+          <p>選択された計画と工程に対して、実績データを入力してください。</p>
 
           <div class="form-grid">
             <div class="form-group">
-              <label for="scan-product-number" class="required-label">製品番号</label>
-              <input id="scan-product-number" type="text" placeholder="例: P001">
+              <label>製品番号</label>
+              <input id="scan-product-number" type="text" readonly class="readonly-field">
             </div>
             <div class="form-group">
-              <label for="scan-product-name">製品名（任意）</label>
-              <input id="scan-product-name" type="text" placeholder="例: 商品Aサンプル">
+              <label>製品名</label>
+              <input id="scan-product-name" type="text" readonly class="readonly-field">
             </div>
             <div class="form-group">
               <label for="scan-lot-number">ロット番号（任意）</label>
@@ -288,29 +338,26 @@
             </div>
             <div class="form-group">
               <label for="scan-status" class="required-label">ステータス</label>
-              <div class="radio-group">
-                <label>
-                  <input type="radio" name="scan-status" value="開始"> 工程開始
-                </label>
-                <label>
-                  <input type="radio" name="scan-status" value="終了" checked> 工程終了
-                </label>
-              </div>
+              <select id="scan-status">
+                <option value="工程開始">工程開始</option>
+                <option value="工程終了" selected>工程終了</option>
+                <option value="検査保留">検査保留</option>
+              </select>
             </div>
           </div>
 
           <div class="form-grid">
             <div class="form-group">
-              <label for="scan-qty-total" class="required-label">総数量</label>
-              <input id="scan-qty-total" type="number" min="0" value="0">
-            </div>
-            <div class="form-group">
-              <label for="scan-qty-ok">OK数量</label>
+              <label for="scan-qty-ok" class="required-label">OK数量</label>
               <input id="scan-qty-ok" type="number" min="0" value="0">
             </div>
             <div class="form-group">
               <label for="scan-qty-ng">不良数量</label>
               <input id="scan-qty-ng" type="number" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label>総数量（自動計算）</label>
+              <input id="scan-qty-total" type="number" min="0" value="0" readonly class="readonly-field">
             </div>
           </div>
 
@@ -323,7 +370,7 @@
         </div>
       </section>
 
-      <!-- 生産計画入力 (新しいセクション) -->
+      <!-- 生産計画入力 -->
       <section id="plan-input-section" class="section">
         <div class="card">
           <h2 class="card-title">生産計画登録</h2>
@@ -338,8 +385,8 @@
               <input id="plan-product-name" type="text" placeholder="例: 商品A">
             </div>
             <div class="form-group">
-              <label for="plan-terminal-name">工程名</label>
-              <input id="plan-terminal-name" type="text" placeholder="例: レザー加工工程1">
+              <label for="plan-process-name">工程名</label>
+              <input id="plan-process-name" type="text" placeholder="例: レザー加工">
             </div>
             <div class="form-group">
               <label for="plan-qty">計画数量</label>
@@ -353,6 +400,15 @@
               <label for="plan-end">計画終了</label>
               <input id="plan-end" type="datetime-local">
             </div>
+            <div class="form-group">
+              <label for="plan-status">ステータス</label>
+              <select id="plan-status">
+                <option value="計画中">計画中</option>
+                <option value="進行中">進行中</option>
+                <option value="完了">完了</option>
+                <option value="中止">中止</option>
+              </select>
+            </div>
           </div>
           <button id="btn-create-plan" class="primary-button">計画登録</button>
         </div>
@@ -362,13 +418,13 @@
           <p>Excelから「CSV UTF-8」で保存し、1行目をヘッダーとして貼り付けてください。<br>
              列順: 製品番号, 製品名, 工程名, 計画数量, 計画開始, 計画終了, ステータス</p>
           <div class="form-group">
-            <textarea id="plan-import-text" rows="6" placeholder="製品番号,製品名,工程名,計画数量,計画開始,計画終了,ステータス"></textarea>
+            <textarea id="plan-import-text" rows="6" placeholder="製品番号,製品名,工程名,計画数量,計画開始,計画終了,ステータス&#10;P001,商品A,レザー加工,100,2024-01-01 08:00,2024-01-01 17:00,計画中"></textarea>
           </div>
           <button id="btn-import-plans" class="secondary-button">インポート実行</button>
         </div>
       </section>
 
-      <!-- 生産一覧 (新しいセクション) -->
+      <!-- 生産一覧 -->
       <section id="plan-list-section" class="section">
         <div class="card">
           <div class="card-header-row">
@@ -385,6 +441,8 @@
                   <th>製品名</th>
                   <th>工程名</th>
                   <th>計画数量</th>
+                  <th>実績数量</th>
+                  <th>進捗率</th>
                   <th>計画開始</th>
                   <th>計画終了</th>
                   <th>ステータス</th>
@@ -397,10 +455,8 @@
         </div>
       </section>
 
-      <!-- Admin: user & terminal register -->
-            <!-- Admin: user & terminal register -->
+      <!-- Admin -->
       <section id="admin-section" class="section">
-        <!-- 登録フォーム -->
         <div class="card">
           <h2 class="card-title">管理者メニュー（ユーザー / 工程登録）</h2>
           <p>管理者権限ユーザーでログインすると使用できます。（ロール: admin）</p>
@@ -475,38 +531,26 @@
           </div>
         </div>
 
-              <!-- ユーザー一覧 / QRラベル -->
-      <div id="admin-user-list-card" class="card hidden">
-        <h3 class="card-title">ユーザー一覧 / QRラベル</h3>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>QR</th>
-                <th>ユーザーID</th>
-                <th>氏名</th>
-                <th>権限</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="admin-user-list-tbody"></tbody>
-          </table>
+        <div id="admin-user-list-card" class="card hidden">
+          <h3 class="card-title">ユーザー一覧 / QRラベル</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>QR</th>
+                  <th>ユーザーID</th>
+                  <th>氏名</th>
+                  <th>権限</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="admin-user-list-tbody"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      
-    </section>
-
-    <!-- Terminal QR List -->
-
-      <!-- Terminal QR List -->
-            <section id="terminalqr-section" class="section">
-        <!-- 工程一覧 / QRラベル -->
-        <div class="card">
-          <h2 class="card-title">工程一覧 / QRラベル</h2>
-          <p>登録済みの工程一覧と各工程のQRラベルを確認できます。</p>
-          <p class="warning">管理者としてログインすると内容が表示されます。（ロール: admin）</p>
-
+        <div id="admin-terminal-list-card" class="card hidden">
+          <h3 class="card-title">工程一覧 / QRラベル</h3>
           <div class="table-wrapper">
             <table>
               <thead>
@@ -523,8 +567,10 @@
             </table>
           </div>
         </div>
+      </section>
 
-        <!-- 工程QR一覧（印刷用） -->
+      <!-- Terminal QR List -->
+      <section id="terminalqr-section" class="section">
         <div class="card">
           <h2 class="card-title">工程QR一覧（印刷用）</h2>
           <p>すべての工程のQRコードを一覧表示します。このページを印刷して現場に配布してください。</p>
@@ -535,13 +581,23 @@
         </div>
       </section>
 
-
     </main>
 
     <footer class="app-footer">
       Design by Wahyu
     </footer>
 
+  </div>
+</div>
+
+<!-- QR Scanner Modal for User -->
+<div id="user-qr-modal" class="modal hidden">
+  <div class="modal-content modal-large">
+    <h3>ユーザーQRスキャン</h3>
+    <div id="qr-reader-user" class="qr-reader-large"></div>
+    <div class="button-row" style="margin-top:8px;">
+      <button id="btn-close-user-qr" class="ghost-button">閉じる</button>
+    </div>
   </div>
 </div>
 
@@ -576,24 +632,26 @@
     </div>
   </div>
 </div>
-<!-- ★ ヘルプモーダル -->
+
+<!-- ヘルプモーダル -->
 <div id="help-modal" class="modal hidden">
   <div class="modal-content">
     <h3>ヘルプ</h3>
     <p>このシステムの基本的な使い方:</p>
     <ul class="help-list">
-      <li>① 「スキャン」メニューでユーザーQRまたはユーザーIDでログインします。</li>
-      <li>② 工程QRをスキャンし、「開始」「終了」と数量を入力して保存します。</li>
-      <li>③ 「ダッシュボード」で最新の実績と生産計画を確認できます。</li>
-      <li>④ 「ユーザー / QR」でユーザーと工程を登録し、QRコードを印刷できます。（adminのみ）</li>
-      <li>⑤ 「生産計画入力」で計画を登録し、「生産一覧」で実績と比較できます。</li>
+      <li>① 右上のユーザーアイコンからログインします（ユーザーIDまたはQRコード）。</li>
+      <li>② 「生産計画入力」で計画を登録します（adminのみ）。</li>
+      <li>③ 「生産一覧」または「ダッシュボード」で計画を選択し、[スキャン/更新]をクリック。</li>
+      <li>④ 「スキャン」画面で工程QRをスキャンし、実績データを入力して保存します。</li>
+      <li>⑤ 「ダッシュボード」で最新の実績と進捗を確認できます。</li>
     </ul>
     <div class="button-row" style="margin-top:8px;">
       <button id="btn-help-close" class="primary-button">閉じる</button>
     </div>
   </div>
 </div>
-  <!-- Loading badge -->
+
+<!-- Loading badge -->
 <div id="global-loading" class="loading-badge hidden">
   <div class="spinner"></div>
   <span id="loading-text">通信中...</span>
