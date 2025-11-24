@@ -260,9 +260,12 @@ body {
   align-items: center;
 }
 /* Admin セクションのカードを中央揃えにする */
-#admin-section > .card {
-  max-width: 1100px;   /* lebar konten admin */
-  margin: 12px auto;   /* auto kiri-kanan = tengah */
+/* 生産計画・ユーザー・工程QR のカードをメインコンテンツ内に揃える */
+#plan-section > .card,
+#admin-section > .card,
+#terminalqr-section > .card {
+  max-width: 1100px;   /* lebar konten utama */
+  margin: 12px auto;   /* kiri-kanan auto → rapi di area utama, tidak “menjorok” */
 }
 
 .small-gap {
