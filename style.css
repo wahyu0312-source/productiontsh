@@ -124,11 +124,6 @@ body {
   opacity: 0.9;
 }
 
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 .topbar-left {
   display: flex;
   align-items: center;
@@ -222,10 +217,9 @@ body {
 .content {
   padding: 14px 20px 40px;
   width: 100%;
-  max-width: none;   /* full lebar area main */
-  margin: 0;         /* tempel ke kiri (setelah sidebar) */
+  max-width: none;
+  margin: 0;
 }
-
 
 .manual-login-row {
   display: flex;
@@ -259,13 +253,13 @@ body {
   justify-content: space-between;
   align-items: center;
 }
-/* Admin セクションのカードを中央揃えにする */
-/* 生産計画・ユーザー・工程QR のカードをメインコンテンツ内に揃える */
+
+/* 生産計画・ユーザー・工程QR のカードをダッシュボードと同じ左寄せにする */
 #plan-section > .card,
 #admin-section > .card,
 #terminalqr-section > .card {
-  max-width: 1100px;   /* lebar konten utama */
-  margin: 12px auto;   /* kiri-kanan auto → rapi di area utama, tidak “menjorok” */
+  max-width: none;
+  margin: 12px 0;
 }
 
 .small-gap {
@@ -328,6 +322,7 @@ body {
   padding: 10px 12px;
   border: 1px solid #e0e7ff;
 }
+
 .summary-card .summary-label {
   display: flex;
   align-items: center;
@@ -475,7 +470,7 @@ body {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 10px 14px;      /* jarak antar field sedikit lebih lega */
+  gap: 10px 14px;
   margin-top: 10px;
 }
 
@@ -546,7 +541,8 @@ thead {
   background: var(--primary-soft);
 }
 
-th, td {
+th,
+td {
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
   text-align: left;
@@ -592,6 +588,7 @@ tbody tr:hover {
 .admin-section h3 {
   margin-top: 0;
 }
+
 .list-action-buttons {
   display: inline-flex;
   gap: 4px;
@@ -606,9 +603,9 @@ tbody tr:hover {
   color: #fff;
 }
 
-.mini-btn-edit  { background: #6366f1; } /* ungu */
-.mini-btn-print { background: #0ea5e9; } /* biru */
-.mini-btn-dl    { background: #22c55e; } /* hijau */
+.mini-btn-edit { background: #6366f1; }
+.mini-btn-print { background: #0ea5e9; }
+.mini-btn-dl { background: #22c55e; }
 
 .mini-btn:focus {
   outline: none;
@@ -729,7 +726,7 @@ tbody tr:hover {
     left: 0;
     bottom: 0;
     z-index: 40;
-    transform: translateX(-100%); /* 初期は隠す */
+    transform: translateX(-100%);
   }
 
   .sidebar.sidebar-hidden {
@@ -740,17 +737,14 @@ tbody tr:hover {
     transform: translateX(0);
   }
 
-  /* コンテンツは常に全幅 */
   .main-area {
     flex: none;
   }
 
-  /* コンテンツの余白を少し小さく */
   .content {
     padding: 10px 10px 24px;
   }
 
-  /* トップバーを2段構成にして崩れないようにする */
   .topbar {
     flex-wrap: wrap;
     align-items: flex-start;
@@ -786,25 +780,21 @@ tbody tr:hover {
     margin-left: auto;
   }
 
-  /* バーガーボタンを表示 */
   .burger-button {
     display: inline-block;
   }
 
-  /* カードを少しコンパクトに */
   .card {
     padding: 12px;
     margin-bottom: 10px;
   }
 
-  /* Admin セクションは画面幅いっぱいに */
   #admin-section > .card {
     max-width: none;
     margin: 8px 0;
     border-radius: 0;
   }
 
-  /* フォームグリッドは1列寄りに */
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -813,21 +803,19 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
-  /* テーブルの文字を少し小さく（はみ出し対策） */
   table {
     font-size: 0.75rem;
   }
 
-  th, td {
+  th,
+  td {
     padding: 4px 6px;
   }
 
-  /* チャート高さを少し下げて見やすく */
   .chart-wrapper {
     height: 180px;
   }
 }
-
 
 .user-meta {
   font-size: 0.8rem;
@@ -848,13 +836,14 @@ tbody tr:hover {
 }
 
 body .user-role span {
-  background: rgba(59, 130, 246, 0.18); /* デフォルト: 青 */
+  background: rgba(59, 130, 246, 0.18);
   color: #e5e7eb;
 }
 
 body .user-role span:has(> .dummy) {
   /* placeholder: 無視 */
 }
+
 .ghost-icon-button {
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.7);
@@ -880,6 +869,7 @@ body .user-role span:has(> .dummy) {
 .help-list li {
   margin-bottom: 4px;
 }
+
 .plan-actual-card .plan-actual-text {
   font-size: 0.85rem;
   color: var(--text-sub);
@@ -902,6 +892,7 @@ body .user-role span:has(> .dummy) {
   background: linear-gradient(90deg, #22c55e, #16a34a);
   transition: width 0.4s ease-out;
 }
+
 .ticker-card {
   background: #e0f2fe;
   border-radius: 999px;
@@ -938,6 +929,7 @@ body .user-role span:has(> .dummy) {
   0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
 }
+
 /* label wajib */
 .required-label::after {
   content: "＊";
@@ -956,6 +948,7 @@ body .user-role span:has(> .dummy) {
 .highlight-once {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.7);
 }
+
 /* Loading badge (上部) */
 .loading-badge {
   position: fixed;
