@@ -45,6 +45,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 16px 12px;
+  transition: transform 0.2s ease-out;
 }
 
 .sidebar-logo {
@@ -93,6 +94,14 @@ body {
   transform: translateX(2px);
 }
 
+.sidebar-footer {
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+}
+
 /* Main area */
 
 .main-area {
@@ -136,6 +145,8 @@ body {
   gap: 10px;
 }
 
+/* Quick search */
+
 .quick-search {
   display: flex;
   align-items: center;
@@ -160,16 +171,10 @@ body {
   box-shadow: 0 0 0 1px rgba(255,255,255,0.6);
 }
 
-.ghost-button.ghost-small {
-  padding: 3px 8px;
-  font-size: 0.75rem;
-  border-color: rgba(255,255,255,0.7);
-  color: #fff;
-}
+/* Burger button (mobile) */
 
-/* Burger button (スマホ用) */
 .burger-button {
-  display: none; /* デスクトップでは非表示 */
+  display: none;
   border: none;
   background: transparent;
   padding: 4px;
@@ -186,10 +191,7 @@ body {
   margin: 3px 0;
 }
 
-/* サイドバーの基本トランジション */
-.sidebar {
-  transition: transform 0.2s ease-out;
-}
+/* User chip */
 
 .user-chip {
   display: flex;
@@ -208,8 +210,11 @@ body {
   font-size: 0.8rem;
 }
 
-.user-role {
-  opacity: 0.9;
+.user-role span {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.2);
 }
 
 /* Content */
@@ -258,8 +263,8 @@ body {
 #plan-section > .card,
 #admin-section > .card,
 #terminalqr-section > .card {
-  max-width: none;
-  margin: 12px 0;
+  max-width: 100% !important;
+  margin: 12px 0 !important;
 }
 
 .small-gap {
@@ -329,7 +334,6 @@ body {
   gap: 4px;
 }
 
-/* デフォルトアイコン */
 .summary-card .summary-label::before {
   content: "📦";
   display: inline-flex;
@@ -342,17 +346,14 @@ body {
   font-size: 0.9rem;
 }
 
-/* 2枚目: 不良 */
 .summary-card:nth-child(2) .summary-label::before {
   content: "⚠️";
 }
 
-/* 3枚目: 端末 */
 .summary-card:nth-child(3) .summary-label::before {
   content: "🖥️";
 }
 
-/* 4枚目: 計画 */
 .summary-card:nth-child(4) .summary-label::before {
   content: "🗂️";
 }
@@ -605,7 +606,7 @@ tbody tr:hover {
 
 .mini-btn-edit { background: #6366f1; }
 .mini-btn-print { background: #0ea5e9; }
-.mini-btn-dl { background: #22c55e; }
+.mini-btn-dl   { background: #22c55e; }
 
 .mini-btn:focus {
   outline: none;
@@ -699,10 +700,11 @@ tbody tr:hover {
 /* Footer */
 
 .app-footer {
-  text-align: center;
+  text-align: center !important;
   padding: 8px 0 14px;
   font-size: 0.8rem;
   color: var(--text-sub);
+  margin-top: 24px;
 }
 
 /* Utility */
@@ -711,14 +713,13 @@ tbody tr:hover {
   display: none !important;
 }
 
-/* Responsive: kecilkan sidebar di mobile */
+/* Responsive */
 
 @media (max-width: 800px) {
   .app-shell {
     flex-direction: column;
   }
 
-  /* サイドバーをオーバーレイ＆スライドにする */
   .sidebar {
     width: 220px;
     position: fixed;
@@ -789,8 +790,11 @@ tbody tr:hover {
     margin-bottom: 10px;
   }
 
-  #admin-section > .card {
-    max-width: none;
+  /* 生産計画・ユーザー・工程QR はスマホでも画面幅いっぱいに */
+  #plan-section > .card,
+  #admin-section > .card,
+  #terminalqr-section > .card {
+    max-width: 100%;
     margin: 8px 0;
     border-radius: 0;
   }
@@ -817,31 +821,12 @@ tbody tr:hover {
   }
 }
 
-.user-meta {
-  font-size: 0.8rem;
-}
+/* その他の細かい装飾（role色分け・トーストなど） */
 
-.user-role span {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.2);
-}
-
-/* role 別の色分け（admin / qc / operator） */
 .user-role span::before {
   content: "●";
   font-size: 0.6rem;
   margin-right: 4px;
-}
-
-body .user-role span {
-  background: rgba(59, 130, 246, 0.18);
-  color: #e5e7eb;
-}
-
-body .user-role span:has(> .dummy) {
-  /* placeholder: 無視 */
 }
 
 .ghost-icon-button {
@@ -930,7 +915,6 @@ body .user-role span:has(> .dummy) {
   100% { transform: translateX(-100%); }
 }
 
-/* label wajib */
 .required-label::after {
   content: "＊";
   color: #ef4444;
@@ -938,18 +922,15 @@ body .user-role span:has(> .dummy) {
   font-size: 0.75em;
 }
 
-/* input yang belum diisi tapi wajib */
 .required-missing {
   border-color: #f97373 !important;
   box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.7);
 }
 
-/* highlight sekali setelah fokus dari scan */
 .highlight-once {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.7);
 }
 
-/* Loading badge (上部) */
 .loading-badge {
   position: fixed;
   top: 12px;
@@ -980,7 +961,6 @@ body .user-role span:has(> .dummy) {
   to { transform: rotate(360deg); }
 }
 
-/* Toast (右下) */
 .toast {
   position: fixed;
   bottom: 16px;
