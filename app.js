@@ -486,6 +486,28 @@ function setupButtons() {
     helpBtn.addEventListener('click', openHelpModal);
     helpClose.addEventListener('click', closeHelpModal);
   }
+  // Monitor mode (digital signage)
+  const monitorBtn = document.getElementById('btn-monitor-mode');
+  if (monitorBtn) {
+    monitorBtn.addEventListener('click', () => {
+      const body = document.body;
+      const isMonitor = !body.classList.contains('monitor-mode');
+      body.classList.toggle('monitor-mode', isMonitor);
+
+      // Paksa aktifkan dashboard section
+      if (isMonitor) {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+
+        sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
+        links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
+
+        showToast('モニタ表示モードをONにしました。', 'info');
+      } else {
+        showToast('モニタ表示モードをOFFにしました。', 'info');
+      }
+    });
+  }
 
   // ヘッダー製品検索
   const headerSearchBtn = document.getElementById('btn-header-search');
