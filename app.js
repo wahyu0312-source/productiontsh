@@ -1041,17 +1041,15 @@ function clearForm() {
   if (lotInput) lotInput.value = '';
 }
 
-function formatDateTime(date) {
+function formatDateTime(value) {
+  if (!value) return '';
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+
   const pad = n => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function setWelcomeDate() {
-  const el = document.getElementById('welcome-date');
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  el.textContent = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
-}
 
 /* ================================
    Dashboard: load & render
