@@ -696,9 +696,10 @@ tbody tr:hover {
   color: #fff;
 }
 
-.mini-btn-edit  { background: #6366f1; }
-.mini-btn-print { background: #0ea5e9; }
-.mini-btn-dl    { background: #22c55e; }
+.mini-btn-edit  { background: #6366f1; } /* 編集: biru-ungu */
+.mini-btn-print { background: #0ea5e9; } /* 印刷: biru muda */
+.mini-btn-dl    { background: #22c55e; } /* DL: hijau */
+.mini-btn-del   { background: #ef4444; } /* 削除: MERAH TERANG */
 
 .mini-btn:focus {
   outline: none;
