@@ -305,25 +305,45 @@ function renderAdminTerminalList() {
   });
 
   // 編集
-  tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      const t = masterTerminals.find(x => x.terminal_id === id);
-      if (!t) return;
+tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.id;
+    const t = masterTerminals.find(x => x.terminal_id === id);
+    if (!t) return;
 
-      const idInput = document.getElementById('admin-terminal-id');
-      const nameInput = document.getElementById('admin-terminal-name');
-      const processSelect = document.getElementById('admin-terminal-process');
-      const locInput = document.getElementById('admin-terminal-location');
+    // Isi form di Admin: 工程登録
+    const idInput = document.getElementById('admin-terminal-id');
+    const nameInput = document.getElementById('admin-terminal-name');
+    const processSelect = document.getElementById('admin-terminal-process');
+    const locInput = document.getElementById('admin-terminal-location');
 
-      if (idInput) idInput.value = t.terminal_id;
-      if (nameInput) nameInput.value = t.name_ja || t.name || '';
-      if (processSelect && t.process_name) processSelect.value = t.process_name;
-      if (locInput) locInput.value = t.location || '';
+    if (idInput) idInput.value = t.terminal_id;
+    if (nameInput) nameInput.value = t.name_ja || t.name || '';
+    if (processSelect && t.process_name) processSelect.value = t.process_name;
+    if (locInput) locInput.value = t.location || '';
 
-      showToast('工程情報を編集フォームに読み込みました。', 'info');
+    // Pindah section ke Admin（ユーザー / 工程登録）
+    const targetSectionId = 'admin-section';
+    const links = document.querySelectorAll('.sidebar-link');
+    const sections = document.querySelectorAll('.section');
+
+    links.forEach(l => {
+      l.classList.toggle('active', l.dataset.section === targetSectionId);
     });
+    sections.forEach(sec => {
+      sec.classList.toggle('active', sec.id === targetSectionId);
+    });
+
+    // Scroll ke area form supaya langsung terlihat
+    const adminSection = document.getElementById('admin-section');
+    if (adminSection) {
+      adminSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    showToast('工程情報を編集フォームに読み込みました。', 'info');
   });
+});
+
 
   // 印刷
   tbody.querySelectorAll('.mini-btn-print').forEach(btn => {
