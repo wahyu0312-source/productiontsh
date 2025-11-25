@@ -165,15 +165,16 @@ function renderAdminUserList() {
       <td>${escapeHtml(getRoleLabel(user.role))}</td>
       <td>
         <div class="list-action-buttons">
-          <button class="mini-btn mini-btn-edit" data-id="${user.user_id}">編集</button>
-          <button class="mini-btn mini-btn-print" data-id="${user.user_id}">印刷</button>
-          <button class="mini-btn mini-btn-dl" data-id="${user.user_id}">DL</button>
-          <button class="mini-btn mini-btn-del" data-id="${user.user_id}">削除</button>
+          <button type="button" class="mini-btn mini-btn-edit" data-id="${user.user_id}">編集</button>
+          <button type="button" class="mini-btn mini-btn-print" data-id="${user.user_id}">印刷</button>
+          <button type="button" class="mini-btn mini-btn-dl" data-id="${user.user_id}">DL</button>
+          <button type="button" class="mini-btn mini-btn-del" data-id="${user.user_id}">削除</button>
         </div>
       </td>
     `;
     tbody.appendChild(tr);
 
+    // QR code
     const container = document.getElementById(qrId);
     if (container) {
       container.innerHTML = '';
@@ -185,22 +186,35 @@ function renderAdminUserList() {
     }
   });
 
-  // 編集
+  // ★ 編集ボタン: form di atas otomatis terisi + scroll + highlight
   tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       const user = masterUsers.find(u => u.user_id === id);
       if (!user) return;
 
-      const idInput = document.getElementById('admin-user-id');
-      const nameInput = document.getElementById('admin-user-name');
+      const idInput    = document.getElementById('admin-user-id');
+      const nameInput  = document.getElementById('admin-user-name');
       const roleSelect = document.getElementById('admin-user-role');
 
-      if (idInput) idInput.value = user.user_id;
+      if (idInput)  idInput.value  = user.user_id;
       if (nameInput) nameInput.value = user.name_ja || user.name || '';
       if (roleSelect && user.role) roleSelect.value = user.role;
 
-      showToast('ユーザー情報を編集フォームに読み込みました。', 'info');
+      // highlight sekali supaya kelihatan berubah
+      [idInput, nameInput, roleSelect].forEach(el => {
+        if (!el) return;
+        el.classList.add('highlight-once');
+        setTimeout(() => el.classList.remove('highlight-once'), 1200);
+      });
+
+      // scroll ke card form user
+      const adminUserCard = document.querySelector('#admin-section .admin-section');
+      if (adminUserCard) {
+        adminUserCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      showToast('ユーザー情報を編集フォームに読み込みました。上のフォームを修正して「ユーザー登録」を押してください。', 'info');
     });
   });
 
@@ -217,7 +231,7 @@ function renderAdminUserList() {
     });
   });
 
-  // ダウンロード
+  // DL
   tbody.querySelectorAll('.mini-btn-dl').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
