@@ -690,6 +690,10 @@ tbody tr:hover {
   background: #fee2e2;
   color: #b91c1c;
 }
+.badge-plan {
+  background: #e5e7eb;
+  color: #374151;
+}
 
 /* Admin */
 
