@@ -1081,48 +1081,112 @@ function renderDashboardTable() {
   const dateFrom = document.getElementById('filter-date-from').value;
   const dateTo = document.getElementById('filter-date-to').value;
 
-  const filtered = dashboardLogs.filter(log => {
+  // ベースは実績ログ
+  const rows = dashboardLogs.slice();
+
+  // 実績がまだ1件もない計画を「予定」として追加
+  if (Array.isArray(plans) && plans.length > 0) {
+    plans.forEach(plan => {
+      const hasLog = dashboardLogs.some(l =>
+        l.product_code === plan.product_code &&
+        (!plan.process_name || l.process_name === plan.process_name)
+      );
+      if (!hasLog) {
+        rows.push({
+          is_plan_only: true,
+          plan_id: plan.plan_id,
+          product_code: plan.product_code,
+          product_name: plan.product_name,
+          process_name: plan.process_name,
+          planned_start: plan.planned_start,
+          planned_end: plan.planned_end,
+          plan_qty: plan.planned_qty || 0,
+          status: plan.status || '予定',
+          terminal_id: '',
+          terminal_name: '',
+          user_id: '',
+          user_name: '',
+          role: '',
+          qty_total: 0,
+          qty_ok: 0,
+          qty_ng: 0,
+          timestamp_start: plan.planned_start || '',
+          timestamp_end: '',
+          duration_sec: null,
+          location: '',
+          created_at: plan.created_at || ''
+        });
+      }
+    });
+  }
+
+  const filtered = rows.filter(log => {
     if (processFilter && log.process_name !== processFilter && log.status !== processFilter) return false;
     if (terminalFilter) {
-      const t = (log.terminal_id + ' ' + log.terminal_name).toLowerCase();
+      const t = ((log.terminal_id || '') + ' ' + (log.terminal_name || '')).toLowerCase();
       if (!t.includes(terminalFilter)) return false;
     }
     if (productFilter) {
       if (!String(log.product_code || '').toLowerCase().includes(productFilter)) return false;
     }
     if (dateFrom) {
-      const d = new Date(log.timestamp_end || log.timestamp_start);
-      if (d < new Date(dateFrom)) return false;
+      const baseDate = log.timestamp_end || log.timestamp_start || log.planned_start;
+      if (baseDate) {
+        const d = new Date(baseDate);
+        if (d < new Date(dateFrom)) return false;
+      }
     }
     if (dateTo) {
-      const d = new Date(log.timestamp_end || log.timestamp_start);
-      const to = new Date(dateTo);
-      to.setDate(to.getDate() + 1);
-      if (d >= to) return false;
+      const baseDate = log.timestamp_end || log.timestamp_start || log.planned_start;
+      if (baseDate) {
+        const d = new Date(baseDate);
+        const to = new Date(dateTo);
+        to.setDate(to.getDate() + 1);
+        if (d >= to) return false;
+      }
     }
     return true;
   });
 
   filtered.forEach(log => {
     const tr = document.createElement('tr');
-    const durationMin = log.duration_sec ? (log.duration_sec / 60).toFixed(1) : '';
+    const isPlan = !!log.is_plan_only;
+    const durationMin = (!isPlan && log.duration_sec)
+      ? (log.duration_sec / 60).toFixed(1)
+      : '';
 
+    // ステータスバッジ
     const statusCell = document.createElement('td');
     const badge = document.createElement('span');
     badge.classList.add('badge');
-    if (log.status === '検査保留') badge.classList.add('badge-hold');
-    else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') badge.classList.add('badge-normal');
-    else badge.classList.add('badge-error');
-    badge.textContent = log.status || '-';
+    if (isPlan) {
+      badge.classList.add('badge-plan');
+    } else if (log.status === '検査保留') {
+      badge.classList.add('badge-hold');
+    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
+      badge.classList.add('badge-normal');
+    } else {
+      badge.classList.add('badge-error');
+    }
+    badge.textContent = isPlan ? (log.status || '予定') : (log.status || '-');
     statusCell.appendChild(badge);
 
+    const timeText = log.timestamp_end || log.timestamp_start || log.planned_start || '';
+    const terminalText = isPlan
+      ? '-'
+      : ((log.terminal_name || '') + (log.terminal_id ? ' (' + log.terminal_id + ')' : ''));
+    const userText = isPlan ? '-' : (log.user_name || '');
+    const qtyText = isPlan
+      ? '- / ' + (log.plan_qty || 0)          // 予定: 計画数量だけ表示
+      : ((log.qty_total || 0) + ' (' + (log.qty_ok || 0) + ' / ' + (log.qty_ng || 0) + ')');
+
     tr.innerHTML = `
-      <td>${log.timestamp_end || log.timestamp_start || ''}</td>
+      <td>${timeText}</td>
       <td>${log.product_code || ''}</td>
       <td>${log.process_name || ''}</td>
-      <td>${log.terminal_name || ''} (${log.terminal_id || ''})</td>
-      <td>${log.user_name || ''}</td>
-      <td>${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})</td>
+      <td>${terminalText}</td>
+      <td>${userText}</td>
+      <td>${qtyText}</td>
     `;
     tr.appendChild(statusCell);
 
@@ -1136,21 +1200,32 @@ function renderDashboardTable() {
 
     const tdActions = document.createElement('td');
     if (currentUser && currentUser.role === 'admin') {
-      const editBtn = document.createElement('button');
-      editBtn.textContent = '編集';
-      editBtn.className = 'ghost-button';
-      editBtn.style.fontSize = '0.7rem';
-      editBtn.addEventListener('click', () => openEditModal(log));
+      if (isPlan && log.plan_id) {
+        // 計画だけの行 → 計画削除ボタン
+        const delPlanBtn = document.createElement('button');
+        delPlanBtn.textContent = '計画削除';
+        delPlanBtn.className = 'ghost-button';
+        delPlanBtn.style.fontSize = '0.7rem';
+        delPlanBtn.addEventListener('click', () => handleDeletePlan(log));
+        tdActions.appendChild(delPlanBtn);
+      } else {
+        // 通常ログ → 既存の 編集 / 削除
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '編集';
+        editBtn.className = 'ghost-button';
+        editBtn.style.fontSize = '0.7rem';
+        editBtn.addEventListener('click', () => openEditModal(log));
 
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '削除';
-      delBtn.className = 'ghost-button';
-      delBtn.style.fontSize = '0.7rem';
-      delBtn.style.marginLeft = '4px';
-      delBtn.addEventListener('click', () => handleDeleteLog(log));
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '削除';
+        delBtn.className = 'ghost-button';
+        delBtn.style.fontSize = '0.7rem';
+        delBtn.style.marginLeft = '4px';
+        delBtn.addEventListener('click', () => handleDeleteLog(log));
 
-      tdActions.appendChild(editBtn);
-      tdActions.appendChild(delBtn);
+        tdActions.appendChild(editBtn);
+        tdActions.appendChild(delBtn);
+      }
     } else {
       tdActions.textContent = '-';
     }
@@ -1226,6 +1301,24 @@ async function handleDeleteLog(log) {
   } catch (err) {
     console.error(err);
     alert('ログ削除に失敗しました: ' + err.message);
+  }
+}
+async function handleDeletePlan(planLike) {
+  if (!planLike.plan_id) {
+    alert('この生産計画にはIDがありません。');
+    return;
+  }
+  if (!confirm('この生産計画を削除しますか？')) return;
+  try {
+    await callApi('deletePlan', { planId: planLike.plan_id });
+    alert('生産計画を削除しました。');
+    // 計画とダッシュボードを再取得
+    loadPlans();
+    loadDashboard();
+    loadAnalytics();
+  } catch (err) {
+    console.error(err);
+    alert('生産計画の削除に失敗しました: ' + err.message);
   }
 }
 
@@ -1484,8 +1577,9 @@ async function loadPlans() {
     const data = await callApi('getPlans', {});
     plans = data || [];
     renderPlanTable();
+    renderDashboardTable(); // 予定行も更新
   } catch (err) {
-    console.error(err);
+      console.error(err);
     alert('生産計画の取得に失敗しました: ' + err.message);
   }
 }
