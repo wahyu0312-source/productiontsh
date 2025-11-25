@@ -1212,14 +1212,16 @@ function renderDashboardTable() {
       ? `- / ${log.plan_qty || 0}`
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
+        const startText = log.timestamp_start || log.timestamp_end || ''; // 工程開始優先
+
     tr.innerHTML = `
-      <td>${timeText}</td>
+      <td>${startText}</td>
       <td>${log.product_code || ''}</td>
       <td>${log.process_name || ''}</td>
-      <td>${terminalText}</td>
-      <td>${userText}</td>
-      <td>${qtyText}</td>
+      <td>${log.user_name || ''}</td>
+      <td>${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})</td>
     `;
+
     tr.appendChild(statusCell);
 
     const tdDuration = document.createElement('td');
@@ -1773,9 +1775,9 @@ function startScanForPlan(plan) {
 
 async function showPlanDetail(plan) {
   const related = dashboardLogs.filter(l => l.product_code === plan.product_code);
-  let msg = `【計画情報】
-製品番号: ${plan.product_code}
-製品名: ${plan.product_name}
+ let msg = `【計画情報】
+図番: ${plan.product_code}
+品名: ${plan.product_name}
 工程: ${plan.process_name}
 計画数量: ${plan.planned_qty}
 計画期間: ${plan.planned_start} ～ ${plan.planned_end}
