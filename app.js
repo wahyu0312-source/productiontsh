@@ -1081,17 +1081,30 @@ function renderDashboardTable() {
   const dateFrom = document.getElementById('filter-date-from').value;
   const dateTo = document.getElementById('filter-date-to').value;
 
-  // ベースは実績ログ
-  const rows = dashboardLogs.slice();
+  // 1) ベース: 実績ログ
+  const rows = dashboardLogs.map(l => Object.assign({ is_plan_only: false }, l));
 
-  // 実績がまだ1件もない計画を「予定」として追加
+  // 2) 実績がまだ1件もない「未完了の計画」を 予定として追加
   if (Array.isArray(plans) && plans.length > 0) {
     plans.forEach(plan => {
-      const hasLog = dashboardLogs.some(l =>
+      const related = dashboardLogs.filter(l =>
         l.product_code === plan.product_code &&
         (!plan.process_name || l.process_name === plan.process_name)
       );
-      if (!hasLog) {
+      const actualTotal = related.reduce((sum, l) => sum + (l.qty_total || 0), 0);
+      const planQty = plan.planned_qty || 0;
+      const rate = planQty > 0 ? Math.round((actualTotal * 100) / planQty) : 0;
+
+      const isCompleted =
+        plan.status === '完了' ||
+        plan.status === '中止' ||
+        rate >= 100;
+
+      // 完了・中止・100%以上はダッシュボードに出さない（生産一覧だけに残す）
+      if (isCompleted) return;
+
+      // まだ実績行が1件もない計画だけを「予定行」として追加
+      if (related.length === 0) {
         rows.push({
           is_plan_only: true,
           plan_id: plan.plan_id,
@@ -1100,8 +1113,9 @@ function renderDashboardTable() {
           process_name: plan.process_name,
           planned_start: plan.planned_start,
           planned_end: plan.planned_end,
-          plan_qty: plan.planned_qty || 0,
-          status: plan.status || '予定',
+          plan_qty: planQty,
+          plan_rate: rate,
+          status: plan.status || '計画中',
           terminal_id: '',
           terminal_name: '',
           user_id: '',
@@ -1120,26 +1134,35 @@ function renderDashboardTable() {
     });
   }
 
+  // helper untuk tanggal dasar (dipakai filter & sort)
+  function getBaseDate(log) {
+    const s = log.timestamp_end || log.timestamp_start || log.planned_start || log.created_at || '';
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // 3) Filter
   const filtered = rows.filter(log => {
     if (processFilter && log.process_name !== processFilter && log.status !== processFilter) return false;
+
     if (terminalFilter) {
       const t = ((log.terminal_id || '') + ' ' + (log.terminal_name || '')).toLowerCase();
       if (!t.includes(terminalFilter)) return false;
     }
+
     if (productFilter) {
-      if (!String(log.product_code || '').toLowerCase().includes(productFilter)) return false;
+      const pc = String(log.product_code || '').toLowerCase();
+      if (!pc.includes(productFilter)) return false;
     }
+
     if (dateFrom) {
-      const baseDate = log.timestamp_end || log.timestamp_start || log.planned_start;
-      if (baseDate) {
-        const d = new Date(baseDate);
-        if (d < new Date(dateFrom)) return false;
-      }
+      const d = getBaseDate(log);
+      if (d && d < new Date(dateFrom)) return false;
     }
     if (dateTo) {
-      const baseDate = log.timestamp_end || log.timestamp_start || log.planned_start;
-      if (baseDate) {
-        const d = new Date(baseDate);
+      const d = getBaseDate(log);
+      if (d) {
         const to = new Date(dateTo);
         to.setDate(to.getDate() + 1);
         if (d >= to) return false;
@@ -1148,6 +1171,16 @@ function renderDashboardTable() {
     return true;
   });
 
+  // 4) Tanggal terbaru di atas (降順)
+  filtered.sort((a, b) => {
+    const da = getBaseDate(a);
+    const db = getBaseDate(b);
+    const ta = da ? da.getTime() : 0;
+    const tb = db ? db.getTime() : 0;
+    return tb - ta; // desc
+  });
+
+  // 5) Render rows
   filtered.forEach(log => {
     const tr = document.createElement('tr');
     const isPlan = !!log.is_plan_only;
@@ -1168,7 +1201,7 @@ function renderDashboardTable() {
     } else {
       badge.classList.add('badge-error');
     }
-    badge.textContent = isPlan ? (log.status || '予定') : (log.status || '-');
+    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
     statusCell.appendChild(badge);
 
     const timeText = log.timestamp_end || log.timestamp_start || log.planned_start || '';
@@ -1177,8 +1210,8 @@ function renderDashboardTable() {
       : ((log.terminal_name || '') + (log.terminal_id ? ' (' + log.terminal_id + ')' : ''));
     const userText = isPlan ? '-' : (log.user_name || '');
     const qtyText = isPlan
-      ? '- / ' + (log.plan_qty || 0)          // 予定: 計画数量だけ表示
-      : ((log.qty_total || 0) + ' (' + (log.qty_ok || 0) + ' / ' + (log.qty_ng || 0) + ')');
+      ? `- / ${log.plan_qty || 0}` // 予定: 計画数量だけ
+      : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
     tr.innerHTML = `
       <td>${timeText}</td>
@@ -1201,7 +1234,7 @@ function renderDashboardTable() {
     const tdActions = document.createElement('td');
     if (currentUser && currentUser.role === 'admin') {
       if (isPlan && log.plan_id) {
-        // 計画だけの行 → 計画削除ボタン
+        // 予定だけの行 → 計画削除ボタン（オプション）
         const delPlanBtn = document.createElement('button');
         delPlanBtn.textContent = '計画削除';
         delPlanBtn.className = 'ghost-button';
@@ -1234,6 +1267,7 @@ function renderDashboardTable() {
     tbody.appendChild(tr);
   });
 }
+
 
 function updateAlertBanner() {
   const banner = document.getElementById('alert-banner');
@@ -1576,20 +1610,28 @@ async function loadPlans() {
   try {
     const data = await callApi('getPlans', {});
     plans = data || [];
-    renderPlanTable();
-    renderDashboardTable(); // 予定行も更新
+    renderPlanTable();      // 生産一覧
+    renderDashboardTable(); // Dashboard 最新の実績一覧 にも反映
   } catch (err) {
-      console.error(err);
+    console.error(err);
     alert('生産計画の取得に失敗しました: ' + err.message);
   }
 }
+
 
 function renderPlanTable() {
   const tbody = document.getElementById('plans-tbody');
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  plans.forEach(plan => {
+  // 計画開始の新しい順に並べ替え
+  const sorted = (plans || []).slice().sort((a, b) => {
+    const da = a.planned_start ? new Date(a.planned_start).getTime() : 0;
+    const db = b.planned_start ? new Date(b.planned_start).getTime() : 0;
+    return db - da; // desc
+  });
+
+  sorted.forEach(plan => {
     const tr = document.createElement('tr');
 
     const related = dashboardLogs.filter(l =>
@@ -1610,6 +1652,8 @@ function renderPlanTable() {
       <td>${actualTotal} / ${planQty} (${rate}%)</td>
       <td>${plan.status || ''}</td>
     `;
+    // … (lanjutan tombol 詳細 / 実績CSV / スキャン は tetap sama)
+
 
     const tdActions = document.createElement('td');
 
@@ -1712,27 +1756,30 @@ async function handleSavePlan() {
 
   const plan = { product_code, product_name, process_name, planned_qty, planned_start, planned_end, status };
 
-  try {
+      try {
     await callApi('upsertPlan', { plan });
     alert('生産計画を保存しました。');
     clearPlanForm();
-    loadPlans();
-    loadAnalytics();
+    await loadPlans();      // rencana + 生産一覧
+    await loadAnalytics();  // 計画 vs 実績 のカード
+    await loadDashboard();  // 最新の実績一覧 も更新（予定行を含める）
   } catch (err) {
     console.error(err);
     alert('生産計画の保存に失敗しました: ' + err.message);
   }
 }
 
+
 function clearPlanForm() {
   document.getElementById('plan-product-code').value = '';
   document.getElementById('plan-product-name').value = '';
-  document.getElementById('plan-process').value = '';
+  document.getElementById('plan-process').value = '準備工程'; // default
   document.getElementById('plan-qty').value = 0;
   document.getElementById('plan-start').value = '';
   document.getElementById('plan-end').value = '';
   document.getElementById('plan-status').value = '計画中';
 }
+
 
 async function handleImportPlans() {
   const text = document.getElementById('plan-import-text').value.trim();
