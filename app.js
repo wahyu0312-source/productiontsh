@@ -1212,7 +1212,9 @@ function renderDashboardTable() {
       ? `- / ${log.plan_qty || 0}`
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
-        const startText = log.timestamp_start || log.timestamp_end || ''; // 工程開始優先
+        const startText = formatDateTime(
+  log.timestamp_start || log.timestamp_end || log.planned_start || ''
+);// 工程開始優先
 
     tr.innerHTML = `
       <td>${startText}</td>
@@ -1386,6 +1388,20 @@ async function handleDeletePlan(planLike) {
     console.error(err);
     alert('生産計画の削除に失敗しました: ' + err.message);
   }
+}
+function formatDateTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value; // kalau gagal parse, tampilkan apa adanya
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hour = String(d.getHours()).padStart(2, '0');
+  const minute = String(d.getMinutes()).padStart(2, '0');
+
+  // contoh output: 2025-11-24 14:39
+  return `${year}-${month}-${day} ${hour}:${minute}`;
 }
 
 /* ================================
