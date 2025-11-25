@@ -1084,7 +1084,7 @@ function renderDashboardTable() {
   // 1) ベース: 実績ログ
   const rows = dashboardLogs.map(l => Object.assign({ is_plan_only: false }, l));
 
-  // 2) 実績がまだ1件もない「未完了の計画」を 予定として追加
+  // 2) 実績がまだ1件もない「未完了の計画」を 予定 として追加
   if (Array.isArray(plans) && plans.length > 0) {
     plans.forEach(plan => {
       const related = dashboardLogs.filter(l =>
@@ -1100,10 +1100,10 @@ function renderDashboardTable() {
         plan.status === '中止' ||
         rate >= 100;
 
-      // 完了・中止・100%以上はダッシュボードに出さない（生産一覧だけに残す）
+      // 完了・中止・100%以上 → ダッシュボードからは除外（生産一覧には残す）
       if (isCompleted) return;
 
-      // まだ実績行が1件もない計画だけを「予定行」として追加
+      // 実績が1件も無い計画だけ 予定行 として追加
       if (related.length === 0) {
         rows.push({
           is_plan_only: true,
@@ -1114,7 +1114,6 @@ function renderDashboardTable() {
           planned_start: plan.planned_start,
           planned_end: plan.planned_end,
           plan_qty: planQty,
-          plan_rate: rate,
           status: plan.status || '計画中',
           terminal_id: '',
           terminal_name: '',
@@ -1134,7 +1133,7 @@ function renderDashboardTable() {
     });
   }
 
-  // helper untuk tanggal dasar (dipakai filter & sort)
+  // helper: ベースとなる日時
   function getBaseDate(log) {
     const s = log.timestamp_end || log.timestamp_start || log.planned_start || log.created_at || '';
     if (!s) return null;
@@ -1142,7 +1141,7 @@ function renderDashboardTable() {
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // 3) Filter
+  // 3) フィルター適用
   const filtered = rows.filter(log => {
     if (processFilter && log.process_name !== processFilter && log.status !== processFilter) return false;
 
@@ -1171,16 +1170,16 @@ function renderDashboardTable() {
     return true;
   });
 
-  // 4) Tanggal terbaru di atas (降順)
+  // 4) 日付の新しい順（降順）
   filtered.sort((a, b) => {
     const da = getBaseDate(a);
     const db = getBaseDate(b);
     const ta = da ? da.getTime() : 0;
     const tb = db ? db.getTime() : 0;
-    return tb - ta; // desc
+    return tb - ta;
   });
 
-  // 5) Render rows
+  // 5) レンダリング
   filtered.forEach(log => {
     const tr = document.createElement('tr');
     const isPlan = !!log.is_plan_only;
@@ -1210,7 +1209,7 @@ function renderDashboardTable() {
       : ((log.terminal_name || '') + (log.terminal_id ? ' (' + log.terminal_id + ')' : ''));
     const userText = isPlan ? '-' : (log.user_name || '');
     const qtyText = isPlan
-      ? `- / ${log.plan_qty || 0}` // 予定: 計画数量だけ
+      ? `- / ${log.plan_qty || 0}`
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
     tr.innerHTML = `
@@ -1231,18 +1230,48 @@ function renderDashboardTable() {
     tdLoc.textContent = log.location || '';
     tr.appendChild(tdLoc);
 
+    // 操作列
     const tdActions = document.createElement('td');
-    if (currentUser && currentUser.role === 'admin') {
-      if (isPlan && log.plan_id) {
-        // 予定だけの行 → 計画削除ボタン（オプション）
-        const delPlanBtn = document.createElement('button');
-        delPlanBtn.textContent = '計画削除';
-        delPlanBtn.className = 'ghost-button';
-        delPlanBtn.style.fontSize = '0.7rem';
-        delPlanBtn.addEventListener('click', () => handleDeletePlan(log));
-        tdActions.appendChild(delPlanBtn);
-      } else {
-        // 通常ログ → 既存の 編集 / 削除
+
+    if (isPlan) {
+      // 予定行 → 詳細 / 実績CSV / スキャン/更新
+      const planLike = {
+        plan_id: log.plan_id,
+        product_code: log.product_code,
+        product_name: log.product_name,
+        process_name: log.process_name,
+        planned_qty: log.plan_qty,
+        planned_start: log.planned_start,
+        planned_end: log.planned_end,
+        status: log.status
+      };
+
+      const detailBtn = document.createElement('button');
+      detailBtn.textContent = '詳細';
+      detailBtn.className = 'ghost-button';
+      detailBtn.style.fontSize = '0.7rem';
+      detailBtn.addEventListener('click', () => showPlanDetail(planLike));
+
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = '実績CSV';
+      exportBtn.className = 'ghost-button';
+      exportBtn.style.fontSize = '0.7rem';
+      exportBtn.style.marginLeft = '4px';
+      exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
+
+      const scanBtn = document.createElement('button');
+      scanBtn.textContent = 'スキャン/更新';
+      scanBtn.className = 'ghost-button';
+      scanBtn.style.fontSize = '0.7rem';
+      scanBtn.style.marginLeft = '4px';
+      scanBtn.addEventListener('click', () => startScanForPlan(planLike));
+
+      tdActions.appendChild(detailBtn);
+      tdActions.appendChild(exportBtn);
+      tdActions.appendChild(scanBtn);
+    } else {
+      // 実績ログ行 → 既存の 編集 / 削除（管理者のみ）
+      if (currentUser && currentUser.role === 'admin') {
         const editBtn = document.createElement('button');
         editBtn.textContent = '編集';
         editBtn.className = 'ghost-button';
@@ -1258,15 +1287,16 @@ function renderDashboardTable() {
 
         tdActions.appendChild(editBtn);
         tdActions.appendChild(delBtn);
+      } else {
+        tdActions.textContent = '-';
       }
-    } else {
-      tdActions.textContent = '-';
     }
-    tr.appendChild(tdActions);
 
+    tr.appendChild(tdActions);
     tbody.appendChild(tr);
   });
 }
+
 
 
 function updateAlertBanner() {
@@ -1680,11 +1710,40 @@ function renderPlanTable() {
     tdActions.appendChild(detailBtn);
     tdActions.appendChild(exportBtn);
     tdActions.appendChild(scanBtn);
+     // 計画削除（管理者のみ）
+    if (currentUser && currentUser.role === 'admin') {
+      const delPlanBtn = document.createElement('button');
+      delPlanBtn.textContent = '計画削除';
+      delPlanBtn.className = 'ghost-button';
+      delPlanBtn.style.fontSize = '0.7rem';
+      delPlanBtn.style.marginLeft = '4px';
+      delPlanBtn.addEventListener('click', () => handleDeletePlan(plan));
+      tdActions.appendChild(delPlanBtn);
+    }
     tr.appendChild(tdActions);
 
     tbody.appendChild(tr);
   });
 }
+async function handleDeletePlan(plan) {
+  if (!plan.plan_id) {
+    alert('この生産計画にはIDがありません。');
+    return;
+  }
+  if (!confirm('この生産計画を削除しますか？')) return;
+
+  try {
+    await callApi('deletePlan', { planId: plan.plan_id });
+    alert('生産計画を削除しました。');
+    await loadPlans();
+    await loadAnalytics();
+    await loadDashboard();
+  } catch (err) {
+    console.error(err);
+    alert('生産計画の削除に失敗しました: ' + err.message);
+  }
+}
+
 
 function startScanForPlan(plan) {
   currentPlanForScan = plan;
