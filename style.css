@@ -666,6 +666,40 @@ th, td {
 tbody tr:hover {
   background: #f3f4ff;
 }
+/* 最新の実績一覧 専用レイアウト */
+.logs-table {
+  table-layout: fixed;
+}
+
+.logs-table th:nth-child(1),
+.logs-table td:nth-child(1) {
+  width: 140px;     /* 工程開始 */
+  white-space: nowrap;
+}
+
+.logs-table th:nth-child(2),
+.logs-table td:nth-child(2) {
+  width: 110px;     /* 図番 */
+  white-space: nowrap;
+}
+
+.logs-table th:nth-child(3),
+.logs-table td:nth-child(3) {
+  width: 180px;     /* 品名 */
+}
+
+.logs-table th:nth-child(4),
+.logs-table td:nth-child(4) {
+  width: 110px;     /* 工程 */
+  white-space: nowrap;
+}
+
+.logs-table th:nth-child(5),
+.logs-table td:nth-child(5),
+.logs-table th:nth-child(6),
+.logs-table td:nth-child(6) {
+  white-space: nowrap; /* ユーザー / 数量 */
+}
 
 /* Status badge */
 
