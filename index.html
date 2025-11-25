@@ -371,13 +371,14 @@
           <p>新しい生産計画を登録してください。（製品 × 工程 × 数量 単位）</p>
           <div class="form-grid">
             <div class="form-group">
-              <label for="plan-product-code">製品番号</label>
-              <input id="plan-product-code" type="text" placeholder="例: P001">
-            </div>
-            <div class="form-group">
-              <label for="plan-product-name">製品名</label>
-              <input id="plan-product-name" type="text" placeholder="例: 商品A">
-            </div>
+  <label for="plan-product-code">図番</label>
+  <input id="plan-product-code" type="text" placeholder="例: Z-001">
+</div>
+<div class="form-group">
+  <label for="plan-product-name">品名</label>
+  <input id="plan-product-name" type="text" placeholder="例: 品名A">
+</div>
+
             <div class="form-group">
               <label for="plan-process">工程名</label>
               <select id="plan-process">
@@ -429,12 +430,12 @@
         <div class="card">
           <h2 class="card-title">生産計画インポート（CSV）</h2>
           <p>
-            Excelから「CSV UTF-8」で保存し、1行目をヘッダーとして貼り付けてください。<br>
-            列順: 製品番号, 製品名, 工程名, 計画数量, 計画開始, 計画終了, ステータス
-          </p>
+  Excelから「CSV UTF-8」で保存し、1行目をヘッダーとして貼り付けてください。<br>
+  列順: 図番, 品名, 工程名, 計画数量, 計画開始, 計画終了, ステータス
+</p>
           <div class="form-group">
-            <textarea id="plan-import-text" rows="6"
-                      placeholder="製品番号,製品名,工程名,計画数量,計画開始,計画終了,ステータス"></textarea>
+           <textarea id="plan-import-text" rows="6"
+          placeholder="図番,品名,工程名,計画数量,計画開始,計画終了,ステータス"></textarea>
           </div>
           <button id="btn-import-plans" class="secondary-button">インポート実行</button>
         </div>
@@ -453,8 +454,8 @@
             <table>
               <thead>
               <tr>
-                <th>製品番号</th>
-                <th>製品名</th>
+  <th>図番</th>
+  <th>品名</th>
                 <th>工程名</th>
                 <th>計画数量</th>
                 <th>計画開始</th>
