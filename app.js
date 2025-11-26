@@ -21,6 +21,10 @@ let processChart = null;
 const ACTIVE_SESSION_KEY = 'active_sessions_v1';
 const OFFLINE_QUEUE_KEY = 'offline_log_queue_v1';
 
+/* ================================
+   共通UIユーティリティ
+   ================================ */
+
 function setGlobalLoading(isLoading, text) {
   const el = document.getElementById('global-loading');
   const t = document.getElementById('loading-text');
@@ -82,6 +86,10 @@ function getRoleLabel(role) {
   if (role === 'operator') return 'オペレーター';
   return role || '';
 }
+
+/* ================================
+   QRラベル 共通
+   ================================ */
 
 function getQrImageData(containerId) {
   const container = document.getElementById(containerId);
@@ -174,19 +182,14 @@ function renderAdminUserList() {
     `;
     tbody.appendChild(tr);
 
-    // QR code
     const container = document.getElementById(qrId);
     if (container) {
       container.innerHTML = '';
-      new QRCode(container, {
-        text: user.user_id,
-        width: 64,
-        height: 64
-      });
+      new QRCode(container, { text: user.user_id, width: 64, height: 64 });
     }
   });
 
-  // ★ 編集ボタン: form di atas otomatis terisi + scroll + highlight
+  // 編集
   tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
@@ -201,14 +204,12 @@ function renderAdminUserList() {
       if (nameInput) nameInput.value = user.name_ja || user.name || '';
       if (roleSelect && user.role) roleSelect.value = user.role;
 
-      // highlight sekali supaya kelihatan berubah
       [idInput, nameInput, roleSelect].forEach(el => {
         if (!el) return;
         el.classList.add('highlight-once');
         setTimeout(() => el.classList.remove('highlight-once'), 1200);
       });
 
-      // scroll ke card form user
       const adminUserCard = document.querySelector('#admin-section .admin-section');
       if (adminUserCard) {
         adminUserCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -231,7 +232,7 @@ function renderAdminUserList() {
     });
   });
 
-  // DL
+  // ダウンロード
   tbody.querySelectorAll('.mini-btn-dl').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
@@ -296,54 +297,46 @@ function renderAdminTerminalList() {
     const container = document.getElementById(qrId);
     if (container) {
       container.innerHTML = '';
-      new QRCode(container, {
-        text: t.terminal_id,
-        width: 64,
-        height: 64
-      });
+      new QRCode(container, { text: t.terminal_id, width: 64, height: 64 });
     }
   });
 
   // 編集
-tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const id = btn.dataset.id;
-    const t = masterTerminals.find(x => x.terminal_id === id);
-    if (!t) return;
+  tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const t = masterTerminals.find(x => x.terminal_id === id);
+      if (!t) return;
 
-    // Isi form di Admin: 工程登録
-    const idInput = document.getElementById('admin-terminal-id');
-    const nameInput = document.getElementById('admin-terminal-name');
-    const processSelect = document.getElementById('admin-terminal-process');
-    const locInput = document.getElementById('admin-terminal-location');
+      const idInput = document.getElementById('admin-terminal-id');
+      const nameInput = document.getElementById('admin-terminal-name');
+      const processSelect = document.getElementById('admin-terminal-process');
+      const locInput = document.getElementById('admin-terminal-location');
 
-    if (idInput) idInput.value = t.terminal_id;
-    if (nameInput) nameInput.value = t.name_ja || t.name || '';
-    if (processSelect && t.process_name) processSelect.value = t.process_name;
-    if (locInput) locInput.value = t.location || '';
+      if (idInput) idInput.value = t.terminal_id;
+      if (nameInput) nameInput.value = t.name_ja || t.name || '';
+      if (processSelect && t.process_name) processSelect.value = t.process_name;
+      if (locInput) locInput.value = t.location || '';
 
-    // Pindah section ke Admin（ユーザー / 工程登録）
-    const targetSectionId = 'admin-section';
-    const links = document.querySelectorAll('.sidebar-link');
-    const sections = document.querySelectorAll('.section');
+      const targetSectionId = 'admin-section';
+      const links = document.querySelectorAll('.sidebar-link');
+      const sections = document.querySelectorAll('.section');
 
-    links.forEach(l => {
-      l.classList.toggle('active', l.dataset.section === targetSectionId);
+      links.forEach(l => {
+        l.classList.toggle('active', l.dataset.section === targetSectionId);
+      });
+      sections.forEach(sec => {
+        sec.classList.toggle('active', sec.id === targetSectionId);
+      });
+
+      const adminSection = document.getElementById('admin-section');
+      if (adminSection) {
+        adminSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      showToast('工程情報を編集フォームに読み込みました。', 'info');
     });
-    sections.forEach(sec => {
-      sec.classList.toggle('active', sec.id === targetSectionId);
-    });
-
-    // Scroll ke area form supaya langsung terlihat
-    const adminSection = document.getElementById('admin-section');
-    if (adminSection) {
-      adminSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    showToast('工程情報を編集フォームに読み込みました。', 'info');
   });
-});
-
 
   // 印刷
   tbody.querySelectorAll('.mini-btn-print').forEach(btn => {
@@ -506,6 +499,7 @@ function setupButtons() {
     helpBtn.addEventListener('click', openHelpModal);
     helpClose.addEventListener('click', closeHelpModal);
   }
+
   // Monitor mode (digital signage)
   const monitorBtn = document.getElementById('btn-monitor-mode');
   if (monitorBtn) {
@@ -514,7 +508,6 @@ function setupButtons() {
       const isMonitor = !body.classList.contains('monitor-mode');
       body.classList.toggle('monitor-mode', isMonitor);
 
-      // Paksa aktifkan dashboard section
       if (isMonitor) {
         const links = document.querySelectorAll('.sidebar-link');
         const sections = document.querySelectorAll('.section');
@@ -1041,8 +1034,6 @@ function clearForm() {
   if (lotInput) lotInput.value = '';
 }
 
-
-
 /* ================================
    Dashboard: load & render
    ================================ */
@@ -1090,10 +1081,8 @@ function renderDashboardTable() {
         plan.status === '中止' ||
         rate >= 100;
 
-      // 完了・中止・100%以上 は ダッシュボードには出さない（生産一覧のみ）
       if (isCompleted) return;
 
-      // 実績行が1件もない計画だけ 予定行 として追加
       if (related.length === 0) {
         rows.push({
           is_plan_only: true,
@@ -1122,165 +1111,6 @@ function renderDashboardTable() {
       }
     });
   }
-
-  // helper: ベース日時
-  function getBaseDate(log) {
-    const s = log.timestamp_start || log.timestamp_end || log.planned_start || log.created_at || '';
-    if (!s) return null;
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  // 3) フィルター
-  const filtered = rows.filter(log => {
-    if (processFilter && log.process_name !== processFilter && log.status !== processFilter) return false;
-
-    if (terminalFilter) {
-      const t = ((log.terminal_id || '') + ' ' + (log.terminal_name || '')).toLowerCase();
-      if (!t.includes(terminalFilter)) return false;
-    }
-
-    if (productFilter) {
-      const pc = String(log.product_code || '').toLowerCase();
-      if (!pc.includes(productFilter)) return false;
-    }
-
-    if (dateFrom) {
-      const d = getBaseDate(log);
-      if (d && d < new Date(dateFrom)) return false;
-    }
-    if (dateTo) {
-      const d = getBaseDate(log);
-      if (d) {
-        const to = new Date(dateTo);
-        to.setDate(to.getDate() + 1);
-        if (d >= to) return false;
-      }
-    }
-    return true;
-  });
-
-  // 4) 日付の新しい順
-  filtered.sort((a, b) => {
-    const da = getBaseDate(a);
-    const db = getBaseDate(b);
-    const ta = da ? da.getTime() : 0;
-    const tb = db ? db.getTime() : 0;
-    return tb - ta;
-  });
-
-  // 5) レンダリング
-  filtered.forEach(log => {
-    const tr = document.createElement('tr');
-    const isPlan = !!log.is_plan_only;
-    const durationMin = (!isPlan && log.duration_sec)
-      ? (log.duration_sec / 60).toFixed(1)
-      : '';
-
-    // ステータスバッジ
-    const statusCell = document.createElement('td');
-    const badge = document.createElement('span');
-    badge.classList.add('badge');
-    if (isPlan) {
-      badge.classList.add('badge-plan');
-    } else if (log.status === '検査保留') {
-      badge.classList.add('badge-hold');
-    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
-      badge.classList.add('badge-normal');
-    } else {
-      badge.classList.add('badge-error');
-    }
-    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
-    statusCell.appendChild(badge);
-
-    const startText = formatDateTime(
-      log.timestamp_start || log.timestamp_end || log.planned_start || ''
-    );
-    const userText = isPlan ? '-' : (log.user_name || '');
-    const qtyText = isPlan
-      ? `- / ${log.plan_qty || 0}`
-      : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
-
-    tr.innerHTML = `
-      <td>${startText}</td>
-      <td>${log.product_code || ''}</td>
-      <td>${log.product_name || ''}</td>
-      <td>${log.process_name || ''}</td>
-      <td>${userText}</td>
-      <td>${qtyText}</td>
-    `;
-
-    tr.appendChild(statusCell);
-
-    const tdDuration = document.createElement('td');
-    tdDuration.textContent = durationMin || '';
-    tr.appendChild(tdDuration);
-
-    const tdLoc = document.createElement('td');
-    tdLoc.textContent = log.location || '';
-    tr.appendChild(tdLoc);
-
-    const tdActions = document.createElement('td');
-
-    if (isPlan) {
-      const planLike = {
-        plan_id: log.plan_id,
-        product_code: log.product_code,
-        product_name: log.product_name,
-        process_name: log.process_name,
-        planned_qty: log.plan_qty,
-        planned_start: log.planned_start,
-        planned_end: log.planned_end,
-        status: log.status
-      };
-
-      const detailBtn = document.createElement('button');
-      detailBtn.textContent = '詳細';
-      detailBtn.className = 'ghost-button';
-      detailBtn.style.fontSize = '0.7rem';
-      detailBtn.addEventListener('click', () => showPlanDetail(planLike));
-
-      const exportBtn = document.createElement('button');
-      exportBtn.textContent = '実績CSV';
-      exportBtn.className = 'ghost-button';
-      exportBtn.style.fontSize = '0.7rem';
-      exportBtn.style.marginLeft = '4px';
-      exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
-
-      const scanBtn = document.createElement('button');
-      scanBtn.textContent = 'スキャン/更新';
-      scanBtn.className = 'ghost-button';
-      scanBtn.style.fontSize = '0.7rem';
-      scanBtn.style.marginLeft = '4px';
-      scanBtn.addEventListener('click', () => startScanForPlan(planLike));
-
-      tdActions.appendChild(detailBtn);
-      tdActions.appendChild(exportBtn);
-      tdActions.appendChild(scanBtn);
-    } else if (currentUser && currentUser.role === 'admin') {
-      const editBtn = document.createElement('button');
-      editBtn.textContent = '編集';
-      editBtn.className = 'ghost-button';
-      editBtn.style.fontSize = '0.7rem';
-      editBtn.addEventListener('click', () => openEditModal(log));
-
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '削除';
-      delBtn.className = 'ghost-button';
-      delBtn.style.fontSize = '0.7rem';
-      delBtn.style.marginLeft = '4px';
-      delBtn.addEventListener('click', () => handleDeleteLog(log));
-
-      tdActions.appendChild(editBtn);
-      tdActions.appendChild(delBtn);
-    } else {
-      tdActions.textContent = '-';
-    }
-
-    tr.appendChild(tdActions);
-    tbody.appendChild(tr);
-  });
-}
 
   // helper: ベース日時
   function getBaseDate(log) {
@@ -1441,9 +1271,10 @@ function renderDashboardTable() {
   });
 }
 
+/* ================================
+   アラートバナー
+   ================================ */
 
-
-  
 function updateAlertBanner() {
   const banner = document.getElementById('alert-banner');
   if (!banner) return;
@@ -1512,28 +1343,34 @@ async function handleDeleteLog(log) {
     alert('ログ削除に失敗しました: ' + err.message);
   }
 }
-async function handleDeletePlan(planLike) {
-  if (!planLike.plan_id) {
+
+async function handleDeletePlan(plan) {
+  if (!plan.plan_id) {
     alert('この生産計画にはIDがありません。');
     return;
   }
   if (!confirm('この生産計画を削除しますか？')) return;
+
   try {
-    await callApi('deletePlan', { planId: planLike.plan_id });
+    await callApi('deletePlan', { planId: plan.plan_id });
     alert('生産計画を削除しました。');
-    // 計画とダッシュボードを再取得
-    loadPlans();
-    loadDashboard();
-    loadAnalytics();
+    await loadPlans();
+    await loadAnalytics();
+    await loadDashboard();
   } catch (err) {
     console.error(err);
     alert('生産計画の削除に失敗しました: ' + err.message);
   }
 }
+
+/* ================================
+   日付フォーマット
+   ================================ */
+
 function formatDateTime(value) {
   if (!value) return '';
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return value; // kalau gagal parse, tampilkan apa adanya
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return String(value);
 
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -1541,7 +1378,6 @@ function formatDateTime(value) {
   const hour = String(d.getHours()).padStart(2, '0');
   const minute = String(d.getMinutes()).padStart(2, '0');
 
-  // contoh output: 2025-11-24 14:39
   return `${year}-${month}-${day} ${hour}:${minute}`;
 }
 
@@ -1807,17 +1643,15 @@ async function loadPlans() {
   }
 }
 
-
 function renderPlanTable() {
   const tbody = document.getElementById('plans-tbody');
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  // 計画開始の新しい順に並べ替え
   const sorted = (plans || []).slice().sort((a, b) => {
     const da = a.planned_start ? new Date(a.planned_start).getTime() : 0;
     const db = b.planned_start ? new Date(b.planned_start).getTime() : 0;
-    return db - da; // desc
+    return db - da;
   });
 
   sorted.forEach(plan => {
@@ -1841,8 +1675,6 @@ function renderPlanTable() {
       <td>${actualTotal} / ${planQty} (${rate}%)</td>
       <td>${plan.status || ''}</td>
     `;
-    // … (lanjutan tombol 詳細 / 実績CSV / スキャン は tetap sama)
-
 
     const tdActions = document.createElement('td');
 
@@ -1869,7 +1701,7 @@ function renderPlanTable() {
     tdActions.appendChild(detailBtn);
     tdActions.appendChild(exportBtn);
     tdActions.appendChild(scanBtn);
-     // 計画削除（管理者のみ）
+
     if (currentUser && currentUser.role === 'admin') {
       const delPlanBtn = document.createElement('button');
       delPlanBtn.textContent = '計画削除';
@@ -1879,30 +1711,11 @@ function renderPlanTable() {
       delPlanBtn.addEventListener('click', () => handleDeletePlan(plan));
       tdActions.appendChild(delPlanBtn);
     }
-    tr.appendChild(tdActions);
 
+    tr.appendChild(tdActions);
     tbody.appendChild(tr);
   });
 }
-async function handleDeletePlan(plan) {
-  if (!plan.plan_id) {
-    alert('この生産計画にはIDがありません。');
-    return;
-  }
-  if (!confirm('この生産計画を削除しますか？')) return;
-
-  try {
-    await callApi('deletePlan', { planId: plan.plan_id });
-    alert('生産計画を削除しました。');
-    await loadPlans();
-    await loadAnalytics();
-    await loadDashboard();
-  } catch (err) {
-    console.error(err);
-    alert('生産計画の削除に失敗しました: ' + err.message);
-  }
-}
-
 
 function startScanForPlan(plan) {
   currentPlanForScan = plan;
@@ -1915,7 +1728,6 @@ function startScanForPlan(plan) {
   if (nameEl) nameEl.value = plan.product_name || '';
   if (qtyEl) qtyEl.value = plan.planned_qty || 0;
 
-  // スキャン画面へ移動
   const links = document.querySelectorAll('.sidebar-link');
   const sections = document.querySelectorAll('.section');
   const sidebar = document.querySelector('.sidebar');
@@ -1932,7 +1744,7 @@ function startScanForPlan(plan) {
 
 async function showPlanDetail(plan) {
   const related = dashboardLogs.filter(l => l.product_code === plan.product_code);
- let msg = `【計画情報】
+  let msg = `【計画情報】
 図番: ${plan.product_code}
 品名: ${plan.product_name}
 工程: ${plan.process_name}
@@ -1974,30 +1786,28 @@ async function handleSavePlan() {
 
   const plan = { product_code, product_name, process_name, planned_qty, planned_start, planned_end, status };
 
-      try {
+  try {
     await callApi('upsertPlan', { plan });
     alert('生産計画を保存しました。');
     clearPlanForm();
-    await loadPlans();      // rencana + 生産一覧
-    await loadAnalytics();  // 計画 vs 実績 のカード
-    await loadDashboard();  // 最新の実績一覧 も更新（予定行を含める）
+    await loadPlans();
+    await loadAnalytics();
+    await loadDashboard();
   } catch (err) {
     console.error(err);
     alert('生産計画の保存に失敗しました: ' + err.message);
   }
 }
 
-
 function clearPlanForm() {
   document.getElementById('plan-product-code').value = '';
   document.getElementById('plan-product-name').value = '';
-  document.getElementById('plan-process').value = '準備工程'; // default
+  document.getElementById('plan-process').value = '準備工程';
   document.getElementById('plan-qty').value = 0;
   document.getElementById('plan-start').value = '';
   document.getElementById('plan-end').value = '';
   document.getElementById('plan-status').value = '計画中';
 }
-
 
 async function handleImportPlans() {
   const text = document.getElementById('plan-import-text').value.trim();
@@ -2017,6 +1827,9 @@ async function handleImportPlans() {
   }
 }
 
+/* ================================
+   Welcome 日付
+   ================================ */
 
 function setWelcomeDate() {
   const todayEl = document.getElementById('today-date');
