@@ -1209,44 +1209,42 @@ function renderDashboardTable() {
     tdLoc.textContent = log.location || '';
     tr.appendChild(tdLoc);
 
-    const tdActions = document.createElement('td');
+   const tdActions = document.createElement('td');
 
-    if (isPlan) {
-      const planLike = {
-        plan_id: log.plan_id,
-        product_code: log.product_code,
-        product_name: log.product_name,
-        process_name: log.process_name,
-        planned_qty: log.plan_qty,
-        planned_start: log.planned_start,
-        planned_end: log.planned_end,
-        status: log.status
-      };
+if (isPlan) {
+  tdActions.classList.add('plans-actions');
 
-      const detailBtn = document.createElement('button');
-      detailBtn.textContent = '詳細';
-      detailBtn.className = 'ghost-button';
-      detailBtn.style.fontSize = '0.7rem';
-      detailBtn.addEventListener('click', () => showPlanDetail(planLike));
+  const planLike = {
+    plan_id: log.plan_id,
+    product_code: log.product_code,
+    product_name: log.product_name,
+    process_name: log.process_name,
+    planned_qty: log.plan_qty,
+    planned_start: log.planned_start,
+    planned_end: log.planned_end,
+    status: log.status
+  };
 
-      const exportBtn = document.createElement('button');
-      exportBtn.textContent = '実績CSV';
-      exportBtn.className = 'ghost-button';
-      exportBtn.style.fontSize = '0.7rem';
-      exportBtn.style.marginLeft = '4px';
-      exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
+  const scanBtn = document.createElement('button');
+  scanBtn.textContent = 'スキャン/更新';
+  scanBtn.className = 'ghost-button btn-scan-primary';
+  scanBtn.addEventListener('click', () => startScanForPlan(planLike));
 
-      const scanBtn = document.createElement('button');
-      scanBtn.textContent = 'スキャン/更新';
-      scanBtn.className = 'ghost-button';
-      scanBtn.style.fontSize = '0.7rem';
-      scanBtn.style.marginLeft = '4px';
-      scanBtn.addEventListener('click', () => startScanForPlan(planLike));
+  const detailBtn = document.createElement('button');
+  detailBtn.textContent = '詳細';
+  detailBtn.className = 'ghost-button';
+  detailBtn.addEventListener('click', () => showPlanDetail(planLike));
 
-      tdActions.appendChild(detailBtn);
-      tdActions.appendChild(exportBtn);
-      tdActions.appendChild(scanBtn);
-    } else if (currentUser && currentUser.role === 'admin') {
+  const exportBtn = document.createElement('button');
+  exportBtn.textContent = '実績CSV';
+  exportBtn.className = 'ghost-button';
+  exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
+
+  tdActions.appendChild(scanBtn);
+  tdActions.appendChild(detailBtn);
+  tdActions.appendChild(exportBtn);
+}
+else if (currentUser && currentUser.role === 'admin') {
       const editBtn = document.createElement('button');
       editBtn.textContent = '編集';
       editBtn.className = 'ghost-button';
@@ -1677,30 +1675,31 @@ function renderPlanTable() {
     `;
 
     const tdActions = document.createElement('td');
+tdActions.classList.add('plans-actions'); // <- untuk styling responsif
 
-    const detailBtn = document.createElement('button');
-    detailBtn.textContent = '詳細';
-    detailBtn.className = 'ghost-button';
-    detailBtn.style.fontSize = '0.7rem';
-    detailBtn.addEventListener('click', () => showPlanDetail(plan));
+// スキャン/更新 を一番目に＆強調
+const scanBtn = document.createElement('button');
+scanBtn.textContent = 'スキャン/更新';
+scanBtn.className = 'ghost-button btn-scan-primary';
+scanBtn.addEventListener('click', () => startScanForPlan(plan));
 
-    const exportBtn = document.createElement('button');
-    exportBtn.textContent = '実績CSV';
-    exportBtn.className = 'ghost-button';
-    exportBtn.style.fontSize = '0.7rem';
-    exportBtn.style.marginLeft = '4px';
-    exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
+// 詳細
+const detailBtn = document.createElement('button');
+detailBtn.textContent = '詳細';
+detailBtn.className = 'ghost-button';
+detailBtn.addEventListener('click', () => showPlanDetail(plan));
 
-    const scanBtn = document.createElement('button');
-    scanBtn.textContent = 'スキャン/更新';
-    scanBtn.className = 'ghost-button';
-    scanBtn.style.fontSize = '0.7rem';
-    scanBtn.style.marginLeft = '4px';
-    scanBtn.addEventListener('click', () => startScanForPlan(plan));
+// 実績CSV
+const exportBtn = document.createElement('button');
+exportBtn.textContent = '実績CSV';
+exportBtn.className = 'ghost-button';
+exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
 
-    tdActions.appendChild(detailBtn);
-    tdActions.appendChild(exportBtn);
-    tdActions.appendChild(scanBtn);
+// 追加順番：スキャン → 詳細 → CSV
+tdActions.appendChild(scanBtn);
+tdActions.appendChild(detailBtn);
+tdActions.appendChild(exportBtn);
+
 
     if (currentUser && currentUser.role === 'admin') {
       const delPlanBtn = document.createElement('button');
