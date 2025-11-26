@@ -108,3 +108,52 @@
 .plans-table-wrapper {
   overflow-x: auto;
 }
+/* ================================
+   生産計画 / ダッシュボード 操作ボタン（スマホ対応）
+   ================================ */
+
+/* sel "操作" di 生産計画 & dashboard-plan-only */
+#plans-tbody td.plans-actions,
+#logs-tbody td.plans-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* tombol dasar di dalam sel actions */
+#plans-tbody td.plans-actions .ghost-button,
+#logs-tbody td.plans-actions .ghost-button {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+}
+
+/* スキャン/更新 ボタンを少し強調 */
+#plans-tbody td.plans-actions .btn-scan-primary,
+#logs-tbody td.plans-actions .btn-scan-primary {
+  font-weight: 600;
+  border-width: 2px;
+}
+
+/* スマホ（幅 640px 以下）の時だけ調整 */
+@media (max-width: 640px) {
+
+  /* tombol dalam sel actions: スキャン/更新 full width, lainnya kecil */
+  #plans-tbody td.plans-actions,
+  #logs-tbody td.plans-actions {
+    justify-content: stretch;
+  }
+
+  #plans-tbody td.plans-actions .btn-scan-primary,
+  #logs-tbody td.plans-actions .btn-scan-primary {
+    flex: 1 0 100%;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  #plans-tbody td.plans-actions .ghost-button:not(.btn-scan-primary),
+  #logs-tbody td.plans-actions .ghost-button:not(.btn-scan-primary) {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+}
