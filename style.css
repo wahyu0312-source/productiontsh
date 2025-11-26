@@ -157,3 +157,64 @@
     padding: 3px 6px;
   }
 }
+/* ============================================
+   生産計画テーブル：スマホ向けレイアウト & ボタン操作
+   ============================================ */
+
+/* Sel "操作" di tabel 生産計画: bungkus tombol-tombol */
+.plans-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* Style dasar tombol kecil */
+.plans-actions .ghost-button {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+}
+
+/* Tombol 「スキャン/更新」 dibuat sedikit lebih menonjol */
+.plans-actions .btn-scan-primary {
+  font-weight: 600;
+  border-width: 2px;
+}
+
+/* -----------------------------
+   スマホ表示（幅 <= 640px）
+   ----------------------------- */
+@media (max-width: 640px) {
+  /* Tombol di sel "操作" menumpuk ke bawah */
+  .plans-actions {
+    justify-content: stretch; /* biar bisa full width */
+  }
+
+  /* 「スキャン/更新」 full width dan lebih besar */
+  .plans-actions .btn-scan-primary {
+    flex: 1 0 100%;      /* 1 baris penuh */
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  /* Tombol detail / CSV sedikit lebih kecil */
+  .plans-actions .ghost-button:not(.btn-scan-primary) {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+
+  /* Rapetin padding cell supaya tabel muat di layar kecil */
+  #plans-tbody td,
+  #plans-tbody th,
+  #logs-tbody td,
+  #logs-tbody th {
+    padding: 4px 6px;
+  }
+}
+
+/* Kalau tabel masih melebar, izinkan scroll horizontal */
+.table-scroll,
+.table-container,
+.plans-table-wrapper {
+  overflow-x: auto;
+}
