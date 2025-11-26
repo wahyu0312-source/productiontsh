@@ -1209,7 +1209,7 @@ function renderDashboardTable() {
       ? `- / ${log.plan_qty || 0}`
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
-    // ★ ヘッダー順に合わせて: 工程開始 / 図番 / 品名 / 工程 / ユーザー / 数量
+    // ヘッダー順: 工程開始 / 図番 / 品名 / 工程 / ユーザー / 数量
     tr.innerHTML = `
       <td>${startText}</td>
       <td>${log.product_code || ''}</td>
@@ -1228,11 +1228,9 @@ function renderDashboardTable() {
     tdLoc.textContent = log.location || '';
     tr.appendChild(tdLoc);
 
-    // 操作列
     const tdActions = document.createElement('td');
 
     if (isPlan) {
-      // 予定行 → 詳細 / 実績CSV / スキャン/更新
       const planLike = {
         plan_id: log.plan_id,
         product_code: log.product_code,
@@ -1268,7 +1266,6 @@ function renderDashboardTable() {
       tdActions.appendChild(exportBtn);
       tdActions.appendChild(scanBtn);
     } else if (currentUser && currentUser.role === 'admin') {
-      // 実績ログ行 → 編集 / 削除
       const editBtn = document.createElement('button');
       editBtn.textContent = '編集';
       editBtn.className = 'ghost-button';
@@ -1292,6 +1289,7 @@ function renderDashboardTable() {
     tbody.appendChild(tr);
   });
 }
+
 
 
   // helper: ベースとなる日時
