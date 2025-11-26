@@ -1458,7 +1458,7 @@ function renderDashboardTable() {
     tr.appendChild(tdActions);
     tbody.appendChild(tr);
   });
-
+}
 
 
 
@@ -2033,4 +2033,15 @@ async function handleImportPlans() {
     console.error(err);
     alert('インポートに失敗しました: ' + err.message);
   }
+}
+
+
+function setWelcomeDate() {
+  const todayEl = document.getElementById('today-date');
+  if (!todayEl) return;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const date = String(now.getDate()).padStart(2, '0');
+  todayEl.textContent = `${year}-${month}-${date}`;
 }
