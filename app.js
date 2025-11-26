@@ -1041,14 +1041,6 @@ function clearForm() {
   if (lotInput) lotInput.value = '';
 }
 
-function formatDateTime(value) {
-  if (!value) return '';
-  const d = value instanceof Date ? value : new Date(value);
-  if (isNaN(d.getTime())) return String(value);
-
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 
 /* ================================
