@@ -1450,7 +1450,6 @@ function renderDashboardTable() {
     tr.appendChild(tdActions);
     tbody.appendChild(tr);
   });
-}
 
 
 
