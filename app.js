@@ -1201,6 +1201,165 @@ function renderDashboardTable() {
       ? `- / ${log.plan_qty || 0}`
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
+    tr.innerHTML = `
+      <td>${startText}</td>
+      <td>${log.product_code || ''}</td>
+      <td>${log.product_name || ''}</td>
+      <td>${log.process_name || ''}</td>
+      <td>${userText}</td>
+      <td>${qtyText}</td>
+    `;
+
+    tr.appendChild(statusCell);
+
+    const tdDuration = document.createElement('td');
+    tdDuration.textContent = durationMin || '';
+    tr.appendChild(tdDuration);
+
+    const tdLoc = document.createElement('td');
+    tdLoc.textContent = log.location || '';
+    tr.appendChild(tdLoc);
+
+    const tdActions = document.createElement('td');
+
+    if (isPlan) {
+      const planLike = {
+        plan_id: log.plan_id,
+        product_code: log.product_code,
+        product_name: log.product_name,
+        process_name: log.process_name,
+        planned_qty: log.plan_qty,
+        planned_start: log.planned_start,
+        planned_end: log.planned_end,
+        status: log.status
+      };
+
+      const detailBtn = document.createElement('button');
+      detailBtn.textContent = '詳細';
+      detailBtn.className = 'ghost-button';
+      detailBtn.style.fontSize = '0.7rem';
+      detailBtn.addEventListener('click', () => showPlanDetail(planLike));
+
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = '実績CSV';
+      exportBtn.className = 'ghost-button';
+      exportBtn.style.fontSize = '0.7rem';
+      exportBtn.style.marginLeft = '4px';
+      exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
+
+      const scanBtn = document.createElement('button');
+      scanBtn.textContent = 'スキャン/更新';
+      scanBtn.className = 'ghost-button';
+      scanBtn.style.fontSize = '0.7rem';
+      scanBtn.style.marginLeft = '4px';
+      scanBtn.addEventListener('click', () => startScanForPlan(planLike));
+
+      tdActions.appendChild(detailBtn);
+      tdActions.appendChild(exportBtn);
+      tdActions.appendChild(scanBtn);
+    } else if (currentUser && currentUser.role === 'admin') {
+      const editBtn = document.createElement('button');
+      editBtn.textContent = '編集';
+      editBtn.className = 'ghost-button';
+      editBtn.style.fontSize = '0.7rem';
+      editBtn.addEventListener('click', () => openEditModal(log));
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '削除';
+      delBtn.className = 'ghost-button';
+      delBtn.style.fontSize = '0.7rem';
+      delBtn.style.marginLeft = '4px';
+      delBtn.addEventListener('click', () => handleDeleteLog(log));
+
+      tdActions.appendChild(editBtn);
+      tdActions.appendChild(delBtn);
+    } else {
+      tdActions.textContent = '-';
+    }
+
+    tr.appendChild(tdActions);
+    tbody.appendChild(tr);
+  });
+}
+
+  // helper: ベース日時
+  function getBaseDate(log) {
+    const s = log.timestamp_start || log.timestamp_end || log.planned_start || log.created_at || '';
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // 3) フィルター
+  const filtered = rows.filter(log => {
+    if (processFilter && log.process_name !== processFilter && log.status !== processFilter) return false;
+
+    if (terminalFilter) {
+      const t = ((log.terminal_id || '') + ' ' + (log.terminal_name || '')).toLowerCase();
+      if (!t.includes(terminalFilter)) return false;
+    }
+
+    if (productFilter) {
+      const pc = String(log.product_code || '').toLowerCase();
+      if (!pc.includes(productFilter)) return false;
+    }
+
+    if (dateFrom) {
+      const d = getBaseDate(log);
+      if (d && d < new Date(dateFrom)) return false;
+    }
+    if (dateTo) {
+      const d = getBaseDate(log);
+      if (d) {
+        const to = new Date(dateTo);
+        to.setDate(to.getDate() + 1);
+        if (d >= to) return false;
+      }
+    }
+    return true;
+  });
+
+  // 4) 日付の新しい順
+  filtered.sort((a, b) => {
+    const da = getBaseDate(a);
+    const db = getBaseDate(b);
+    const ta = da ? da.getTime() : 0;
+    const tb = db ? db.getTime() : 0;
+    return tb - ta;
+  });
+
+  // 5) レンダリング
+  filtered.forEach(log => {
+    const tr = document.createElement('tr');
+    const isPlan = !!log.is_plan_only;
+    const durationMin = (!isPlan && log.duration_sec)
+      ? (log.duration_sec / 60).toFixed(1)
+      : '';
+
+    // ステータスバッジ
+    const statusCell = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.classList.add('badge');
+    if (isPlan) {
+      badge.classList.add('badge-plan');
+    } else if (log.status === '検査保留') {
+      badge.classList.add('badge-hold');
+    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
+      badge.classList.add('badge-normal');
+    } else {
+      badge.classList.add('badge-error');
+    }
+    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
+    statusCell.appendChild(badge);
+
+    const startText = formatDateTime(
+      log.timestamp_start || log.timestamp_end || log.planned_start || ''
+    );
+    const userText = isPlan ? '-' : (log.user_name || '');
+    const qtyText = isPlan
+      ? `- / ${log.plan_qty || 0}`
+      : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
+
     // ヘッダー順: 工程開始 / 図番 / 品名 / 工程 / ユーザー / 数量
     tr.innerHTML = `
       <td>${startText}</td>
@@ -1284,175 +1443,7 @@ function renderDashboardTable() {
 
 
 
-  // helper: ベースとなる日時
-  function getBaseDate(log) {
-    const s = log.timestamp_end || log.timestamp_start || log.planned_start || log.created_at || '';
-    if (!s) return null;
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  // 3) フィルター適用
-  const filtered = rows.filter(log => {
-    if (processFilter && log.process_name !== processFilter && log.status !== processFilter) return false;
-
-    if (terminalFilter) {
-      const t = ((log.terminal_id || '') + ' ' + (log.terminal_name || '')).toLowerCase();
-      if (!t.includes(terminalFilter)) return false;
-    }
-
-    if (productFilter) {
-      const pc = String(log.product_code || '').toLowerCase();
-      if (!pc.includes(productFilter)) return false;
-    }
-
-    if (dateFrom) {
-      const d = getBaseDate(log);
-      if (d && d < new Date(dateFrom)) return false;
-    }
-    if (dateTo) {
-      const d = getBaseDate(log);
-      if (d) {
-        const to = new Date(dateTo);
-        to.setDate(to.getDate() + 1);
-        if (d >= to) return false;
-      }
-    }
-    return true;
-  });
-
-  // 4) 日付の新しい順（降順）
-  filtered.sort((a, b) => {
-    const da = getBaseDate(a);
-    const db = getBaseDate(b);
-    const ta = da ? da.getTime() : 0;
-    const tb = db ? db.getTime() : 0;
-    return tb - ta;
-  });
-
-  // 5) レンダリング
-  filtered.forEach(log => {
-    const tr = document.createElement('tr');
-    const isPlan = !!log.is_plan_only;
-    const durationMin = (!isPlan && log.duration_sec)
-      ? (log.duration_sec / 60).toFixed(1)
-      : '';
-
-    // ステータスバッジ
-    const statusCell = document.createElement('td');
-    const badge = document.createElement('span');
-    badge.classList.add('badge');
-    if (isPlan) {
-      badge.classList.add('badge-plan');
-    } else if (log.status === '検査保留') {
-      badge.classList.add('badge-hold');
-    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
-      badge.classList.add('badge-normal');
-    } else {
-      badge.classList.add('badge-error');
-    }
-    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
-    statusCell.appendChild(badge);
-
-    const timeText = log.timestamp_end || log.timestamp_start || log.planned_start || '';
-    const terminalText = isPlan
-      ? '-'
-      : ((log.terminal_name || '') + (log.terminal_id ? ' (' + log.terminal_id + ')' : ''));
-    const userText = isPlan ? '-' : (log.user_name || '');
-    const qtyText = isPlan
-      ? `- / ${log.plan_qty || 0}`
-      : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
-
-        const startText = formatDateTime(
-  log.timestamp_start || log.timestamp_end || log.planned_start || ''
-);// 工程開始優先
-
-    tr.innerHTML = `
-      <td>${startText}</td>
-      <td>${log.product_code || ''}</td>
-      <td>${log.process_name || ''}</td>
-      <td>${log.user_name || ''}</td>
-      <td>${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})</td>
-    `;
-
-    tr.appendChild(statusCell);
-
-    const tdDuration = document.createElement('td');
-    tdDuration.textContent = durationMin || '';
-    tr.appendChild(tdDuration);
-
-    const tdLoc = document.createElement('td');
-    tdLoc.textContent = log.location || '';
-    tr.appendChild(tdLoc);
-
-    // 操作列
-    const tdActions = document.createElement('td');
-
-    if (isPlan) {
-      // 予定行 → 詳細 / 実績CSV / スキャン/更新
-      const planLike = {
-        plan_id: log.plan_id,
-        product_code: log.product_code,
-        product_name: log.product_name,
-        process_name: log.process_name,
-        planned_qty: log.plan_qty,
-        planned_start: log.planned_start,
-        planned_end: log.planned_end,
-        status: log.status
-      };
-
-      const detailBtn = document.createElement('button');
-      detailBtn.textContent = '詳細';
-      detailBtn.className = 'ghost-button';
-      detailBtn.style.fontSize = '0.7rem';
-      detailBtn.addEventListener('click', () => showPlanDetail(planLike));
-
-      const exportBtn = document.createElement('button');
-      exportBtn.textContent = '実績CSV';
-      exportBtn.className = 'ghost-button';
-      exportBtn.style.fontSize = '0.7rem';
-      exportBtn.style.marginLeft = '4px';
-      exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
-
-      const scanBtn = document.createElement('button');
-      scanBtn.textContent = 'スキャン/更新';
-      scanBtn.className = 'ghost-button';
-      scanBtn.style.fontSize = '0.7rem';
-      scanBtn.style.marginLeft = '4px';
-      scanBtn.addEventListener('click', () => startScanForPlan(planLike));
-
-      tdActions.appendChild(detailBtn);
-      tdActions.appendChild(exportBtn);
-      tdActions.appendChild(scanBtn);
-    } else {
-      // 実績ログ行 → 既存の 編集 / 削除（管理者のみ）
-      if (currentUser && currentUser.role === 'admin') {
-        const editBtn = document.createElement('button');
-        editBtn.textContent = '編集';
-        editBtn.className = 'ghost-button';
-        editBtn.style.fontSize = '0.7rem';
-        editBtn.addEventListener('click', () => openEditModal(log));
-
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '削除';
-        delBtn.className = 'ghost-button';
-        delBtn.style.fontSize = '0.7rem';
-        delBtn.style.marginLeft = '4px';
-        delBtn.addEventListener('click', () => handleDeleteLog(log));
-
-        tdActions.appendChild(editBtn);
-        tdActions.appendChild(delBtn);
-      } else {
-        tdActions.textContent = '-';
-      }
-    }
-
-    tr.appendChild(tdActions);
-    tbody.appendChild(tr);
-  });
-
-
-
+  
 function updateAlertBanner() {
   const banner = document.getElementById('alert-banner');
   if (!banner) return;
