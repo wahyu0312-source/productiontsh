@@ -1984,8 +1984,18 @@ function handleDownloadNewUserQR() {
   showToast('📥 QRコードをダウンロードしました。', 'success');
 }
 
+// Flag to prevent multiple simultaneous loads
+let isLoadingUserList = false;
+
 async function loadUserList() {
+  // Prevent multiple simultaneous calls
+  if (isLoadingUserList) {
+    console.log('User list already loading, skipping...');
+    return;
+  }
+  
   try {
+    isLoadingUserList = true;
     setGlobalLoading(true, 'ユーザー一覧読込中...');
     const users = await callApi('getAllUsers', {});
     
@@ -1997,6 +2007,7 @@ async function loadUserList() {
     showToast('ユーザー一覧の読込に失敗しました。', 'error');
   } finally {
     setGlobalLoading(false);
+    isLoadingUserList = false;
   }
 }
 
@@ -2269,26 +2280,30 @@ function formatDateTimeShort(isoString) {
    ENHANCED ADMIN VISIBILITY
    ================================ */
 
-// Override existing updateAdminVisibility function
-const originalUpdateAdminVisibility = updateAdminVisibility;
-
 function updateAdminVisibility() {
-  // Call original function
-  if (typeof originalUpdateAdminVisibility === 'function') {
-    originalUpdateAdminVisibility();
-  }
+  const userRole = window.currentUser?.role || '';
+  const isAdmin = userRole === 'admin';
   
-  const isAdmin = currentUser && currentUser.role === 'admin';
+  // Admin menu visibility
+  const adminMenuLink = document.getElementById('admin-menu-link');
+  const adminCard = document.getElementById('admin-user-management-card');
   
-  // User management card - NEW
-  const userMgmtCard = document.getElementById('admin-user-management-card');
-  if (userMgmtCard) {
-    userMgmtCard.classList.toggle('hidden', !isAdmin);
-  }
-  
-  // Load user list if admin
   if (isAdmin) {
-    loadUserList();
+    if (adminMenuLink) adminMenuLink.style.display = 'block';
+    if (adminCard) adminCard.style.display = 'block';
+    
+    // Load user list ONLY ONCE when showing admin section
+    // Prevent infinite loop by checking if list is already loaded
+    if (adminCard && !adminCard.dataset.loaded) {
+      adminCard.dataset.loaded = 'true';
+      loadUserList();
+    }
+  } else {
+    if (adminMenuLink) adminMenuLink.style.display = 'none';
+    if (adminCard) {
+      adminCard.style.display = 'none';
+      adminCard.dataset.loaded = ''; // Reset flag
+    }
   }
 }
 
