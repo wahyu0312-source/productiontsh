@@ -1839,3 +1839,492 @@ function setWelcomeDate() {
   const date = String(now.getDate()).padStart(2, '0');
   todayEl.textContent = `${year}-${month}-${date}`;
 }
+
+/* =====================================
+   ★★★ USER MANAGEMENT ENHANCEMENTS ★★★
+   ===================================== */
+
+// State variable for last created user
+let lastCreatedUser = null;
+
+/* ================================
+   USER MANAGEMENT FUNCTIONS
+   ================================ */
+
+async function handleCreateNewUser() {
+  const userIdInput = document.getElementById('new-user-id');
+  const userNameInput = document.getElementById('new-user-name');
+  const userRoleSelect = document.getElementById('new-user-role');
+  
+  if (!userIdInput || !userNameInput || !userRoleSelect) {
+    console.error('Required input elements not found');
+    return;
+  }
+  
+  const userId = userIdInput.value.trim();
+  const userName = userNameInput.value.trim();
+  const userRole = userRoleSelect.value;
+  
+  if (!userId || !userName) {
+    showToast('ユーザーIDと氏名を入力してください。', 'error');
+    return;
+  }
+  
+  try {
+    setGlobalLoading(true, 'ユーザー登録中...');
+    
+    // Call API to create user
+    const result = await callApi('createUser', {
+      userId: userId,
+      userName: userName,
+      role: userRole
+    });
+    
+    if (result && result.success) {
+      // Store last created user
+      lastCreatedUser = {
+        user_id: userId,
+        name_ja: userName,
+        role: userRole,
+        created_at: new Date().toISOString()
+      };
+      
+      // Generate QR Code
+      generateUserQRCode(userId, userName, userRole);
+      
+      // Show QR area
+      const qrArea = document.getElementById('new-user-qr-area');
+      if (qrArea) {
+        qrArea.classList.remove('hidden');
+      }
+      
+      // Update QR info display
+      const qrId = document.getElementById('new-user-qr-id');
+      const qrName = document.getElementById('new-user-qr-name');
+      const qrRole = document.getElementById('new-user-qr-role');
+      
+      if (qrId) qrId.textContent = userId;
+      if (qrName) qrName.textContent = userName;
+      if (qrRole) qrRole.textContent = getRoleLabel(userRole);
+      
+      // Clear form
+      userIdInput.value = '';
+      userNameInput.value = '';
+      userRoleSelect.value = 'operator';
+      
+      // Reload user list
+      await loadUserList();
+      
+      showToast('✅ ユーザー登録が完了しました！', 'success');
+      
+      // Scroll to QR area
+      setTimeout(() => {
+        qrArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    } else {
+      throw new Error(result.message || 'ユーザー登録に失敗しました');
+    }
+  } catch (err) {
+    console.error('User creation error:', err);
+    showToast('ユーザー登録に失敗しました: ' + err.message, 'error');
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+function generateUserQRCode(userId, userName, userRole) {
+  const container = document.getElementById('new-user-qr-container');
+  if (!container) {
+    console.error('QR container not found');
+    return;
+  }
+  
+  // Clear previous QR
+  container.innerHTML = '';
+  
+  const qrData = JSON.stringify({
+    type: 'user',
+    id: userId,
+    name: userName,
+    role: userRole
+  });
+  
+  try {
+    new QRCode(container, {
+      text: qrData,
+      width: 200,
+      height: 200,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch (err) {
+    console.error('QR generation error:', err);
+    showToast('QRコード生成に失敗しました。', 'error');
+  }
+}
+
+function handleDownloadNewUserQR() {
+  if (!lastCreatedUser) {
+    showToast('QRコードがありません。', 'error');
+    return;
+  }
+  
+  const qrImage = getQrImageData('new-user-qr-container');
+  if (!qrImage) {
+    showToast('QRコードの取得に失敗しました。', 'error');
+    return;
+  }
+  
+  const link = document.createElement('a');
+  link.href = qrImage;
+  link.download = `USER_QR_${lastCreatedUser.user_id}.png`;
+  link.click();
+  
+  showToast('📥 QRコードをダウンロードしました。', 'success');
+}
+
+async function loadUserList() {
+  try {
+    setGlobalLoading(true, 'ユーザー一覧読込中...');
+    const users = await callApi('getAllUsers', {});
+    
+    if (users && Array.isArray(users)) {
+      renderUserListTable(users);
+    }
+  } catch (err) {
+    console.error('Failed to load user list:', err);
+    showToast('ユーザー一覧の読込に失敗しました。', 'error');
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+function renderUserListTable(users) {
+  const tbody = document.getElementById('user-list-tbody');
+  if (!tbody) {
+    console.error('user-list-tbody not found');
+    return;
+  }
+  
+  tbody.innerHTML = '';
+  
+  if (!users || users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#7f8c8d;">登録されているユーザーがありません。</td></tr>';
+    return;
+  }
+  
+  users.forEach((user, index) => {
+    const tr = document.createElement('tr');
+    const qrContainerId = `qr-mini-${user.user_id}-${index}`;
+    
+    tr.innerHTML = `
+      <td>
+        <div id="${qrContainerId}" class="qr-mini"></div>
+      </td>
+      <td><strong>${escapeHtml(user.user_id)}</strong></td>
+      <td>${escapeHtml(user.name_ja)}</td>
+      <td><span class="log-badge">${getRoleLabel(user.role)}</span></td>
+      <td><span class="log-timestamp">${formatDateTime(user.created_at || '')}</span></td>
+      <td>
+        <div class="user-actions">
+          <button class="btn-icon btn-edit" onclick="editUser('${escapeHtml(user.user_id)}')" title="編集">
+            ✏️
+          </button>
+          <button class="btn-icon btn-delete" onclick="confirmDeleteUser('${escapeHtml(user.user_id)}')" title="削除">
+            🗑️
+          </button>
+          <button class="btn-icon btn-download" onclick="downloadUserQR('${escapeHtml(user.user_id)}', '${escapeHtml(user.name_ja)}', '${user.role}')" title="QRダウンロード">
+            📥
+          </button>
+        </div>
+      </td>
+    `;
+    
+    tbody.appendChild(tr);
+    
+    // Generate mini QR code
+    setTimeout(() => {
+      const miniContainer = document.getElementById(qrContainerId);
+      if (miniContainer) {
+        const qrData = JSON.stringify({
+          type: 'user',
+          id: user.user_id,
+          name: user.name_ja,
+          role: user.role
+        });
+        
+        try {
+          new QRCode(miniContainer, {
+            text: qrData,
+            width: 50,
+            height: 50,
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (err) {
+          console.error('Mini QR generation error:', err);
+        }
+      }
+    }, 100 * (index + 1)); // Stagger QR generation
+  });
+}
+
+async function editUser(userId) {
+  const newName = prompt('新しい氏名を入力してください:');
+  if (!newName || newName.trim() === '') {
+    return;
+  }
+  
+  try {
+    setGlobalLoading(true, '更新中...');
+    const result = await callApi('updateUser', {
+      userId: userId,
+      userName: newName.trim()
+    });
+    
+    if (result && result.success) {
+      await loadUserList();
+      showToast('✅ ユーザー情報を更新しました。', 'success');
+    } else {
+      throw new Error(result.message || '更新に失敗しました');
+    }
+  } catch (err) {
+    console.error('Update user error:', err);
+    showToast('更新に失敗しました: ' + err.message, 'error');
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+function confirmDeleteUser(userId) {
+  if (!confirm(`ユーザー「${userId}」を削除してもよろしいですか？\n\nこの操作は取り消せません。`)) {
+    return;
+  }
+  
+  deleteUser(userId);
+}
+
+async function deleteUser(userId) {
+  try {
+    setGlobalLoading(true, '削除中...');
+    const result = await callApi('deleteUser', { userId: userId });
+    
+    if (result && result.success) {
+      await loadUserList();
+      showToast('🗑️ ユーザーを削除しました。', 'success');
+    } else {
+      throw new Error(result.message || '削除に失敗しました');
+    }
+  } catch (err) {
+    console.error('Delete user error:', err);
+    showToast('削除に失敗しました: ' + err.message, 'error');
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+function downloadUserQR(userId, userName, userRole) {
+  // Create temporary container for high-res QR
+  const tempContainer = document.createElement('div');
+  tempContainer.style.display = 'none';
+  document.body.appendChild(tempContainer);
+  
+  const qrData = JSON.stringify({
+    type: 'user',
+    id: userId,
+    name: userName,
+    role: userRole
+  });
+  
+  try {
+    new QRCode(tempContainer, {
+      text: qrData,
+      width: 300,
+      height: 300,
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    
+    // Download after QR generation
+    setTimeout(() => {
+      const img = tempContainer.querySelector('img');
+      const canvas = tempContainer.querySelector('canvas');
+      let dataUrl = null;
+      
+      if (img && img.src) {
+        dataUrl = img.src;
+      } else if (canvas) {
+        dataUrl = canvas.toDataURL('image/png');
+      }
+      
+      if (dataUrl) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `USER_QR_${userId}.png`;
+        link.click();
+        showToast('📥 QRコードをダウンロードしました。', 'success');
+      } else {
+        throw new Error('QR data could not be extracted');
+      }
+      
+      // Cleanup
+      document.body.removeChild(tempContainer);
+    }, 500);
+  } catch (err) {
+    console.error('QR download error:', err);
+    showToast('QRダウンロードに失敗しました。', 'error');
+    document.body.removeChild(tempContainer);
+  }
+}
+
+/* ================================
+   REQUIRED FIELD VALIDATION
+   ================================ */
+
+function updateRequiredFieldStatus() {
+  const okInput = document.getElementById('log-qty-ok');
+  const ngInput = document.getElementById('log-qty-ng');
+  const totalInput = document.getElementById('log-qty-total');
+  const statusSelect = document.getElementById('log-status');
+  
+  if (!okInput || !ngInput || !totalInput) {
+    return;
+  }
+  
+  // Auto calculate total
+  const ok = Number(okInput.value || 0);
+  const ng = Number(ngInput.value || 0);
+  const total = ok + ng;
+  totalInput.value = total;
+  
+  // Update visual status for all required fields
+  const requiredFields = [okInput, ngInput, totalInput, statusSelect];
+  
+  requiredFields.forEach(field => {
+    if (!field) return;
+    
+    const value = field.value;
+    const isSelect = field.tagName === 'SELECT';
+    
+    // Remove previous states
+    field.classList.remove('filled', 'required-missing');
+    
+    // Add filled class if has value
+    if (isSelect) {
+      if (value && value !== '') {
+        field.classList.add('filled');
+      }
+    } else {
+      const numValue = Number(value);
+      if (!isNaN(numValue) && numValue > 0) {
+        field.classList.add('filled');
+      }
+    }
+  });
+}
+
+/* ================================
+   ENHANCED LOGGING WITH USER & TIME
+   ================================ */
+
+function formatDateTime(isoString) {
+  if (!isoString) return '-';
+  
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return '-';
+    
+    return date.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  } catch (err) {
+    console.error('Date format error:', err);
+    return '-';
+  }
+}
+
+function formatDateTimeShort(isoString) {
+  if (!isoString) return '-';
+  
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return '-';
+    
+    return date.toLocaleString('ja-JP', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (err) {
+    return '-';
+  }
+}
+
+/* ================================
+   ENHANCED ADMIN VISIBILITY
+   ================================ */
+
+// Override existing updateAdminVisibility function
+const originalUpdateAdminVisibility = updateAdminVisibility;
+
+function updateAdminVisibility() {
+  // Call original function
+  if (typeof originalUpdateAdminVisibility === 'function') {
+    originalUpdateAdminVisibility();
+  }
+  
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  
+  // User management card - NEW
+  const userMgmtCard = document.getElementById('admin-user-management-card');
+  if (userMgmtCard) {
+    userMgmtCard.classList.toggle('hidden', !isAdmin);
+  }
+  
+  // Load user list if admin
+  if (isAdmin) {
+    loadUserList();
+  }
+}
+
+/* ================================
+   INITIALIZE USER MANAGEMENT
+   ================================ */
+
+function initUserManagement() {
+  console.log('Initializing user management features...');
+  
+  // Event listeners for user management
+  const btnCreateUser = document.getElementById('btn-create-new-user');
+  if (btnCreateUser) {
+    btnCreateUser.addEventListener('click', handleCreateNewUser);
+  }
+  
+  const btnDownloadUserQR = document.getElementById('btn-download-new-user-qr');
+  if (btnDownloadUserQR) {
+    btnDownloadUserQR.addEventListener('click', handleDownloadNewUserQR);
+  }
+
+  // Event listeners for required field validation
+  const qtyOkInput = document.getElementById('log-qty-ok');
+  const qtyNgInput = document.getElementById('log-qty-ng');
+  const statusSelect = document.getElementById('log-status');
+  
+  if (qtyOkInput) qtyOkInput.addEventListener('input', updateRequiredFieldStatus);
+  if (qtyNgInput) qtyNgInput.addEventListener('input', updateRequiredFieldStatus);
+  if (statusSelect) statusSelect.addEventListener('change', updateRequiredFieldStatus);
+  
+  console.log('User management features initialized');
+}
+
+// Call initUserManagement after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initUserManagement);
+} else {
+  initUserManagement();
+}
