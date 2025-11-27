@@ -300,7 +300,7 @@
           <div id="qr-reader-terminal" class="qr-reader"></div>
         </div>
 
-        <!-- 生産データ入力（計画連携版） -->
+        <!-- 生産データ入力（計画連携版） - UPDATED WITH REQUIRED FIELDS -->
         <div class="card">
           <h2 class="card-title">生産データ入力</h2>
           <p>生産計画一覧から対象行の「スキャン/更新」を選択し、工程をスキャンしてから実績を入力してください。</p>
@@ -325,27 +325,27 @@
             </div>
           </div>
 
-          <!-- Input utama operator -->
+          <!-- Input utama operator - WITH REQUIRED FIELD HIGHLIGHTING -->
           <div class="form-grid">
             <div class="form-group">
-              <label for="log-status" class="required-label">ステータス</label>
-              <select id="log-status">
+              <label for="log-status">ステータス</label>
+              <select id="log-status" class="required-field">
                 <option value="工程開始">工程開始</option>
                 <option value="工程終了" selected>工程終了</option>
                 <option value="検査保留">検査保留</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="log-qty-ok" class="required-label">OK数量</label>
-              <input id="log-qty-ok" type="number" min="0" value="0">
+              <label for="log-qty-ok">OK数量</label>
+              <input id="log-qty-ok" type="number" min="0" value="0" class="required-field">
             </div>
             <div class="form-group">
-              <label for="log-qty-ng" class="required-label">不良数量</label>
-              <input id="log-qty-ng" type="number" min="0" value="0">
+              <label for="log-qty-ng">不良数量</label>
+              <input id="log-qty-ng" type="number" min="0" value="0" class="required-field">
             </div>
             <div class="form-group">
               <label for="log-qty-total">総数量</label>
-              <input id="log-qty-total" type="number" min="0" value="0" readonly>
+              <input id="log-qty-total" type="number" min="0" value="0" readonly class="required-field">
             </div>
           </div>
 
@@ -566,6 +566,77 @@
             </table>
           </div>
         </div>
+
+        <!-- ★★★ NEW: User Management Card ★★★ -->
+        <div id="admin-user-management-card" class="card hidden">
+          <h3 class="card-title">👥 ユーザー管理</h3>
+          
+          <!-- Tambah User Form -->
+          <div class="admin-section">
+            <h4>✨ 新規ユーザー登録</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="new-user-id">ユーザーID *</label>
+                <input id="new-user-id" type="text" placeholder="例: U001" required>
+              </div>
+              <div class="form-group">
+                <label for="new-user-name">氏名（日本語）*</label>
+                <input id="new-user-name" type="text" placeholder="例: 山田 太郎" required>
+              </div>
+              <div class="form-group">
+                <label for="new-user-role">権限 *</label>
+                <select id="new-user-role">
+                  <option value="operator">オペレーター</option>
+                  <option value="qc">QC</option>
+                  <option value="admin">管理者</option>
+                </select>
+              </div>
+            </div>
+            <button id="btn-create-new-user" class="primary-button">
+              <span>➕ ユーザー登録してQR生成</span>
+            </button>
+            
+            <!-- QR Code Display Area -->
+            <div id="new-user-qr-area" class="qr-display-area hidden">
+              <h5>✅ ユーザー登録完了！</h5>
+              <p>下記のQRコードを印刷して現場で使用してください。</p>
+              <div class="qr-result-card">
+                <div id="new-user-qr-container" class="qr-container-large"></div>
+                <div class="qr-info">
+                  <p><strong>ユーザーID:</strong> <span id="new-user-qr-id"></span></p>
+                  <p><strong>氏名:</strong> <span id="new-user-qr-name"></span></p>
+                  <p><strong>権限:</strong> <span id="new-user-qr-role"></span></p>
+                </div>
+                <button id="btn-download-new-user-qr" class="secondary-button">
+                  📥 QRコードをダウンロード
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- ユーザー一覧 Table -->
+          <div class="admin-section">
+            <h4>📋 ユーザー一覧</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>QR</th>
+                    <th>ユーザーID</th>
+                    <th>氏名</th>
+                    <th>権限</th>
+                    <th>作成日時</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="user-list-tbody">
+                  <!-- Dynamically populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
       </section>
 
       <!-- 工程一覧 / QRラベル -->
