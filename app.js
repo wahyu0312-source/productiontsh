@@ -408,7 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
    ================================ */
 
 function setupSidebar() {
-  const links = document.querySelectorAll('.sidebar-link');
+  // Sidebar + mobile bottom nav
+  const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
   const sections = document.querySelectorAll('.section');
   const sidebar = document.querySelector('.sidebar');
   const burger = document.getElementById('btn-menu-toggle');
@@ -416,10 +417,19 @@ function setupSidebar() {
   links.forEach(link => {
     link.addEventListener('click', () => {
       const target = link.dataset.section;
-      links.forEach(l => l.classList.toggle('active', l === link));
-      sections.forEach(sec => sec.classList.toggle('active', sec.id === target));
 
-      if (window.innerWidth <= 800 && sidebar) {
+      // Sinkronkan state aktif di sidebar & bottom nav
+      links.forEach(l => {
+        const isActive = l.dataset.section === target;
+        l.classList.toggle('active', isActive);
+      });
+
+      sections.forEach(sec => {
+        sec.classList.toggle('active', sec.id === target);
+      });
+
+      // Di mobile, hanya tutup sidebar jika klik dari sidebar
+      if (window.innerWidth <= 800 && sidebar && link.classList.contains('sidebar-link')) {
         sidebar.classList.add('sidebar-hidden');
       }
     });
@@ -443,6 +453,7 @@ function setupSidebar() {
     });
   }
 }
+
 
 /* ================================
    ボタンイベント
@@ -597,9 +608,36 @@ function setupButtons() {
   const btnRefreshPlans = document.getElementById('btn-refresh-plans');
   if (btnRefreshPlans) btnRefreshPlans.addEventListener('click', loadPlans);
 
-  const btnImportPlans = document.getElementById('btn-import-plans');
+    const btnImportPlans = document.getElementById('btn-import-plans');
   if (btnImportPlans) btnImportPlans.addEventListener('click', handleImportPlans);
+
+  // モバイル用フローティングSCANボタン
+  const fabScan = document.getElementById('fab-scan');
+  if (fabScan) {
+    fabScan.addEventListener('click', () => {
+      const target = 'scan-section';
+             const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
+        const sections = document.querySelectorAll('.section');
+
+      // Pindah ke section SCAN
+      sections.forEach(sec => {
+        sec.classList.toggle('active', sec.id === target);
+      });
+      links.forEach(l => {
+        const isActive = l.dataset.section === target;
+        l.classList.toggle('active', isActive);
+      });
+
+      // Di layar kecil, tutup sidebar kalau sedang terbuka
+      if (window.innerWidth <= 800) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.classList.add('sidebar-hidden');
+      }
+    });
+  }
 }
+
+
 
 /* ================================
    Online / Offline Indicator
