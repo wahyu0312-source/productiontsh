@@ -187,22 +187,36 @@ body.monitor-mode .topbar {
   box-shadow: none;
 }
 
+/* Topbar kanan tetap ada, tapi isinya dibatasi */
 body.monitor-mode .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Sembunyikan search, help, dan user-menu di mode monitor */
+body.monitor-mode .topbar-right .quick-search,
+body.monitor-mode .user-menu-wrapper,
+body.monitor-mode #btn-help {
   display: none;
 }
 
+/* Konten melebar penuh */
 body.monitor-mode .content {
   max-width: 100%;
   padding-top: var(--space-md);
 }
 
+/* Card sedikit lebih menonjol di monitor */
 body.monitor-mode .card {
   box-shadow: var(--shadow-lg);
 }
 
+/* Footer dihilangkan untuk tampilan TV */
 body.monitor-mode .app-footer {
   display: none;
 }
+
 /* ===== Topbar ===== */
 .topbar {
   height: var(--topbar-height);
