@@ -524,6 +524,20 @@ body.monitor-mode .app-footer {
 body.monitor-mode .summary-value {
   font-size: 2rem; /* kira-kira lebih besar dari 2xl */
 }
+/* Highlight lembut untuk card "本日の不良数量" saat ada NG */
+body.has-ng #summary-card-ng {
+  border-color: var(--color-error);
+  background: var(--color-error-light);
+  box-shadow: 0 8px 20px rgba(185, 28, 28, 0.12);
+}
+
+body.has-ng #summary-card-ng .summary-label {
+  color: var(--color-error);
+}
+
+body.has-ng #summary-card-ng .summary-value {
+  color: var(--color-error);
+}
 
 /* Alert Banner */
 .alert-banner {
@@ -757,6 +771,16 @@ tbody tr {
 
 tbody tr:hover {
   background: var(--color-bg);
+}
+/* Table wrapper untuk scroll horizontal di mobile */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper table {
+  min-width: 720px; /* biar header tidak terlalu rapat */
 }
 
 /* ===== Production Plans Table (生産計画) ===== */
@@ -1259,6 +1283,80 @@ tbody tr:hover {
 
   .fab-icon {
     font-size: 1.3rem;
+  }
+  /* --- Tap target tombol utama lebih besar di smartphone --- */
+  .ghost-button,
+  .btn-primary,
+  .btn-icon,
+  button {
+    min-height: 44px;            /* standar minimal tap target */
+    padding-left: 14px;
+    padding-right: 14px;
+    font-size: 0.9rem;
+  }
+
+  /* Tombol utama di bagian bawah form jadi full width */
+  .form-actions button,
+  .plans-actions .ghost-button,
+  .user-actions .btn-icon {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .form-actions button + button,
+  .plans-actions .ghost-button + .ghost-button,
+  .user-actions .btn-icon + .btn-icon {
+    margin-top: 6px;             /* tombol bertumpuk, jarak rapat tapi cukup */
+    margin-left: 0;
+  }
+  /* --- Form 2 kolom di desktop → 1 kolom di smartphone --- */
+  .form-grid,
+  .form-grid.two-col {
+    display: block;
+  }
+
+  .form-grid .form-group,
+  .form-grid.two-col .form-group {
+    width: 100%;
+  }
+
+  .form-group + .form-group {
+    margin-top: 8px;
+  }
+
+  /* Input & select sedikit lebih besar untuk jempol */
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    min-height: 40px;
+    font-size: 0.9rem;
+  }
+  /* --- Typography & card untuk mobile --- */
+  body {
+    font-size: 0.9rem;
+  }
+
+  .card {
+    border-radius: 18px;
+    padding: var(--space-md);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  }
+
+  .card-header {
+    margin-bottom: var(--space-sm);
+  }
+
+  .summary-card {
+    padding: var(--space-md);
+  }
+
+  /* Judul section sedikit lebih besar agar jelas di layar kecil */
+  .section-title,
+  .dashboard-section-title {
+    font-size: 1.1rem;
+    margin-bottom: var(--space-sm);
   }
 
   /* Tambahkan ruang bawah untuk konten agar tidak tertutup nav */
