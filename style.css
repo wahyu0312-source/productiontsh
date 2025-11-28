@@ -168,7 +168,37 @@ body {
   flex-direction: column;
   min-height: 100vh;
 }
+/* ===== Monitor Mode (Digital Signage) ===== */
+body.monitor-mode .sidebar {
+  display: none;
+}
 
+body.monitor-mode .main-area {
+  margin-left: 0;
+}
+
+body.monitor-mode .topbar {
+  background: transparent;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+body.monitor-mode .topbar-right {
+  display: none;
+}
+
+body.monitor-mode .content {
+  max-width: 100%;
+  padding-top: var(--space-md);
+}
+
+body.monitor-mode .card {
+  box-shadow: var(--shadow-lg);
+}
+
+body.monitor-mode .app-footer {
+  display: none;
+}
 /* ===== Topbar ===== */
 .topbar {
   height: var(--topbar-height);
