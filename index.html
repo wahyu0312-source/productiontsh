@@ -196,16 +196,21 @@
         </div>
 
         <div class="card plan-actual-card">
-          <h2 class="card-title">全体 計画 vs 実績</h2>
-          <p class="plan-actual-text">
-            計画数量: <span id="plan-total">0</span> ／
-            実績数量: <span id="actual-total">0</span>
-            （達成率 <span id="plan-rate">0</span>%）
-          </p>
-          <div class="progress-bar">
-            <div class="progress-fill" id="plan-progress"></div>
-          </div>
-        </div>
+  <h3 class="card-title">計画 vs 実績</h3>
+  <p class="plan-actual-text">
+    本日の計画数量: <span id="plan-total">0</span> 個 / 実績: <span id="actual-total">0</span> 個
+    （達成率: <span id="plan-rate">0</span>%）
+  </p>
+  <div class="progress-bar">
+    <div id="plan-progress" class="progress-fill" style="width: 0%;"></div>
+  </div>
+
+  <!-- ★ 追加: 計画達成ステータスバッジ -->
+  <div id="plan-status-badge" class="plan-status-badge">
+    計画データなし
+  </div>
+</div>
+
 
         <!-- 最新実績一覧 -->
         <div class="card">
