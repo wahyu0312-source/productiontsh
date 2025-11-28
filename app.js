@@ -397,7 +397,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupButtons();
   setupOnlineOfflineHandlers();
   setWelcomeDate();
-  renderLastUserQuickLogin();   // ★ tampilkan quick login jika ada user terakhir
+  setSafetyMessage();           // ★ Safety message di dashboard
+  renderLastUserQuickLogin();   // ★ quick login
 
   loadMasterData();
   loadDashboard();
@@ -405,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startDashboardAutoRefresh();
   loadPlans();
 });
+
 
 /* ================================
    Sidebar navigation
@@ -2056,7 +2058,32 @@ function setWelcomeDate() {
 
   todayEl.textContent = `${year}-${month}-${date}（${weekday}）`;
 }
-  
+  /* ================================
+   Safety Message (今日の安全メッセージ)
+   ================================ */
+
+function setSafetyMessage() {
+  const el = document.getElementById('safety-message');
+  if (!el) return;
+
+  const messages = [
+    '安全第一：手袋・保護具を正しく着用してから作業を始めましょう。',
+    '指差呼称で「ヨシ！」を徹底し、うっかりミスを防ぎましょう。',
+    '足元・通路の整理整頓でつまずき・転倒を防止しましょう。',
+    'ムリ・ムダ・ムラのない作業で、焦らず、安全優先で進めましょう。',
+    '異常を感じたら、すぐに上長へ報告。無理に続けないことが大切です。',
+    '重い物は一人で持たず、台車や二人作業で腰を守りましょう。',
+    '設備停止前に必ず電源・ロックアウトを確認しましょう。',
+    'ヒヤリハットも立派な情報です。小さな気づきを仲間と共有しましょう。'
+  ];
+
+  // Hari dalam sebulan → index, supaya 1 hari 1 pesan (tidak random lompat-lompat)
+  const today = new Date();
+  const idx = today.getDate() % messages.length;
+
+  el.textContent = messages[idx];
+}
+
 
 /* =====================================
    ★★★ USER MANAGEMENT ENHANCEMENTS ★★★
