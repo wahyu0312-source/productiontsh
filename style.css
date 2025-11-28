@@ -1774,6 +1774,14 @@ tbody tr:hover {
   background: var(--color-primary-light);
   transition: background var(--transition-fast);
 }
+/* Baris log bermasalah (NG / 検査保留) di dashboard */
+tbody tr.row-alert {
+  background: #fef2f2; /* merah sangat lembut */
+}
+
+tbody tr.row-alert:hover {
+  background: #fee2e2; /* sedikit lebih kuat saat hover */
+}
 
 /* Focus visible for accessibility */
 *:focus-visible {
