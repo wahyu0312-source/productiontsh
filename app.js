@@ -1871,14 +1871,20 @@ async function handleImportPlans() {
    ================================ */
 
 function setWelcomeDate() {
-  const todayEl = document.getElementById('today-date');
+  // Dashboard header に表示する日付 (例: 2025-11-28（金）)
+  const todayEl = document.getElementById('welcome-date');
   if (!todayEl) return;
+
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const date = String(now.getDate()).padStart(2, '0');
-  todayEl.textContent = `${year}-${month}-${date}`;
+  const weekdayNames = ['日', '月', '火', '水', '木', '金', '土'];
+  const weekday = weekdayNames[now.getDay()];
+
+  todayEl.textContent = `${year}-${month}-${date}（${weekday}）`;
 }
+  
 
 /* =====================================
    ★★★ USER MANAGEMENT ENHANCEMENTS ★★★
