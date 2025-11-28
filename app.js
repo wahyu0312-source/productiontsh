@@ -1737,63 +1737,53 @@ async function loadAnalytics() {
     const counts = data.counts || { terminals: 0, plans: 0 };
     const planVsActual = data.planVsActual || { plan_total: 0, actual_total: 0 };
 
+    // Summary angka di dashboard
     document.getElementById('today-total').textContent = today.total;
     document.getElementById('today-ng').textContent = today.ng;
-        // Body class untuk highlight NG di dashboard
-    if (today.ng > 0) {
-      document.body.classList.add('has-ng');
-    } else {
-      document.body.classList.remove('has-ng');
-    }
-
     document.getElementById('summary-terminals').textContent = counts.terminals;
     document.getElementById('summary-plans').textContent = counts.plans;
 
-    const planTotalEl = document.getElementById('plan-total');
-    const actualTotalEl = document.getElementById('actual-total');
-    const planRateEl = document.getElementById('plan-rate');
-    const planProgressEl = document.getElementById('plan-progress');
+    // Plan vs Actual
+    const planTotalEl     = document.getElementById('plan-total');
+    const actualTotalEl   = document.getElementById('actual-total');
+    const planRateEl      = document.getElementById('plan-rate');
+    const planProgressEl  = document.getElementById('plan-progress');
+    const planStatusBadgeEl = document.getElementById('plan-status-badge'); // ★ DITAMBAHKAN
 
-       if (planTotalEl && actualTotalEl && planRateEl && planProgressEl) {
-      const planTotal = planVsActual.plan_total || 0;
+    if (planTotalEl && actualTotalEl && planRateEl && planProgressEl) {
+      const planTotal   = planVsActual.plan_total  || 0;
       const actualTotal = planVsActual.actual_total || 0;
-      const rate = planTotal > 0 ? Math.round((actualTotal * 100) / planTotal) : 0;
+      const rate        = planTotal > 0 ? Math.round((actualTotal * 100) / planTotal) : 0;
 
-      planTotalEl.textContent = planTotal;
+      planTotalEl.textContent   = planTotal;
       actualTotalEl.textContent = actualTotal;
-      planRateEl.textContent = planTotal > 0 ? Math.min(rate, 200) : 0;
+      planRateEl.textContent    = planTotal > 0 ? Math.min(rate, 200) : 0;
 
       const width = planTotal > 0 ? Math.min(100, (actualTotal * 100) / planTotal) : 0;
       planProgressEl.style.width = width + '%';
 
-      // ★ 計画達成ステータスバッジ更新
-      const badgeEl = document.getElementById('plan-status-badge');
-      if (badgeEl) {
-        let text = '計画データなし';
-        let cls = 'plan-status-badge plan-status-badge--none';
+      // ★ Status badge (warna & teks)
+      if (planStatusBadgeEl) {
+        planStatusBadgeEl.classList.remove('ok', 'warning', 'danger');
 
-        if (planTotal > 0) {
-          if (rate >= 100) {
-            text = `目標達成済み（${rate}%）`;
-            cls = 'plan-status-badge plan-status-badge--good';
-          } else if (rate >= 80) {
-            text = `順調（${rate}%）`;
-            cls = 'plan-status-badge plan-status-badge--ok';
-          } else if (rate >= 50) {
-            text = `やや遅れ（${rate}%）`;
-            cls = 'plan-status-badge plan-status-badge--slow';
-          } else {
-            text = `要注意（${rate}%）`;
-            cls = 'plan-status-badge plan-status-badge--danger';
-          }
+        if (planTotal === 0) {
+          planStatusBadgeEl.textContent = '計画データなし';
+        } else if (rate >= 120) {
+          planStatusBadgeEl.textContent = '計画超過 (要注意)';
+          planStatusBadgeEl.classList.add('warning');
+        } else if (rate >= 90) {
+          planStatusBadgeEl.textContent = 'ほぼ計画通り';
+          planStatusBadgeEl.classList.add('ok');
+        } else if (rate >= 60) {
+          planStatusBadgeEl.textContent = '計画進行中';
+        } else {
+          planStatusBadgeEl.textContent = '計画遅れ気味 (要確認)';
+          planStatusBadgeEl.classList.add('danger');
         }
-
-        badgeEl.textContent = text;
-        badgeEl.className = cls;
       }
     }
 
-
+    // Ticker berjalan
     const tickerEl = document.getElementById('ticker-text');
     if (tickerEl) {
       let msg;
@@ -1807,6 +1797,19 @@ async function loadAnalytics() {
       tickerEl.textContent = msg;
     }
 
+    // ★ Safety message dinamis (opsional, tapi saya sekalian aktifkan)
+    const safetyMsgEl = document.getElementById('safety-message');
+    if (safetyMsgEl) {
+      if (today.ng > 0) {
+        safetyMsgEl.textContent = '本日不良が発生しています。無理な増産より、原因の特定と再発防止を優先しましょう。';
+      } else if (today.total > 0) {
+        safetyMsgEl.textContent = '本日もゼロ災を目指しましょう。安全確認ヨシ！の声かけをお願いします。';
+      } else {
+        safetyMsgEl.textContent = '作業前点検と指差し呼称を徹底し、安全第一でスタートしましょう。';
+      }
+    }
+
+    // Chart by process
     const labels = byProcess.map(x => x.process_name || '不明');
     const totals = byProcess.map(x => x.total || 0);
 
@@ -1838,7 +1841,7 @@ async function loadAnalytics() {
     console.error(err);
   }
 }
-
+  
 /* ================================
    Plans (生産計画)
    ================================ */
