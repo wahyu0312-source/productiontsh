@@ -20,6 +20,11 @@ let processChart = null;
 // localStorage keys
 const ACTIVE_SESSION_KEY = 'active_sessions_v1';
 const OFFLINE_QUEUE_KEY = 'offline_log_queue_v1';
+// Feature flags (環境ごとに切り替え可能)
+const FEATURE_FLAGS = {
+  // 管理者向け「Create User」メニューを有効にするかどうか
+  enableCreateUser: true,
+};
 
 /* ================================
    共通UIユーティリティ
@@ -1425,8 +1430,13 @@ function updateAdminVisibility() {
   const guard = document.getElementById('admin-guard-message');
   const userListCard = document.getElementById('admin-user-list-card');
   const terminalListCard = document.getElementById('admin-terminal-list-card');
+  const userManagementCard = document.getElementById('admin-user-management-card');
 
-  const isAdmin = currentUser && currentUser.role === 'admin';
+  // サイドバーの管理者専用メニュー
+  const adminLinks = document.querySelectorAll('.sidebar-link.admin-only');
+
+  const isAdmin = !!(currentUser && currentUser.role === 'admin');
+  const canUseCreateUser = !!(isAdmin && FEATURE_FLAGS.enableCreateUser);
 
   if (isAdmin) {
     if (adminContent) adminContent.classList.remove('hidden');
@@ -1434,6 +1444,27 @@ function updateAdminVisibility() {
     if (userListCard) userListCard.classList.remove('hidden');
     if (terminalListCard) terminalListCard.classList.remove('hidden');
 
+    // 管理者専用メニューを表示
+    adminLinks.forEach(link => link.classList.add('visible'));
+
+    // 「Create User」カードを feature flag + role で制御
+    if (userManagementCard) {
+      if (canUseCreateUser) {
+        userManagementCard.classList.remove('hidden');
+
+        // 初回表示時だけユーザー一覧を読込
+        if (!userManagementCard.dataset.loaded) {
+          userManagementCard.dataset.loaded = 'true';
+          loadUserList().catch(err =>
+            console.error('loadUserList error:', err)
+          );
+        }
+      } else {
+        userManagementCard.classList.add('hidden');
+      }
+    }
+
+    // 既存の admin テーブル描画ロジックを維持
     renderAdminUserList();
     renderAdminTerminalList();
   } else {
@@ -1441,8 +1472,17 @@ function updateAdminVisibility() {
     if (guard) guard.classList.remove('hidden');
     if (userListCard) userListCard.classList.add('hidden');
     if (terminalListCard) terminalListCard.classList.add('hidden');
+
+    if (userManagementCard) {
+      userManagementCard.classList.add('hidden');
+      userManagementCard.dataset.loaded = '';
+    }
+
+    // 管理者専用メニューを非表示
+    adminLinks.forEach(link => link.classList.remove('visible'));
   }
 }
+
 
 async function handleCreateUser() {
   if (!currentUser || currentUser.role !== 'admin') {
@@ -2276,36 +2316,7 @@ function formatDateTimeShort(isoString) {
   }
 }
 
-/* ================================
-   ENHANCED ADMIN VISIBILITY
-   ================================ */
 
-function updateAdminVisibility() {
-  const userRole = window.currentUser?.role || '';
-  const isAdmin = userRole === 'admin';
-  
-  // Admin menu visibility
-  const adminMenuLink = document.getElementById('admin-menu-link');
-  const adminCard = document.getElementById('admin-user-management-card');
-  
-  if (isAdmin) {
-    if (adminMenuLink) adminMenuLink.style.display = 'block';
-    if (adminCard) adminCard.style.display = 'block';
-    
-    // Load user list ONLY ONCE when showing admin section
-    // Prevent infinite loop by checking if list is already loaded
-    if (adminCard && !adminCard.dataset.loaded) {
-      adminCard.dataset.loaded = 'true';
-      loadUserList();
-    }
-  } else {
-    if (adminMenuLink) adminMenuLink.style.display = 'none';
-    if (adminCard) {
-      adminCard.style.display = 'none';
-      adminCard.dataset.loaded = ''; // Reset flag
-    }
-  }
-}
 
 /* ================================
    INITIALIZE USER MANAGEMENT
