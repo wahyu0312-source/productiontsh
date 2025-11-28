@@ -1309,7 +1309,10 @@ function renderDashboardTable() {
     const tdLoc = document.createElement('td');
     tdLoc.textContent = log.location || '';
     tr.appendChild(tdLoc);
-
+ // ★ Jika log ini punya NG atau 検査保留 → highlight baris
+    if (!isPlan && ((log.qty_ng || 0) > 0 || log.status === '検査保留')) {
+      tr.classList.add('row-alert');
+    }
    const tdActions = document.createElement('td');
 
 if (isPlan) {
