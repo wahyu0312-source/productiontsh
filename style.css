@@ -76,6 +76,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+/* Monitor mode: background sedikit lebih gelap agar card putih menonjol */
+body.monitor-mode {
+  background-color: #e5ebf5;
+}
 
 /* ===== Layout Shell ===== */
 .app-shell {
@@ -499,6 +503,10 @@ body.monitor-mode .app-footer {
 
 .summary-card.warning-card .summary-value {
   color: var(--color-error);
+}
+/* Monitor mode: besarkan angka summary di dashboard */
+body.monitor-mode .summary-value {
+  font-size: 2rem; /* kira-kira lebih besar dari 2xl */
 }
 
 /* Alert Banner */
