@@ -223,15 +223,24 @@
 
 
         <!-- 最新実績一覧 -->
+        <   <!-- 最新実績一覧 -->
         <div class="card">
           <div class="card-header-row">
-            <h2 class="card-title">最新の実績一覧</h2>
+            <!-- KIRI: judul + info update -->
+            <div class="card-header-left">
+              <h2 class="card-title">最新の実績一覧</h2>
+              <div class="dashboard-update-info">
+                <span id="dashboard-last-updated">最終更新: -</span>
+                <span id="dashboard-next-refresh">次の自動更新まで: 60 秒</span>
+              </div>
+            </div>
+
+            <!-- KANAN: tombol seperti semula -->
             <div class="button-row">
               <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
               <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
             </div>
           </div>
-
           <div class="filter-grid">
             <div class="form-group">
               <label for="filter-process">工程フィルター</label>
