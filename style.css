@@ -645,6 +645,42 @@ body.has-ng #summary-card-ng .summary-value {
   border-radius: 6px;
   transition: width var(--transition-base);
 }
+/* ===== Safety Message Card ===== */
+.safety-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  background: #ecfeff;                /* lembut, tidak terlalu terang */
+  border-color: #67e8f9;
+}
+
+.safety-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.safety-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.safety-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.03em;
+}
+
+.safety-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+/* Di monitor-mode, biar sedikit lebih menonjol di TV */
+body.monitor-mode .safety-card {
+  box-shadow: var(--shadow-lg);
+}
 
 /* ===== Forms ===== */
 .form-group {
