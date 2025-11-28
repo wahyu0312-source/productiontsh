@@ -101,7 +101,9 @@ body.monitor-mode {
   z-index: 100;
   transition: transform var(--transition-base);
 }
-
+.sidebar.sidebar-hidden {
+  transform: translateX(-100%);
+}
 .sidebar-logo {
   display: flex;
   align-items: center;
@@ -1047,20 +1049,15 @@ tbody tr:hover {
 
 /* Mobile (≤ 768px) */
 @media (max-width: 768px) {
-  /* Sidebar default: terlihat */
+  /* Default: sidebar terlihat, tapi akan disembunyikan JS dengan .sidebar-hidden */
   .sidebar {
     transform: translateX(0);
   }
-  
-  /* Jika ada class sidebar-hidden → geser keluar layar */
-  .sidebar.sidebar-hidden {
-    transform: translateX(-100%);
-  }
-  
+
   .main-area {
     margin-left: 0;
   }
-  
+
   .burger-button {
     display: flex;
   }
