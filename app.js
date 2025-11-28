@@ -20,6 +20,8 @@ let processChart = null;
 // localStorage keys
 const ACTIVE_SESSION_KEY = 'active_sessions_v1';
 const OFFLINE_QUEUE_KEY = 'offline_log_queue_v1';
+const LAST_USER_KEY = 'last_user_v1';   // ★ Quick Login: user terakhir
+
 // Feature flags (環境ごとに切り替え可能)
 const FEATURE_FLAGS = {
   // 管理者向け「Create User」メニューを有効にするかどうか
@@ -395,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupButtons();
   setupOnlineOfflineHandlers();
   setWelcomeDate();
+  renderLastUserQuickLogin();   // ★ tampilkan quick login jika ada user terakhir
 
   loadMasterData();
   loadDashboard();
@@ -752,6 +755,56 @@ async function handleDecodedText(decodedText, mode) {
     selectTerminalById(payload.id);
   }
 }
+/* ================================
+   Last login user (Quick Login)
+   ================================ */
+
+function saveLastUser(user) {
+  try {
+    const data = {
+      user_id: user.user_id,
+      name_ja: user.name_ja || '',
+      role: user.role || ''
+    };
+    localStorage.setItem(LAST_USER_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Failed to save last user', e);
+  }
+}
+
+function loadLastUser() {
+  try {
+    const raw = localStorage.getItem(LAST_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function renderLastUserQuickLogin() {
+  const container = document.getElementById('last-user-quick-login');
+  const labelEl = document.getElementById('last-user-label');
+  const btn = document.getElementById('btn-last-user-login');
+
+  if (!container || !labelEl || !btn) return;
+
+  const data = loadLastUser();
+  if (!data || !data.user_id) {
+    container.classList.add('hidden');
+    return;
+  }
+
+  // Tampilkan label "ID / Nama (Role)"
+  labelEl.textContent = `${data.user_id} / ${data.name_ja || ''} (${getRoleLabel(data.role)})`;
+  container.classList.remove('hidden');
+
+  // Klik tombol quick login
+  btn.onclick = async () => {
+    const ok = confirm(`「${data.name_ja || data.user_id}」としてログインしますか？`);
+    if (!ok) return;
+    await loginWithUserId(data.user_id);
+  };
+}
 
 /* ================================
    Login
@@ -771,12 +824,17 @@ async function loginWithUserId(userId) {
     if (idEl) idEl.textContent = user.user_id;
     if (roleEl) roleEl.textContent = user.role;
 
-    document.getElementById('top-username').textContent = user.name_ja;
+      document.getElementById('top-username').textContent = user.name_ja;
     document.getElementById('top-userrole').textContent = getRoleLabel(user.role);
     document.getElementById('welcome-name').textContent = user.name_ja;
 
+    // ★ simpan dan refresh Quick Login
+    saveLastUser(user);
+    renderLastUserQuickLogin();
+
     updateAdminVisibility();
     renderDashboardTable();
+
     renderTerminalQrListIfAdmin();
     renderPlanTable();
 
