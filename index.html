@@ -71,152 +71,87 @@
         <!-- Help -->
         <button id="btn-help" class="ghost-icon-button" title="ヘルプ">?</button>
 
-        <!-- User menu (右上メニュー) -->
-        <div class="user-menu-wrapper">
-          <button type="button" class="user-chip" id="user-menu-toggle">
-            <div class="user-avatar">👤</div>
-            <div class="user-meta">
-              <div id="top-username">ゲスト</div>
-              <div class="user-role"><span id="top-userrole">未ログイン</span></div>
-            </div>
-          </button>
-          <div id="user-menu-panel" class="user-menu hidden">
-  <!-- 現在のユーザー -->
-  <div class="user-menu-section">
-    <div class="user-menu-title">現在のユーザー</div>
-    <div class="user-menu-row">
-      <span>ログインユーザー:</span>
-      <span id="current-user-name">未ログイン</span>
+       <div class="user-menu-wrapper">
+  <button type="button" class="user-chip" id="user-menu-toggle">
+    <div class="user-avatar">👤</div>
+    <div class="user-meta">
+      <div id="top-username">ゲスト</div>
+      <div class="user-role"><span id="top-userrole">未ログイン</span></div>
     </div>
-    <div class="user-menu-row">
-      <span>ユーザーID:</span>
-      <span id="current-user-id">-</span>
-    </div>
-    <div class="user-menu-row">
-      <span>権限:</span>
-      <span id="current-user-role">-</span>
-    </div>
-  </div>
-
-  <!-- ログイン -->
-  <div class="user-menu-section">
-    <div class="user-menu-title">ログイン</div>
-
-    <!-- 手動ログイン -->
-    <div class="manual-login-row">
-      <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
-      <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
-    </div>
-
-    <!-- 前回ログインユーザー -->
-    <div id="last-user-quick-login" class="manual-login-row hidden">
-      <div class="hint">
-        前回ログイン: <span id="last-user-label"></span>
-      </div>
-      <button id="btn-last-user-login" class="primary-button">
-        このユーザーでログイン
-      </button>
-    </div>
-
-    <button id="btn-start-user-scan" class="ghost-button" style="margin-top:8px;">
-      ユーザーQRスキャン開始
-    </button>
-  </div>
-
-  <!-- ★ 追加: ショートカット / その他 -->
-  <div class="user-menu-section">
-    <div class="user-menu-title">ショートカット</div>
-    <div class="button-row">
-      <button
-        type="button"
-        class="ghost-button ghost-small"
-        onclick="
-          document.querySelector('.sidebar-link[data-section=\'dashboard-section\']')?.click();
-          document.getElementById('user-menu-panel').classList.add('hidden');
-        "
-      >
-        ダッシュボードへ
-      </button>
-      <button
-        type="button"
-        class="ghost-button ghost-small"
-        onclick="
-          document.querySelector('.sidebar-link[data-section=\'scan-section\']')?.click();
-          document.getElementById('user-menu-panel').classList.add('hidden');
-        "
-      >
-        スキャン画面へ
-      </button>
-      <button
-        type="button"
-        class="ghost-button ghost-small"
-        onclick="
-          document.querySelector('.sidebar-link[data-section=\'plan-list-section\']')?.click();
-          document.getElementById('user-menu-panel').classList.add('hidden');
-        "
-      >
-        生産一覧へ
-      </button>
-      <button
-        type="button"
-        class="ghost-button ghost-small"
-        onclick="
-          document.getElementById('btn-monitor-mode')?.click();
-          document.getElementById('user-menu-panel').classList.add('hidden');
-        "
-      >
-        モニタ表示ON/OFF
-      </button>
-    </div>
-  </div>
-
-  <!-- ログアウト -->
-  <div class="user-menu-section">
-    <button id="btn-logout" class="ghost-button" style="width:100%;">ログアウト</button>
-  </div>
-
-  <p class="hint" style="margin-top:6px;">
-    ユーザー認証はこのメニューから行ってください。
-  </p>
-</div>
-  
-            <div class="user-menu-section">
-  <div class="user-menu-title">ログイン</div>
-
-  <!-- 手動ログイン -->
-  <div class="manual-login-row">
-    <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
-    <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
-  </div>
-
-  <!-- ▼ Quick Login: 前回ログインしたユーザー -->
-  <div id="last-user-quick-login" class="manual-login-row hidden">
-    <div class="hint">
-      前回ログイン: <span id="last-user-label"></span>
-    </div>
-    <button id="btn-last-user-login" class="primary-button">
-      このユーザーでログイン
-    </button>
-  </div>
-  <!-- ▲ Quick Login -->
-
-  <button id="btn-start-user-scan" class="ghost-button" style="margin-top:8px;">
-    ユーザーQRスキャン開始
   </button>
+
+  <div id="user-menu-panel" class="user-menu hidden">
+    <!-- 現在のユーザー -->
+    <div class="user-menu-section">
+      <div class="user-menu-title">現在のユーザー</div>
+      <div class="user-menu-row">
+        <span>ログインユーザー:</span>
+        <span id="current-user-name">未ログイン</span>
+      </div>
+      <div class="user-menu-row">
+        <span>ユーザーID:</span>
+        <span id="current-user-id">-</span>
+      </div>
+      <div class="user-menu-row">
+        <span>権限:</span>
+        <span id="current-user-role">-</span>
+      </div>
+    </div>
+
+    <!-- ログイン -->
+    <div class="user-menu-section">
+      <div class="user-menu-title">ログイン</div>
+      <div class="manual-login-row">
+        <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
+        <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
+      </div>
+      <div id="last-user-quick-login" class="manual-login-row hidden">
+        <div class="hint">
+          前回ログイン: <span id="last-user-label"></span>
+        </div>
+        <button id="btn-last-user-login" class="primary-button">
+          このユーザーでログイン
+        </button>
+      </div>
+      <button id="btn-start-user-scan" class="ghost-button" style="margin-top:8px;">
+        ユーザーQRスキャン開始
+      </button>
+    </div>
+
+    <!-- ショートカット -->
+    <div class="user-menu-section">
+      <div class="user-menu-title">ショートカット</div>
+      <div class="button-row">
+        <button type="button" class="ghost-button ghost-small"
+          onclick="document.querySelector('.sidebar-link[data-section=\'dashboard-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
+          ダッシュボードへ
+        </button>
+        <button type="button" class="ghost-button ghost-small"
+          onclick="document.querySelector('.sidebar-link[data-section=\'scan-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
+          スキャン画面へ
+        </button>
+        <button type="button" class="ghost-button ghost-small"
+          onclick="document.querySelector('.sidebar-link[data-section=\'plan-list-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
+          生産一覧へ
+        </button>
+        <button type="button" class="ghost-button ghost-small"
+          onclick="document.getElementById('btn-monitor-mode')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
+          モニタ表示ON/OFF
+        </button>
+      </div>
+    </div>
+
+    <!-- ログアウト -->
+    <div class="user-menu-section">
+      <button id="btn-logout" class="ghost-button" style="width:100%;">ログアウト</button>
+    </div>
+
+    <p class="hint" style="margin-top:6px;">
+      ユーザー認証はこのメニューから行ってください。
+    </p>
+  </div>
 </div>
 
-
-            <div class="user-menu-section">
-              <button id="btn-logout" class="ghost-button" style="width:100%;">ログアウト</button>
-            </div>
-
-            <p class="hint" style="margin-top:6px;">
-              ユーザー認証はこのメニューから行ってください。
-            </p>
-          </div>
-        </div>
-
-      </div>
     </header>
 
     <!-- Content -->
