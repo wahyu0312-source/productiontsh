@@ -1711,17 +1711,45 @@ async function loadAnalytics() {
     const planRateEl = document.getElementById('plan-rate');
     const planProgressEl = document.getElementById('plan-progress');
 
-    if (planTotalEl && actualTotalEl && planRateEl && planProgressEl) {
+       if (planTotalEl && actualTotalEl && planRateEl && planProgressEl) {
       const planTotal = planVsActual.plan_total || 0;
       const actualTotal = planVsActual.actual_total || 0;
       const rate = planTotal > 0 ? Math.round((actualTotal * 100) / planTotal) : 0;
+
       planTotalEl.textContent = planTotal;
       actualTotalEl.textContent = actualTotal;
       planRateEl.textContent = planTotal > 0 ? Math.min(rate, 200) : 0;
 
       const width = planTotal > 0 ? Math.min(100, (actualTotal * 100) / planTotal) : 0;
       planProgressEl.style.width = width + '%';
+
+      // ★ 計画達成ステータスバッジ更新
+      const badgeEl = document.getElementById('plan-status-badge');
+      if (badgeEl) {
+        let text = '計画データなし';
+        let cls = 'plan-status-badge plan-status-badge--none';
+
+        if (planTotal > 0) {
+          if (rate >= 100) {
+            text = `目標達成済み（${rate}%）`;
+            cls = 'plan-status-badge plan-status-badge--good';
+          } else if (rate >= 80) {
+            text = `順調（${rate}%）`;
+            cls = 'plan-status-badge plan-status-badge--ok';
+          } else if (rate >= 50) {
+            text = `やや遅れ（${rate}%）`;
+            cls = 'plan-status-badge plan-status-badge--slow';
+          } else {
+            text = `要注意（${rate}%）`;
+            cls = 'plan-status-badge plan-status-badge--danger';
+          }
+        }
+
+        badgeEl.textContent = text;
+        badgeEl.className = cls;
+      }
     }
+
 
     const tickerEl = document.getElementById('ticker-text');
     if (tickerEl) {
