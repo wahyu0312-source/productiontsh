@@ -673,11 +673,34 @@
         </div>
       </section>
 
-    </main>
+        </main>
+
+    <!-- Floating Scan button (mobile) -->
+    <button id="fab-scan" class="fab-scan" aria-label="スキャン画面へ">
+      <span class="fab-icon">📷</span>
+      <span class="fab-label">SCAN</span>
+    </button>
+
+    <!-- Mobile bottom navigation (smartphone only) -->
+    <nav class="mobile-bottom-nav">
+      <button class="mobile-nav-link active" data-section="dashboard-section">
+        <span class="mobile-nav-icon">🏠</span>
+        <span class="mobile-nav-label">ダッシュボード</span>
+      </button>
+      <button class="mobile-nav-link" data-section="scan-section">
+        <span class="mobile-nav-icon">📷</span>
+        <span class="mobile-nav-label">スキャン</span>
+      </button>
+      <button class="mobile-nav-link" data-section="plan-list-section">
+        <span class="mobile-nav-icon">📋</span>
+        <span class="mobile-nav-label">生産一覧</span>
+      </button>
+    </nav>
 
     <footer class="app-footer">
       Design by Wahyu
     </footer>
+
 
   </div>
 </div>
