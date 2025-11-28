@@ -1475,6 +1475,108 @@ tbody tr:hover {
     min-width: 130px;
   }
 }
+/* === Safety Card (Dashboard) === */
+.safety-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: var(--space-md) var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.safety-icon {
+  font-size: 2rem;
+}
+
+.safety-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.safety-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.safety-text {
+  font-size: var(--font-size-base);
+  opacity: 0.95;
+}
+
+/* === Plan status badge === */
+.plan-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-md);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+/* warna-warna status – akan dipakai dari JS via class tambahan */
+.plan-status-badge.ok {
+  background: rgba(46, 204, 113, 0.2);
+  color: #e8fff2;
+}
+
+.plan-status-badge.warning {
+  background: rgba(243, 156, 18, 0.25);
+  color: #fff7e0;
+}
+
+.plan-status-badge.danger {
+  background: rgba(231, 76, 60, 0.28);
+  color: #ffecec;
+}
+
+/* Info kecil di header tabel dashboard */
+.dashboard-update-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* date range filter di dashboard */
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-range input[type="date"] {
+  flex: 1;
+}
+
+/* info terminal di halaman SCAN */
+.terminal-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 4px 16px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* chart wrapper supaya tinggi fix dan responsif */
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 260px;
+}
 
 /* Print Styles */
 @media print {
