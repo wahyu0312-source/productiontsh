@@ -1047,12 +1047,14 @@ tbody tr:hover {
 
 /* Mobile (≤ 768px) */
 @media (max-width: 768px) {
+  /* Sidebar default: terlihat */
   .sidebar {
-    transform: translateX(-100%);
+    transform: translateX(0);
   }
   
-  .sidebar.active {
-    transform: translateX(0);
+  /* Jika ada class sidebar-hidden → geser keluar layar */
+  .sidebar.sidebar-hidden {
+    transform: translateX(-100%);
   }
   
   .main-area {
