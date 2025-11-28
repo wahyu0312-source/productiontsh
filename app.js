@@ -2267,58 +2267,53 @@ function renderUserListTable(users) {
   tbody.innerHTML = '';
 
   if (!users || users.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#7f8c8d;">登録されているユーザーがありません。</td></tr>';
+    tbody.innerHTML =
+      '<tr><td colspan="6" style="text-align:center; padding:20px; color:#7f8c8d;">登録されているユーザーがありません。</td></tr>';
     return;
   }
 
   users.forEach((user, index) => {
     const tr = document.createElement('tr');
-    const qrContainerId = 'qr-mini-' + user.user_id + '-' + index;
+    const qrContainerId = `qr-mini-${user.user_id}-${index}`;
 
     tr.innerHTML = `
       <td>
         <div id="${qrContainerId}" class="qr-mini"></div>
       </td>
       <td><strong>${escapeHtml(user.user_id)}</strong></td>
-      <td>${escapeHtml(user.name_ja)}</td>
+      <td>${escapeHtml(user.name_ja || '')}</td>
       <td><span class="log-badge">${getRoleLabel(user.role)}</span></td>
       <td><span class="log-timestamp">${formatDateTime(user.created_at || '')}</span></td>
       <td>
         <div class="user-actions">
-          <button class="btn-icon btn-edit" onclick="editUser('${escapeHtml(user.user_id)}')" title="編集">
-            ✏️
-          </button>
-          <button class="btn-icon btn-delete" onclick="confirmDeleteUser('${escapeHtml(user.user_id)}')" title="削除">
-            🗑️
-          </button>
-          <button class="btn-icon btn-download" onclick="downloadUserQR('${escapeHtml(user.user_id)}', '${escapeHtml(user.name_ja)}', '${user.role}')" title="QRダウンロード">
-            📥
-          </button>
+          <button class="btn-icon btn-edit"
+                  onclick="editUser('${escapeHtml(user.user_id)}')"
+                  title="編集">✏️</button>
+          <button class="btn-icon btn-delete"
+                  onclick="confirmDeleteUser('${escapeHtml(user.user_id)}')"
+                  title="削除">🗑️</button>
+          <button class="btn-icon btn-download"
+                  onclick="downloadUserQR('${escapeHtml(user.user_id)}', '${escapeHtml(user.name_ja || '')}', '${user.role || ''}')"
+                  title="QRダウンロード">📥</button>
         </div>
       </td>
     `;
 
     tbody.appendChild(tr);
 
-    // Mini QR を少しずつ生成（負荷分散）
+    // --- Mini QR 50x50: cukup encode ID saja supaya tidak overflow ---
     setTimeout(() => {
       const miniContainer = document.getElementById(qrContainerId);
       if (!miniContainer) return;
 
+      // bersihkan QR sebelumnya
+      miniContainer.innerHTML = '';
+
+      // data mini: pendek → aman untuk QR kecil
       let qrData = JSON.stringify({
         type: 'user',
-        id: user.user_id,
-        name: user.name_ja,
-        role: user.role
+        id: user.user_id
       });
-
-      // 50x50 のミニQRは文字数制限が厳しいため、長すぎる場合はIDのみ
-      if (qrData.length > 80) {
-        qrData = JSON.stringify({
-          type: 'user',
-          id: user.user_id
-        });
-      }
 
       try {
         new QRCode(miniContainer, {
@@ -2328,11 +2323,23 @@ function renderUserListTable(users) {
           correctLevel: QRCode.CorrectLevel.M
         });
       } catch (err) {
-        console.error('Mini QR generation error:', err);
+        console.error('Mini QR generation error (fallback to plain ID):', err);
+        // fallback terakhir: hanya ID plain string
+        try {
+          new QRCode(miniContainer, {
+            text: String(user.user_id || ''),
+            width: 50,
+            height: 50,
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (err2) {
+          console.error('Mini QR generation failed completely:', err2);
+        }
       }
-    }, 100 * (index + 1));
+    }, 100 * (index + 1)); // stagger supaya tidak berat
   });
 }
+
 
 async function editUser(userId) {
   const newName = prompt('新しい氏名を入力してください:');
