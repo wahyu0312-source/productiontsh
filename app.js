@@ -824,7 +824,7 @@ async function loginWithUserId(userId) {
     if (idEl) idEl.textContent = user.user_id;
     if (roleEl) roleEl.textContent = user.role;
 
-      document.getElementById('top-username').textContent = user.name_ja;
+    document.getElementById('top-username').textContent = user.name_ja;
     document.getElementById('top-userrole').textContent = getRoleLabel(user.role);
     document.getElementById('welcome-name').textContent = user.name_ja;
 
@@ -834,9 +834,46 @@ async function loginWithUserId(userId) {
 
     updateAdminVisibility();
     renderDashboardTable();
-
     renderTerminalQrListIfAdmin();
     renderPlanTable();
+
+    // ★ Operator-first flow di smartphone:
+    // jika role = operator dan layar kecil → pindah otomatis ke 生産一覧 (plans-section)
+    if (user.role === 'operator' && window.innerWidth <= 768) {
+      const target = 'plans-section'; // id section 生産一覧
+      const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
+      const sections = document.querySelectorAll('.section');
+
+      let hasTarget = false;
+      sections.forEach(sec => {
+        const active = sec.id === target;
+        if (active) hasTarget = true;
+        sec.classList.toggle('active', active);
+      });
+
+      // Kalau tidak ada plans-section (untuk jaga-jaga), fallback ke dashboard
+      if (!hasTarget) {
+        const fallback = 'dashboard-section';
+        sections.forEach(sec => {
+          sec.classList.toggle('active', sec.id === fallback);
+        });
+      }
+
+      links.forEach(l => {
+        const isActive = l.dataset.section === target;
+        const isFallback = l.dataset.section === 'dashboard-section';
+        l.classList.toggle('active', isActive || (!hasTarget && isFallback));
+      });
+
+      // Tutup sidebar di layar kecil
+      if (window.innerWidth <= 800) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.classList.add('sidebar-hidden');
+      }
+
+      // Scroll ke atas supaya operator langsung lihat 生産一覧
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     const userMenuPanel = document.getElementById('user-menu-panel');
     if (userMenuPanel) userMenuPanel.classList.add('hidden');
@@ -849,6 +886,7 @@ async function loginWithUserId(userId) {
     setGlobalLoading(false);
   }
 }
+
 
 async function handleManualLogin() {
   const input = document.getElementById('manual-user-id');
