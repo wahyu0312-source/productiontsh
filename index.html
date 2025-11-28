@@ -98,15 +98,30 @@
             </div>
 
             <div class="user-menu-section">
-              <div class="user-menu-title">ログイン</div>
-              <div class="manual-login-row">
-                <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
-                <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
-              </div>
-              <button id="btn-start-user-scan" class="ghost-button" style="margin-top:8px;">
-                ユーザーQRスキャン開始
-              </button>
-            </div>
+  <div class="user-menu-title">ログイン</div>
+
+  <!-- 手動ログイン -->
+  <div class="manual-login-row">
+    <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
+    <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
+  </div>
+
+  <!-- ▼ Quick Login: 前回ログインしたユーザー -->
+  <div id="last-user-quick-login" class="manual-login-row hidden">
+    <div class="hint">
+      前回ログイン: <span id="last-user-label"></span>
+    </div>
+    <button id="btn-last-user-login" class="primary-button">
+      このユーザーでログイン
+    </button>
+  </div>
+  <!-- ▲ Quick Login -->
+
+  <button id="btn-start-user-scan" class="ghost-button" style="margin-top:8px;">
+    ユーザーQRスキャン開始
+  </button>
+</div>
+
 
             <div class="user-menu-section">
               <button id="btn-logout" class="ghost-button" style="width:100%;">ログアウト</button>
