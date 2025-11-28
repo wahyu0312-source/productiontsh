@@ -2141,28 +2141,36 @@ function renderUserListTable(users) {
     // Generate mini QR code
     setTimeout(() => {
       const miniContainer = document.getElementById(qrContainerId);
-      if (miniContainer) {
-        const qrData = JSON.stringify({
-          type: 'user',
-          id: user.user_id,
-          name: user.name_ja,
-          role: user.role
-        });
-        
-        try {
-          new QRCode(miniContainer, {
-            text: qrData,
-            width: 50,
-            height: 50,
-            correctLevel: QRCode.CorrectLevel.M
-          });
-        } catch (err) {
-          console.error('Mini QR generation error:', err);
-        }
-      }
-    }, 100 * (index + 1)); // Stagger QR generation
-  });
-}
+       if (miniContainer) {
+    // Data penuh untuk QR
+    let qrData = JSON.stringify({
+      type: 'user',
+      id: user.user_id,
+      name: user.name_ja,
+      role: user.role
+    });
+
+    // Mini QR (50x50) punya batas panjang.
+    // Jika terlalu panjang, fallback ke data yang lebih pendek.
+    if (qrData.length > 80) {
+      qrData = JSON.stringify({
+        type: 'user',
+        id: user.user_id
+      });
+    }
+    
+    try {
+      new QRCode(miniContainer, {
+        text: qrData,
+        width: 50,
+        height: 50,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch (err) {
+      console.error('Mini QR generation error:', err);
+    }
+  }
+
 
 async function editUser(userId) {
   const newName = prompt('新しい氏名を入力してください:');
