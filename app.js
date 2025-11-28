@@ -1638,6 +1638,13 @@ async function loadAnalytics() {
 
     document.getElementById('today-total').textContent = today.total;
     document.getElementById('today-ng').textContent = today.ng;
+        // Body class untuk highlight NG di dashboard
+    if (today.ng > 0) {
+      document.body.classList.add('has-ng');
+    } else {
+      document.body.classList.remove('has-ng');
+    }
+
     document.getElementById('summary-terminals').textContent = counts.terminals;
     document.getElementById('summary-plans').textContent = counts.plans;
 
