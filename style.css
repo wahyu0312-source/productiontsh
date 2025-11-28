@@ -605,6 +605,39 @@ body.has-ng #summary-card-ng .summary-value {
   border-radius: 6px;
   overflow: hidden;
 }
+.plan-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-md);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  color: #f9fafb;
+}
+
+/* Variasi warna berdasarkan status */
+.plan-status-badge--none {
+  background: rgba(15, 23, 42, 0.25);
+}
+
+.plan-status-badge--good {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.plan-status-badge--ok {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+.plan-status-badge--slow {
+  background: rgba(245, 158, 11, 0.25);
+}
+
+.plan-status-badge--danger {
+  background: rgba(248, 113, 113, 0.35);
+}
 
 .progress-fill {
   height: 100%;
