@@ -436,6 +436,24 @@ body.monitor-mode .app-footer {
   margin-bottom: var(--space-lg);
   gap: var(--space-md);
 }
+.card-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Info “最終更新 / 次の自動更新” di dashboard */
+.dashboard-update-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.dashboard-update-info span {
+  white-space: nowrap;
+}
 
 /* Welcome Card */
 .welcome-card {
