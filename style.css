@@ -218,6 +218,30 @@ body.monitor-mode .card {
 body.monitor-mode .app-footer {
   display: none;
 }
+/* Tambahan untuk tampilan TV / digital signage */
+body.monitor-mode .burger-button,
+body.monitor-mode #btn-monitor-mode {
+  display: none;                       /* tombol & burger hilang di TV */
+}
+
+body.monitor-mode .topbar {
+  justify-content: center;            /* judul di tengah */
+}
+
+body.monitor-mode .topbar-left {
+  justify-content: center;
+}
+
+body.monitor-mode .topbar-title {
+  font-size: 2rem;                    /* judul lebih besar di TV */
+  white-space: normal;                /* boleh turun 2 baris di TV */
+  text-align: center;
+}
+
+body.monitor-mode .topbar-subtitle {
+  display: block;
+  text-align: center;
+}
 
 /* ===== Topbar ===== */
 .topbar {
@@ -239,7 +263,7 @@ body.monitor-mode .app-footer {
   align-items: center;
   gap: var(--space-md);
   flex: 1;
-  min-width: 0;
+  min-width: 0;              /* penting supaya ellipsis bisa jalan */
 }
 
 .topbar-title {
@@ -247,7 +271,11 @@ body.monitor-mode .app-footer {
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
+  white-space: nowrap;        /* jangan turun baris */
+  overflow: hidden;           /* jika terlalu panjang… */
+  text-overflow: ellipsis;    /* tampilkan … */
 }
+
 
 .topbar-subtitle {
   font-size: var(--font-size-sm);
@@ -1291,6 +1319,41 @@ tbody tr:hover {
   th, td {
     padding: var(--space-sm);
   }
+}
+@media (max-width: 768px) {
+  .topbar {
+    height: auto;
+    min-height: 64px;
+    padding: var(--space-md);
+  }
+
+  .topbar-left,
+  .topbar-right {
+    gap: var(--space-sm);
+  }
+
+  .topbar-title {
+    font-size: var(--font-size-base);
+  }
+
+  /* SUBTITLE disembunyikan di HP supaya header tidak “penuh” */
+  .topbar-subtitle {
+    display: none;
+  }
+
+  .quick-search {
+    display: none;
+  }
+
+  .content {
+    padding: var(--space-md);
+  }
+
+  .card {
+    padding: var(--space-md);
+  }
+
+  /* …lanjutan isi @media tetap seperti sebelumnya… */
 }
 
 /* Smartphone (≤ 640px) - TOMBOL SCAN RESPONSIF */
