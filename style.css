@@ -183,27 +183,36 @@ body.monitor-mode .main-area {
   margin-left: 0;
 }
 
+/* Topbar dibuat transparan dan judul di tengah */
 body.monitor-mode .topbar {
   background: transparent;
   border-bottom: none;
   box-shadow: none;
+  justify-content: center;
 }
 
-/* Topbar kanan tetap ada, tapi isinya dibatasi */
-body.monitor-mode .topbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+body.monitor-mode .topbar-left {
+  justify-content: center;
 }
 
-/* Sembunyikan search, help, dan user-menu di mode monitor */
-body.monitor-mode .topbar-right .quick-search,
-body.monitor-mode .user-menu-wrapper,
-body.monitor-mode #btn-help {
+body.monitor-mode .topbar-title {
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+body.monitor-mode .topbar-subtitle {
+  display: block;
+  text-align: center;
+}
+
+/* Sembunyikan kontrol yang tidak perlu di TV */
+body.monitor-mode .burger-button,
+body.monitor-mode .topbar-right,
+body.monitor-mode #btn-monitor-mode {
   display: none;
 }
 
-/* Konten melebar penuh */
+/* Konten melebar penuh di TV */
 body.monitor-mode .content {
   max-width: 100%;
   padding-top: var(--space-md);
@@ -217,30 +226,6 @@ body.monitor-mode .card {
 /* Footer dihilangkan untuk tampilan TV */
 body.monitor-mode .app-footer {
   display: none;
-}
-/* Tambahan untuk tampilan TV / digital signage */
-body.monitor-mode .burger-button,
-body.monitor-mode #btn-monitor-mode {
-  display: none;                       /* tombol & burger hilang di TV */
-}
-
-body.monitor-mode .topbar {
-  justify-content: center;            /* judul di tengah */
-}
-
-body.monitor-mode .topbar-left {
-  justify-content: center;
-}
-
-body.monitor-mode .topbar-title {
-  font-size: 2rem;                    /* judul lebih besar di TV */
-  white-space: normal;                /* boleh turun 2 baris di TV */
-  text-align: center;
-}
-
-body.monitor-mode .topbar-subtitle {
-  display: block;
-  text-align: center;
 }
 
 /* ===== Topbar ===== */
