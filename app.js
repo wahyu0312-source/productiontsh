@@ -1377,7 +1377,7 @@ const qtyText = isPlan
     tdDuration.textContent = durationMin || '';
     tr.appendChild(tdDuration);
 
-   const tdLoc = document.createElement('td');
+const tdLoc = document.createElement('td');
 const locWrapper = document.createElement('div');
 locWrapper.className = 'location-cell';
 
@@ -1385,10 +1385,10 @@ const locationText = log.location || '';
 const isExternal = /外注|subcon|vendor/i.test(String(locationText).toLowerCase()) ||
   (log.work_type && /外注|external/i.test(String(log.work_type)));
 
-const badge = document.createElement('span');
-badge.className = 'badge ' + (isExternal ? 'badge-external' : 'badge-internal');
-badge.textContent = isExternal ? '外注' : '社内';
-locWrapper.appendChild(badge);
+const locBadge = document.createElement('span');
+locBadge.className = 'badge ' + (isExternal ? 'badge-external' : 'badge-internal');
+locBadge.textContent = isExternal ? '外注' : '社内';
+locWrapper.appendChild(locBadge);
 
 if (locationText) {
   const locTextSpan = document.createElement('span');
