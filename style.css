@@ -941,6 +941,21 @@ tbody tr:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
+.align-right {
+  text-align: right;
+}
+
+.table-wrapper.compact {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+/* Tabel compact untuk laporan man-hour */
+.logs-table.compact th,
+.logs-table.compact td {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+}
 
 /* ===== Status Badges ===== */
 .status-badge {
