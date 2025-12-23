@@ -383,28 +383,39 @@
           </div>
 
           <!-- Input utama operator - WITH REQUIRED FIELD HIGHLIGHTING -->
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="log-status">ステータス</label>
-              <select id="log-status" class="required-field">
-                <option value="工程開始">工程開始</option>
-                <option value="工程終了" selected>工程終了</option>
-                <option value="検査保留">検査保留</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="log-qty-ok">OK数量</label>
-              <input id="log-qty-ok" type="number" min="0" value="0" class="required-field">
-            </div>
-            <div class="form-group">
-              <label for="log-qty-ng">不良数量</label>
-              <input id="log-qty-ng" type="number" min="0" value="0" class="required-field">
-            </div>
-            <div class="form-group">
-              <label for="log-qty-total">総数量</label>
-              <input id="log-qty-total" type="number" min="0" value="0" readonly class="required-field">
-            </div>
-          </div>
+<div class="form-grid">
+  <div class="form-group">
+    <label for="log-status">ステータス</label>
+    <select id="log-status" class="required-field">
+      <option value="工程開始">工程開始</option>
+      <option value="工程終了" selected>工程終了</option>
+      <option value="検査保留">検査保留</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="log-qty-ok">OK数量</label>
+    <input id="log-qty-ok" type="number" min="0" value="0" class="required-field">
+  </div>
+  <div class="form-group">
+    <label for="log-qty-ng">不良数量</label>
+    <input id="log-qty-ng" type="number" min="0" value="0" class="required-field">
+  </div>
+  <div class="form-group">
+    <label for="log-qty-total">総数量</label>
+    <input id="log-qty-total" type="number" min="0" value="0" readonly class="required-field">
+  </div>
+</div>
+
+<!-- Multi-operator support: 作業人数 -->
+<div class="form-grid two-col">
+  <div class="form-group">
+    <label for="log-crew-size">作業人数</label>
+    <input id="log-crew-size" type="number" min="1" value="1">
+    <small class="field-hint">
+      複数人で同じ工程を行った場合のみ人数を変更してください。（例：2人作業なら「2」）
+    </small>
+  </div>
+</div>
 
           <div class="form-group">
             <label for="log-note">備考（任意）</label>
