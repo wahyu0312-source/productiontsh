@@ -855,14 +855,75 @@
 <div id="help-modal" class="modal hidden">
   <div class="modal-content">
     <h3>ヘルプ</h3>
+
     <p>このシステムの基本的な使い方:</p>
-    <ul class="help-list">
+    <ol class="help-list">
       <li>① 右上メニューでユーザーQRまたはユーザーIDでログインします。</li>
-      <li>② 「生産一覧」で対象の生産計画を選び、「スキャン/更新」をクリックします。</li>
-      <li>③ 「スキャン」画面で工程QRをスキャンし、ステータスと数量を入力して保存します。</li>
-      <li>④ 「ダッシュボード」で最新の実績と生産計画の進捗を確認できます。</li>
-      <li>⑤ 「ユーザー / QR」「工程一覧」でマスタとQRコードを管理できます。（adminのみ）</li>
+      <li>② 「生産一覧」で対象の生産計画を選び、「スキャン/更新」をクリックします。<br>
+          ┗ 製品番号・製品名・計画数量が「生産データ入力」に自動設定されます。
+      </li>
+      <li>③ 「スキャン」画面で工程QRをスキャンします。<br>
+          ┗ 工程名・端末・ロケーションが自動でセットされます。
+      </li>
+      <li>④ ステータス・数量・作業人数を確認して「保存」ボタンで実績を登録します。</li>
+      <li>⑤ 「ダッシュボード」で最新の実績と生産計画の進捗をリアルタイムに確認できます。</li>
+      <li>⑥ 「ユーザー / QR」「工程一覧」でマスタとQRコードを管理できます。（adminのみ）</li>
+    </ol>
+
+    <h4 style="margin-top:8px;">ステータスの使い分け</h4>
+    <ul class="help-list">
+      <li><strong>工程開始</strong>：工程を始めるときに使用します。開始時刻だけを記録し、終了時に所要時間を計算します。</li>
+      <li><strong>工程終了</strong>：工程が完了したときに使用します。OK/不良数量と作業人数を入力して保存します。</li>
+      <li><strong>一時停止（保留）</strong>：段取り替え・別作業へ一時移動・材料待ちなど「一旦止めて後で再開する」場合に使用します。数量が確定していない場合は 0 のままでも構いません。</li>
+      <li><strong>検査保留</strong>：品質確認のため一時停止する場合に使用します。ダッシュボードで注意が必要な工程として強調表示されます。</li>
     </ul>
+
+    <h4 style="margin-top:8px;">HOLDして別作業を行う場合の流れ</h4>
+    <ol class="help-list">
+      <li>1) 工程Aを開始：ステータス「工程開始」で保存。</li>
+      <li>2) 一時停止したいタイミングで、同じ生産計画＋工程Aを選び、<br>
+             ステータスを「一時停止」または「検査保留」にして保存。<br>
+             ┗ 開始〜一時停止までの時間が1つの区間としてログに記録されます。
+      </li>
+      <li>3) 別の作業Bを行うときは、生産計画B＋工程Bを選び、<br>
+             「工程開始」→ 作業完了時に「工程終了」で登録します。
+      </li>
+      <li>4) 工程Aに戻るときは、再度 生産計画A＋工程Aを選び、<br>
+             「工程開始」→ 最後に「工程終了」で登録します。<br>
+             ┗ 区間ごとにログは分かれますが、システム側で自動的に合計作業時間として集計されます。
+      </li>
+    </ol>
+
+    <h4 style="margin-top:8px;">複数人作業（作業人数）の入力</h4>
+    <ul class="help-list">
+      <li>通常は「作業人数 = 1」のままで構いません。</li>
+      <li>同じ工程を2人以上で同時に行った場合、<strong>終了登録のとき</strong>に実際の人数を入力してください。<br>
+          例：2人作業 → 作業人数「2」<br>
+          ┗ 合計工数（man-hour）は「作業時間 × 作業人数」で自動計算されます。
+      </li>
+    </ul>
+
+    <h4 style="margin-top:8px;">社内 / 外注 の扱い</h4>
+    <ul class="help-list">
+      <li>工程マスタのロケーションに「外注」や「subcon」などの文字を含めて登録すると、その工程は自動的に<strong>外注工程</strong>として扱われます。</li>
+      <li>特に指定がない工程は<strong>社内工程</strong>として扱われます。</li>
+      <li>ダッシュボード上部の「作業区分」フィルターで、「社内のみ」「外注のみ」を切り替えて表示できます。</li>
+    </ul>
+
+    <h4 style="margin-top:8px;">モニタ表示（デジタルサイネージ）</h4>
+    <ul class="help-list">
+      <li>右上の「モニタ表示」ボタンを押すと、サイドメニューなどが非表示になり、ライン全体の進捗を表示するモードになります。</li>
+      <li>テレビや大型ディスプレイにブラウザ画面を映すことで、現場全員がリアルタイムの進捗を共有できます。</li>
+      <li>通常表示に戻るには、ブラウザを再読み込み（F5）してください。</li>
+    </ul>
+
+    <p style="margin-top:8px;font-size:0.8rem;color:#666;">
+      ※ Bahasa Indonesia (ringkas):<br>
+      1) Login dengan QR/ID user, pilih rencana di 「生産一覧」 lalu klik 「スキャン/更新」.<br>
+      2) Di menu 「スキャン」 scan QR proses, pilih status (開始 / 終了 / 一時停止 / 検査保留) dan isi qty.<br>
+      3) Jika kerja lebih dari 1 orang, ubah 「作業人数」 saat input 終了. Sistem otomatis hitung man-hour dan membedakan 社内 vs 外注 dari lokasi di master工程.
+    </p>
+
     <div class="button-row" style="margin-top:8px;">
       <button id="btn-help-close" class="primary-button">閉じる</button>
     </div>
