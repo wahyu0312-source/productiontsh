@@ -1998,4 +1998,44 @@ tbody tr.row-alert:hover {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+  /* Dashboard & tables - mobile tidy */
+  .content {
+    padding: var(--space-md);
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
+  /* Jangan pakai margin negatif di mobile supaya tidak nabrak filter */
+  .table-wrapper {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Header dashboard rapi di mobile */
+  #dashboard-section .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  #dashboard-section .button-row {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  #dashboard-section .button-row button {
+    flex: 1 1 48%;
+  }
+
+  /* Konsisten antar menu: tiap card ada jarak yang sama */
+  #dashboard-section .card,
+  #scan-section .card,
+  #plans-section .card {
+    margin-bottom: var(--space-md);
+  }
 
