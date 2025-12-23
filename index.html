@@ -16,7 +16,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
     rel="stylesheet">
 
-  <!-- CSS - Improved Version -->
+  <!-- CSS -->
   <link rel="stylesheet" href="style.css">
 
   <!-- Libs -->
@@ -65,93 +65,95 @@
           <input id="header-product-search" type="text" placeholder="製品番号検索">
           <button id="btn-header-search" class="ghost-button ghost-small">検索</button>
         </div>
-  <button id="btn-monitor-mode" class="ghost-button ghost-small">
+        <button id="btn-monitor-mode" class="ghost-button ghost-small">
           モニタ表示
         </button>
         <!-- Help -->
         <button id="btn-help" class="ghost-icon-button" title="ヘルプ">?</button>
 
-       <div class="user-menu-wrapper">
-  <button type="button" class="user-chip" id="user-menu-toggle">
-    <div class="user-avatar">👤</div>
-    <div class="user-meta">
-      <div id="top-username">ゲスト</div>
-      <div class="user-role"><span id="top-userrole">未ログイン</span></div>
-    </div>
-  </button>
+        <!-- User menu (popup style) -->
+        <div class="user-menu-wrapper">
+          <button type="button" class="user-chip" id="user-menu-toggle">
+            <div class="user-avatar">👤</div>
+            <div class="user-meta">
+              <div id="top-username">ゲスト</div>
+              <div class="user-role"><span id="top-userrole">未ログイン</span></div>
+            </div>
+          </button>
 
-  <div id="user-menu-panel" class="user-menu hidden">
-    <!-- 現在のユーザー -->
-    <div class="user-menu-section">
-      <div class="user-menu-title">現在のユーザー</div>
-      <div class="user-menu-row">
-        <span>ログインユーザー:</span>
-        <span id="current-user-name">未ログイン</span>
-      </div>
-      <div class="user-menu-row">
-        <span>ユーザーID:</span>
-        <span id="current-user-id">-</span>
-      </div>
-      <div class="user-menu-row">
-        <span>権限:</span>
-        <span id="current-user-role">-</span>
-      </div>
-    </div>
+          <div id="user-menu-panel" class="user-menu hidden">
+            <!-- 現在のユーザー -->
+            <div class="user-menu-section">
+              <div class="user-menu-title">現在のユーザー</div>
+              <div class="user-menu-row">
+                <span>ログインユーザー:</span>
+                <span id="current-user-name">未ログイン</span>
+              </div>
+              <div class="user-menu-row">
+                <span>ユーザーID:</span>
+                <span id="current-user-id">-</span>
+              </div>
+              <div class="user-menu-row">
+                <span>権限:</span>
+                <span id="current-user-role">-</span>
+              </div>
+            </div>
 
-    <!-- ログイン -->
-    <div class="user-menu-section">
-      <div class="user-menu-title">ログイン</div>
-      <div class="manual-login-row">
-        <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
-        <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
-      </div>
-      <div id="last-user-quick-login" class="manual-login-row hidden">
-        <div class="hint">
-          前回ログイン: <span id="last-user-label"></span>
+            <!-- ログイン -->
+            <div class="user-menu-section">
+              <div class="user-menu-title">ログイン</div>
+              <div class="manual-login-row">
+                <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
+                <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
+              </div>
+              <div id="last-user-quick-login" class="manual-login-row hidden">
+                <div class="hint">
+                  前回ログイン: <span id="last-user-label"></span>
+                </div>
+                <button id="btn-last-user-login" class="primary-button">
+                  このユーザーでログイン
+                </button>
+              </div>
+              <button id="btn-start-user-scan" class="ghost-button" style="margin-top:8px;">
+                ユーザーQRスキャン開始
+              </button>
+            </div>
+
+            <!-- ショートカット -->
+            <div class="user-menu-section">
+              <div class="user-menu-title">ショートカット</div>
+              <div class="button-row">
+                <button type="button" class="ghost-button ghost-small"
+                        onclick="document.querySelector('.sidebar-link[data-section=\'dashboard-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
+                  ダッシュボードへ
+                </button>
+                <button type="button" class="ghost-button ghost-small"
+                        onclick="document.querySelector('.sidebar-link[data-section=\'scan-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
+                  スキャン画面へ
+                </button>
+                <button type="button" class="ghost-button ghost-small"
+                        onclick="document.querySelector('.sidebar-link[data-section=\'plan-list-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
+                  生産一覧へ
+                </button>
+                <button type="button" class="ghost-button ghost-small"
+                        onclick="document.getElementById('btn-monitor-mode')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
+                  モニタ表示ON/OFF
+                </button>
+              </div>
+            </div>
+
+            <!-- ログアウト -->
+            <div class="user-menu-section">
+              <button id="btn-logout" class="ghost-button" style="width:100%;">ログアウト</button>
+            </div>
+
+            <p class="hint" style="margin-top:6px;">
+              ユーザー認証はこのメニューから行ってください。
+            </p>
+          </div>
         </div>
-        <button id="btn-last-user-login" class="primary-button">
-          このユーザーでログイン
-        </button>
+
       </div>
-      <button id="btn-start-user-scan" class="ghost-button" style="margin-top:8px;">
-        ユーザーQRスキャン開始
-      </button>
-    </div>
-
-    <!-- ショートカット -->
-    <div class="user-menu-section">
-      <div class="user-menu-title">ショートカット</div>
-      <div class="button-row">
-        <button type="button" class="ghost-button ghost-small"
-          onclick="document.querySelector('.sidebar-link[data-section=\'dashboard-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
-          ダッシュボードへ
-        </button>
-        <button type="button" class="ghost-button ghost-small"
-          onclick="document.querySelector('.sidebar-link[data-section=\'scan-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
-          スキャン画面へ
-        </button>
-        <button type="button" class="ghost-button ghost-small"
-          onclick="document.querySelector('.sidebar-link[data-section=\'plan-list-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
-          生産一覧へ
-        </button>
-        <button type="button" class="ghost-button ghost-small"
-          onclick="document.getElementById('btn-monitor-mode')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
-          モニタ表示ON/OFF
-        </button>
-      </div>
-    </div>
-
-    <!-- ログアウト -->
-    <div class="user-menu-section">
-      <button id="btn-logout" class="ghost-button" style="width:100%;">ログアウト</button>
-    </div>
-
-    <p class="hint" style="margin-top:6px;">
-      ユーザー認証はこのメニューから行ってください。
-    </p>
-  </div>
-</div>
-
     </header>
 
     <!-- Content -->
@@ -172,16 +174,16 @@
               <p class="welcome-text">最新の進捗状況と生産計画を確認しましょう。</p>
             </div>
           </div>
-           <!-- ★ NEW: Safety card -->
-  <div class="card safety-card">
-    <div class="safety-icon">🦺</div>
-    <div class="safety-body">
-      <div class="safety-title">今日の安全メッセージ</div>
-      <div class="safety-text" id="safety-message">
-        安全第一で作業しましょう。
-      </div>
-    </div>
-  </div>
+          <!-- Safety card -->
+          <div class="card safety-card">
+            <div class="safety-icon">🦺</div>
+            <div class="safety-body">
+              <div class="safety-title">今日の安全メッセージ</div>
+              <div class="safety-text" id="safety-message">
+                安全第一で作業しましょう。
+              </div>
+            </div>
+          </div>
           <div class="welcome-meta">
             <div class="welcome-meta-item">
               <span class="meta-label">本日</span>
@@ -223,28 +225,25 @@
           </div>
         </div>
 
+        <!-- KPI 計画 vs 実績 -->
         <div class="card plan-actual-card">
-  <h3 class="card-title">計画 vs 実績</h3>
-  <p class="plan-actual-text">
-    本日の計画数量: <span id="plan-total">0</span> 個 / 実績: <span id="actual-total">0</span> 個
-    （達成率: <span id="plan-rate">0</span>%）
-  </p>
-  <div class="progress-bar">
-    <div id="plan-progress" class="progress-fill" style="width: 0%;"></div>
-  </div>
+          <h3 class="card-title">計画 vs 実績</h3>
+          <p class="plan-actual-text">
+            本日の計画数量: <span id="plan-total">0</span> 個 / 実績: <span id="actual-total">0</span> 個
+            （達成率: <span id="plan-rate">0</span>%）
+          </p>
+          <div class="progress-bar">
+            <div id="plan-progress" class="progress-fill" style="width: 0%;"></div>
+          </div>
 
-  <!-- ★ 追加: 計画達成ステータスバッジ -->
-  <div id="plan-status-badge" class="plan-status-badge">
-    計画データなし
-  </div>
-</div>
-
+          <div id="plan-status-badge" class="plan-status-badge">
+            計画データなし
+          </div>
+        </div>
 
         <!-- 最新実績一覧 -->
-         <!-- 最新実績一覧 -->
         <div class="card">
           <div class="card-header-row">
-            <!-- KIRI: judul + info update -->
             <div class="card-header-left">
               <h2 class="card-title">最新の実績一覧</h2>
               <div class="dashboard-update-info">
@@ -252,13 +251,12 @@
                 <span id="dashboard-next-refresh">次の自動更新まで: 60 秒</span>
               </div>
             </div>
-
-            <!-- KANAN: tombol seperti semula -->
             <div class="button-row">
               <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
               <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
             </div>
           </div>
+
           <div class="filter-grid">
             <div class="form-group">
               <label for="filter-process">工程フィルター</label>
@@ -285,54 +283,50 @@
               <label for="filter-terminal">工程名フィルター</label>
               <input id="filter-terminal" type="text" placeholder="工程IDまたは名称で検索">
             </div>
-           <div class="form-group">
-  <label for="filter-product">製品番号フィルター</label>
-  <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
-</div>
-
-<!-- NEW: 作業区分フィルター（社内 / 外注） -->
-<div class="form-group">
-  <label for="filter-work-type">作業区分</label>
-  <select id="filter-work-type">
-    <option value="">社内＋外注すべて</option>
-    <option value="社内">社内のみ</option>
-    <option value="外注">外注のみ</option>
-  </select>
-</div>
-
-<div class="form-group">
-  <label>期間フィルター</label>
-  <div class="date-range">
-    <input id="filter-date-from" type="date">
-    <span>〜</span>
-    <input id="filter-date-to" type="date">
-  </div>
-</div>
-
+            <div class="form-group">
+              <label for="filter-product">製品番号フィルター</label>
+              <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
+            </div>
+            <div class="form-group">
+              <label for="filter-work-type">作業区分</label>
+              <select id="filter-work-type">
+                <option value="">社内＋外注すべて</option>
+                <option value="社内">社内のみ</option>
+                <option value="外注">外注のみ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>期間フィルター</label>
+              <div class="date-range">
+                <input id="filter-date-from" type="date">
+                <span>〜</span>
+                <input id="filter-date-to" type="date">
+              </div>
+            </div>
+          </div>
 
           <div class="table-wrapper">
-           <table class="logs-table">
-  <thead>
-    <tr>
-      <th>工程開始</th>
-      <th>図番</th>
-      <th>品名</th>
-      <th>工程</th>
-      <th>ユーザー</th>
-      <th>数量(OK/不良)</th>
-      <th>ステータス</th>
-      <th>所要時間(分)</th>
-      <th>ロケーション</th>
-      <th>操作</th>
-    </tr>
-  </thead>
-  <tbody id="logs-tbody"></tbody>
-</table>
-
+            <table class="logs-table">
+              <thead>
+              <tr>
+                <th>工程開始</th>
+                <th>図番</th>
+                <th>品名</th>
+                <th>工程</th>
+                <th>ユーザー</th>
+                <th>数量(OK/不良)</th>
+                <th>ステータス</th>
+                <th>所要時間(分)</th>
+                <th>ロケーション</th>
+                <th>操作</th>
+              </tr>
+              </thead>
+              <tbody id="logs-tbody"></tbody>
+            </table>
           </div>
         </div>
 
-               <!-- 工程別 生産量 -->
+        <!-- 工程別 生産量 -->
         <div class="card small-gap">
           <h2 class="card-title">工程別 生産量（直近7日）</h2>
           <div class="chart-wrapper">
@@ -346,10 +340,10 @@
           <div class="table-wrapper compact">
             <table class="logs-table compact">
               <thead>
-                <tr>
-                  <th>製品番号</th>
-                  <th class="align-right">合計工数 [h]</th>
-                </tr>
+              <tr>
+                <th>製品番号</th>
+                <th class="align-right">合計工数 [h]</th>
+              </tr>
               </thead>
               <tbody id="manhour-product-tbody"></tbody>
             </table>
@@ -362,17 +356,16 @@
           <div class="table-wrapper compact">
             <table class="logs-table compact">
               <thead>
-                <tr>
-                  <th>工程名</th>
-                  <th class="align-right">合計工数 [h]</th>
-                </tr>
+              <tr>
+                <th>工程名</th>
+                <th class="align-right">合計工数 [h]</th>
+              </tr>
               </thead>
               <tbody id="manhour-process-tbody"></tbody>
             </table>
           </div>
         </div>
       </section>
-
 
       <!-- Scan -->
       <section id="scan-section" class="section">
@@ -401,12 +394,12 @@
           <div id="qr-reader-terminal" class="qr-reader"></div>
         </div>
 
-        <!-- 生産データ入力（計画連携版） - UPDATED WITH REQUIRED FIELDS -->
+        <!-- 生産データ入力 -->
         <div class="card">
           <h2 class="card-title">生産データ入力</h2>
           <p>生産計画一覧から対象行の「スキャン/更新」を選択し、工程をスキャンしてから実績を入力してください。</p>
 
-          <!-- Plan情報（自動） -->
+          <!-- Plan情報 -->
           <div class="form-grid">
             <div class="form-group">
               <label>製品番号</label>
@@ -426,42 +419,41 @@
             </div>
           </div>
 
-          <!-- Input utama operator - WITH REQUIRED FIELD HIGHLIGHTING -->
-<div class="form-grid">
-  <div class="form-group">
-    <label for="log-status">ステータス</label>
-    <select id="log-status" class="required-field">
-  <option value="工程開始">工程開始</option>
-  <option value="工程終了" selected>工程終了</option>
-  <option value="一時停止">一時停止（保留）</option>
-  <option value="検査保留">検査保留</option>
-</select>
+          <!-- Input utama -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="log-status">ステータス</label>
+              <select id="log-status" class="required-field">
+                <option value="工程開始">工程開始</option>
+                <option value="工程終了" selected>工程終了</option>
+                <option value="一時停止">一時停止（保留）</option>
+                <option value="検査保留">検査保留</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="log-qty-ok">OK数量</label>
+              <input id="log-qty-ok" type="number" min="0" value="0" class="required-field">
+            </div>
+            <div class="form-group">
+              <label for="log-qty-ng">不良数量</label>
+              <input id="log-qty-ng" type="number" min="0" value="0" class="required-field">
+            </div>
+            <div class="form-group">
+              <label for="log-qty-total">総数量</label>
+              <input id="log-qty-total" type="number" min="0" value="0" readonly class="required-field">
+            </div>
+          </div>
 
-  </div>
-  <div class="form-group">
-    <label for="log-qty-ok">OK数量</label>
-    <input id="log-qty-ok" type="number" min="0" value="0" class="required-field">
-  </div>
-  <div class="form-group">
-    <label for="log-qty-ng">不良数量</label>
-    <input id="log-qty-ng" type="number" min="0" value="0" class="required-field">
-  </div>
-  <div class="form-group">
-    <label for="log-qty-total">総数量</label>
-    <input id="log-qty-total" type="number" min="0" value="0" readonly class="required-field">
-  </div>
-</div>
-
-<!-- Multi-operator support: 作業人数 -->
-<div class="form-grid two-col">
-  <div class="form-group">
-    <label for="log-crew-size">作業人数</label>
-    <input id="log-crew-size" type="number" min="1" value="1">
-    <small class="field-hint">
-      複数人で同じ工程を行った場合のみ人数を変更してください。（例：2人作業なら「2」）
-    </small>
-  </div>
-</div>
+          <!-- Multi-operator -->
+          <div class="form-grid two-col">
+            <div class="form-group">
+              <label for="log-crew-size">作業人数</label>
+              <input id="log-crew-size" type="number" min="1" value="1">
+              <small class="field-hint">
+                複数人で同じ工程を行った場合のみ人数を変更してください。（例：2人作業なら「2」）
+              </small>
+            </div>
+          </div>
 
           <div class="form-group">
             <label for="log-note">備考（任意）</label>
@@ -486,14 +478,13 @@
           <p>新しい生産計画を登録してください。（製品 × 工程 × 数量 単位）</p>
           <div class="form-grid">
             <div class="form-group">
-  <label for="plan-product-code">図番</label>
-  <input id="plan-product-code" type="text" placeholder="例: Z-001">
-</div>
-<div class="form-group">
-  <label for="plan-product-name">品名</label>
-  <input id="plan-product-name" type="text" placeholder="例: 品名A">
-</div>
-
+              <label for="plan-product-code">図番</label>
+              <input id="plan-product-code" type="text" placeholder="例: Z-001">
+            </div>
+            <div class="form-group">
+              <label for="plan-product-name">品名</label>
+              <input id="plan-product-name" type="text" placeholder="例: 品名A">
+            </div>
             <div class="form-group">
               <label for="plan-process">工程名</label>
               <select id="plan-process">
@@ -501,9 +492,9 @@
                 <option value="準備工程">準備工程</option>
                 <option value="レザー加工">レザー加工</option>
                 <option value="外注工程">外注工程</option>
-               <option value="曲げ加工">曲げ加工</option>
-               <option value="外枠組立工程">外枠組立工程</option>
-              <option value="パンタ組立工程">パンタ組立工程</option>
+                <option value="曲げ加工">曲げ加工</option>
+                <option value="外枠組立工程">外枠組立工程</option>
+                <option value="パンタ組立工程">パンタ組立工程</option>
                 <option value="シャッター組立">工程シャッター組立工程</option>
                 <option value="スポット工程">スポット工程</option>
                 <option value="コーキング工程">コーキング工程</option>
@@ -545,12 +536,12 @@
         <div class="card">
           <h2 class="card-title">生産計画インポート（CSV）</h2>
           <p>
-  Excelから「CSV UTF-8」で保存し、1行目をヘッダーとして貼り付けてください。<br>
-  列順: 図番, 品名, 工程名, 計画数量, 計画開始, 計画終了, ステータス
-</p>
+            Excelから「CSV UTF-8」で保存し、1行目をヘッダーとして貼り付けてください。<br>
+            列順: 図番, 品名, 工程名, 計画数量, 計画開始, 計画終了, ステータス
+          </p>
           <div class="form-group">
-           <textarea id="plan-import-text" rows="6"
-          placeholder="図番,品名,工程名,計画数量,計画開始,計画終了,ステータス"></textarea>
+            <textarea id="plan-import-text" rows="6"
+                      placeholder="図番,品名,工程名,計画数量,計画開始,計画終了,ステータス"></textarea>
           </div>
           <button id="btn-import-plans" class="secondary-button">インポート実行</button>
         </div>
@@ -569,8 +560,8 @@
             <table>
               <thead>
               <tr>
-  <th>図番</th>
-  <th>品名</th>
+                <th>図番</th>
+                <th>品名</th>
                 <th>工程名</th>
                 <th>計画数量</th>
                 <th>計画開始</th>
@@ -681,11 +672,11 @@
           </div>
         </div>
 
-        <!-- ★★★ NEW: User Management Card ★★★ -->
+        <!-- User Management Card -->
         <div id="admin-user-management-card" class="card hidden">
           <h3 class="card-title">👥 ユーザー管理</h3>
-          
-          <!-- Tambah User Form -->
+
+          <!-- New User -->
           <div class="admin-section">
             <h4>✨ 新規ユーザー登録</h4>
             <div class="form-grid">
@@ -709,8 +700,8 @@
             <button id="btn-create-new-user" class="primary-button">
               <span>➕ ユーザー登録してQR生成</span>
             </button>
-            
-            <!-- QR Code Display Area -->
+
+            <!-- QR Display -->
             <div id="new-user-qr-area" class="qr-display-area hidden">
               <h5>✅ ユーザー登録完了！</h5>
               <p>下記のQRコードを印刷して現場で使用してください。</p>
@@ -727,25 +718,23 @@
               </div>
             </div>
           </div>
-          
-          <!-- ユーザー一覧 Table -->
+
+          <!-- User list -->
           <div class="admin-section">
             <h4>📋 ユーザー一覧</h4>
             <div class="table-wrapper">
               <table>
                 <thead>
-                  <tr>
-                    <th>QR</th>
-                    <th>ユーザーID</th>
-                    <th>氏名</th>
-                    <th>権限</th>
-                    <th>作成日時</th>
-                    <th>操作</th>
-                  </tr>
+                <tr>
+                  <th>QR</th>
+                  <th>ユーザーID</th>
+                  <th>氏名</th>
+                  <th>権限</th>
+                  <th>作成日時</th>
+                  <th>操作</th>
+                </tr>
                 </thead>
-                <tbody id="user-list-tbody">
-                  <!-- Dynamically populated by JavaScript -->
-                </tbody>
+                <tbody id="user-list-tbody"></tbody>
               </table>
             </div>
           </div>
@@ -787,7 +776,7 @@
         </div>
       </section>
 
-        </main>
+    </main>
 
     <!-- Floating Scan button (mobile) -->
     <button id="fab-scan" class="fab-scan" aria-label="スキャン画面へ">
@@ -795,7 +784,7 @@
       <span class="fab-label">SCAN</span>
     </button>
 
-    <!-- Mobile bottom navigation (smartphone only) -->
+    <!-- Mobile bottom navigation -->
     <nav class="mobile-bottom-nav">
       <button class="mobile-nav-link active" data-section="dashboard-section">
         <span class="mobile-nav-icon">🏠</span>
@@ -814,7 +803,6 @@
     <footer class="app-footer">
       Design by Wahyu
     </footer>
-
 
   </div>
 </div>
@@ -860,10 +848,10 @@
     <ol class="help-list">
       <li>① 右上メニューでユーザーQRまたはユーザーIDでログインします。</li>
       <li>② 「生産一覧」で対象の生産計画を選び、「スキャン/更新」をクリックします。<br>
-          ┗ 製品番号・製品名・計画数量が「生産データ入力」に自動設定されます。
+        ┗ 製品番号・製品名・計画数量が「生産データ入力」に自動設定されます。
       </li>
       <li>③ 「スキャン」画面で工程QRをスキャンします。<br>
-          ┗ 工程名・端末・ロケーションが自動でセットされます。
+        ┗ 工程名・端末・ロケーションが自動でセットされます。
       </li>
       <li>④ ステータス・数量・作業人数を確認して「保存」ボタンで実績を登録します。</li>
       <li>⑤ 「ダッシュボード」で最新の実績と生産計画の進捗をリアルタイムに確認できます。</li>
@@ -882,15 +870,15 @@
     <ol class="help-list">
       <li>1) 工程Aを開始：ステータス「工程開始」で保存。</li>
       <li>2) 一時停止したいタイミングで、同じ生産計画＋工程Aを選び、<br>
-             ステータスを「一時停止」または「検査保留」にして保存。<br>
-             ┗ 開始〜一時停止までの時間が1つの区間としてログに記録されます。
+        ステータスを「一時停止」または「検査保留」にして保存。<br>
+        ┗ 開始〜一時停止までの時間が1つの区間としてログに記録されます。
       </li>
       <li>3) 別の作業Bを行うときは、生産計画B＋工程Bを選び、<br>
-             「工程開始」→ 作業完了時に「工程終了」で登録します。
+        「工程開始」→ 作業完了時に「工程終了」で登録します。
       </li>
       <li>4) 工程Aに戻るときは、再度 生産計画A＋工程Aを選び、<br>
-             「工程開始」→ 最後に「工程終了」で登録します。<br>
-             ┗ 区間ごとにログは分かれますが、システム側で自動的に合計作業時間として集計されます。
+        「工程開始」→ 最後に「工程終了」で登録します。<br>
+        ┗ 区間ごとにログは分かれますが、システム側で自動的に合計作業時間として集計されます。
       </li>
     </ol>
 
@@ -898,8 +886,8 @@
     <ul class="help-list">
       <li>通常は「作業人数 = 1」のままで構いません。</li>
       <li>同じ工程を2人以上で同時に行った場合、<strong>終了登録のとき</strong>に実際の人数を入力してください。<br>
-          例：2人作業 → 作業人数「2」<br>
-          ┗ 合計工数（man-hour）は「作業時間 × 作業人数」で自動計算されます。
+        例：2人作業 → 作業人数「2」<br>
+        ┗ 合計工数（man-hour）は「作業時間 × 作業人数」で自動計算されます。
       </li>
     </ul>
 
