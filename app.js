@@ -1222,10 +1222,13 @@ function renderDashboardTable() {
   tbody.innerHTML = '';
 
   const processFilter = document.getElementById('filter-process').value;
-  const terminalFilter = document.getElementById('filter-terminal').value.trim().toLowerCase();
-  const productFilter = document.getElementById('filter-product').value.trim().toLowerCase();
-  const dateFrom = document.getElementById('filter-date-from').value;
-  const dateTo = document.getElementById('filter-date-to').value;
+const terminalFilter = document.getElementById('filter-terminal').value.trim().toLowerCase();
+const productFilter = document.getElementById('filter-product').value.trim().toLowerCase();
+const workTypeFilterEl = document.getElementById('filter-work-type');
+const workTypeFilter = workTypeFilterEl ? workTypeFilterEl.value : '';
+const dateFrom = document.getElementById('filter-date-from').value;
+const dateTo = document.getElementById('filter-date-to').value;
+
 
   // 1) ベース: 実績ログ
   const rows = (dashboardLogs || []).map(l => Object.assign({ is_plan_only: false }, l));
@@ -1286,17 +1289,31 @@ function renderDashboardTable() {
   }
 
   // 3) フィルター
-  const filtered = rows.filter(log => {
-    if (processFilter && log.process_name !== processFilter && log.status !== processFilter) return false;
+   const filtered = rows.filter(log => {
+    if (processFilter && log.process_name !== processFilter) return false;
 
     if (terminalFilter) {
-      const t = ((log.terminal_id || '') + ' ' + (log.terminal_name || '')).toLowerCase();
+      const t = ((log.terminal_name || '') + ' ' + (log.terminal_id || '')).toLowerCase();
       if (!t.includes(terminalFilter)) return false;
     }
 
     if (productFilter) {
       const pc = String(log.product_code || '').toLowerCase();
       if (!pc.includes(productFilter)) return false;
+    }
+
+    // NEW: 作業区分フィルター（社内 / 外注）
+    if (workTypeFilter && !log.is_plan_only) {
+      let wt = log.work_type || '';
+      if (!wt) {
+        const loc = String(log.location || '');
+        if (/外注|subcon|vendor/i.test(loc.toLowerCase())) {
+          wt = '外注';
+        } else if (loc) {
+          wt = '社内';
+        }
+      }
+      if (wt && wt !== workTypeFilter) return false;
     }
 
     if (dateFrom) {
@@ -1313,6 +1330,7 @@ function renderDashboardTable() {
     }
     return true;
   });
+
 
   // 4) 日付の新しい順
   filtered.sort((a, b) => {
@@ -1782,11 +1800,14 @@ function renderTerminalQrListIfAdmin() {
 
 async function loadAnalytics() {
   try {
-    const data = await callApi('getAnalytics', {});
-    const today = data.today || { total: 0, ng: 0 };
-    const byProcess = data.byProcess || [];
-    const counts = data.counts || { terminals: 0, plans: 0 };
-    const planVsActual = data.planVsActual || { plan_total: 0, actual_total: 0 };
+   const data = await callApi('getAnalytics', {});
+const today = data.today || { total: 0, ng: 0 };
+const byProcess = data.byProcess || [];
+const counts = data.counts || { terminals: 0, plans: 0 };
+const planVsActual = data.planVsActual || { plan_total: 0, actual_total: 0 };
+const manhourByProduct = data.manhourByProduct || [];
+const manhourByProcess = data.manhourByProcess || [];
+
 
     // Summary angka di dashboard
     document.getElementById('today-total').textContent = today.total;
@@ -1859,9 +1880,44 @@ async function loadAnalytics() {
         safetyMsgEl.textContent = '作業前点検と指差し呼称を徹底し、安全第一でスタートしましょう。';
       }
     }
+    // Man-hour tables (全期間, 上位20件まで表示)
+    const mhProdTbody = document.getElementById('manhour-product-tbody');
+    if (mhProdTbody) {
+      mhProdTbody.innerHTML = '';
+      manhourByProduct
+        .slice()
+        .sort((a, b) => (b.manhour_hours || 0) - (a.manhour_hours || 0))
+        .slice(0, 20)
+        .forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(row.product_code || '')}</td>
+            <td class="align-right">${(row.manhour_hours || 0).toFixed(2)}</td>
+          `;
+          mhProdTbody.appendChild(tr);
+        });
+    }
+
+    const mhProcTbody = document.getElementById('manhour-process-tbody');
+    if (mhProcTbody) {
+      mhProcTbody.innerHTML = '';
+      manhourByProcess
+        .slice()
+        .sort((a, b) => (b.manhour_hours || 0) - (a.manhour_hours || 0))
+        .slice(0, 20)
+        .forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(row.process_name || '')}</td>
+            <td class="align-right">${(row.manhour_hours || 0).toFixed(2)}</td>
+          `;
+          mhProcTbody.appendChild(tr);
+        });
+    }
 
     // Chart by process
     const labels = byProcess.map(x => x.process_name || '不明');
+
     const totals = byProcess.map(x => x.total || 0);
 
     const ctx = document.getElementById('process-chart');
