@@ -1350,20 +1350,23 @@ const dateTo = document.getElementById('filter-date-to').value;
       : '';
 
     // ステータスバッジ
-    const statusCell = document.createElement('td');
-    const badge = document.createElement('span');
-    badge.classList.add('badge');
-    if (isPlan) {
-      badge.classList.add('badge-plan');
-    } else if (log.status === '検査保留') {
-      badge.classList.add('badge-hold');
-    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
-      badge.classList.add('badge-normal');
-    } else {
-      badge.classList.add('badge-error');
-    }
-    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
-    statusCell.appendChild(badge);
+ statusCell = document.createElement('td');
+const badge = document.createElement('span');
+badge.classList.add('badge');
+
+if (isPlan) {
+  badge.classList.add('badge-plan');
+} else if (log.status === '検査保留' || log.status === '一時停止') {
+  // ← 一時停止 も HOLD 表示
+  badge.classList.add('badge-hold');
+} else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
+  badge.classList.add('badge-normal');
+} else {
+  badge.classList.add('badge-error');
+}
+badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
+statusCell.appendChild(badge);
+
 
    const startText = formatDateTime(
   log.timestamp_start || log.timestamp_end || log.planned_start || ''
