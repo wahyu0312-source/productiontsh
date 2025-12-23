@@ -285,19 +285,30 @@
               <label for="filter-terminal">工程名フィルター</label>
               <input id="filter-terminal" type="text" placeholder="工程IDまたは名称で検索">
             </div>
-            <div class="form-group">
-              <label for="filter-product">製品番号フィルター</label>
-              <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
-            </div>
-            <div class="form-group">
-              <label>期間フィルター</label>
-              <div class="date-range">
-                <input id="filter-date-from" type="date">
-                <span>〜</span>
-                <input id="filter-date-to" type="date">
-              </div>
-            </div>
-          </div>
+           <div class="form-group">
+  <label for="filter-product">製品番号フィルター</label>
+  <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
+</div>
+
+<!-- NEW: 作業区分フィルター（社内 / 外注） -->
+<div class="form-group">
+  <label for="filter-work-type">作業区分</label>
+  <select id="filter-work-type">
+    <option value="">社内＋外注すべて</option>
+    <option value="社内">社内のみ</option>
+    <option value="外注">外注のみ</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label>期間フィルター</label>
+  <div class="date-range">
+    <input id="filter-date-from" type="date">
+    <span>〜</span>
+    <input id="filter-date-to" type="date">
+  </div>
+</div>
+
 
           <div class="table-wrapper">
            <table class="logs-table">
@@ -321,14 +332,47 @@
           </div>
         </div>
 
-        <!-- 工程別 生産量 -->
+               <!-- 工程別 生産量 -->
         <div class="card small-gap">
           <h2 class="card-title">工程別 生産量（直近7日）</h2>
           <div class="chart-wrapper">
             <canvas id="process-chart"></canvas>
           </div>
         </div>
+
+        <!-- 製品別 合計工数 -->
+        <div class="card small-gap">
+          <h2 class="card-title">製品別 合計工数（全期間）</h2>
+          <div class="table-wrapper compact">
+            <table class="logs-table compact">
+              <thead>
+                <tr>
+                  <th>製品番号</th>
+                  <th class="align-right">合計工数 [h]</th>
+                </tr>
+              </thead>
+              <tbody id="manhour-product-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 工程別 合計工数 -->
+        <div class="card small-gap">
+          <h2 class="card-title">工程別 合計工数（全期間）</h2>
+          <div class="table-wrapper compact">
+            <table class="logs-table compact">
+              <thead>
+                <tr>
+                  <th>工程名</th>
+                  <th class="align-right">合計工数 [h]</th>
+                </tr>
+              </thead>
+              <tbody id="manhour-process-tbody"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
+
 
       <!-- Scan -->
       <section id="scan-section" class="section">
