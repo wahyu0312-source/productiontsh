@@ -613,7 +613,7 @@ function setupButtons() {
   const btnRefreshPlans = document.getElementById('btn-refresh-plans');
   if (btnRefreshPlans) btnRefreshPlans.addEventListener('click', loadPlans);
 
-    const btnImportPlans = document.getElementById('btn-import-plans');
+  const btnImportPlans = document.getElementById('btn-import-plans');
   if (btnImportPlans) btnImportPlans.addEventListener('click', handleImportPlans);
 
   // モバイル用フローティングSCANボタン
@@ -621,10 +621,9 @@ function setupButtons() {
   if (fabScan) {
     fabScan.addEventListener('click', () => {
       const target = 'scan-section';
-             const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
-        const sections = document.querySelectorAll('.section');
+      const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
+      const sections = document.querySelectorAll('.section');
 
-      // Pindah ke section SCAN
       sections.forEach(sec => {
         sec.classList.toggle('active', sec.id === target);
       });
@@ -633,7 +632,6 @@ function setupButtons() {
         l.classList.toggle('active', isActive);
       });
 
-      // Di layar kecil, tutup sidebar kalau sedang terbuka
       if (window.innerWidth <= 800) {
         const sidebar = document.querySelector('.sidebar');
         if (sidebar) sidebar.classList.add('sidebar-hidden');
@@ -796,11 +794,9 @@ function renderLastUserQuickLogin() {
     return;
   }
 
-  // Tampilkan label "ID / Nama (Role)"
   labelEl.textContent = `${data.user_id} / ${data.name_ja || ''} (${getRoleLabel(data.role)})`;
   container.classList.remove('hidden');
 
-  // Klik tombol quick login
   btn.onclick = async () => {
     const ok = confirm(`「${data.name_ja || data.user_id}」としてログインしますか？`);
     if (!ok) return;
@@ -830,7 +826,6 @@ async function loginWithUserId(userId) {
     document.getElementById('top-userrole').textContent = getRoleLabel(user.role);
     document.getElementById('welcome-name').textContent = user.name_ja;
 
-    // ★ simpan dan refresh Quick Login
     saveLastUser(user);
     renderLastUserQuickLogin();
 
@@ -839,10 +834,8 @@ async function loginWithUserId(userId) {
     renderTerminalQrListIfAdmin();
     renderPlanTable();
 
-    // ★ Operator-first flow di smartphone:
-    // jika role = operator dan layar kecil → pindah otomatis ke 生産一覧 (plans-section)
     if (user.role === 'operator' && window.innerWidth <= 768) {
-      const target = 'plans-section'; // id section 生産一覧
+      const target = 'plans-section'; // id mungkin tidak ada → fallback di bawah
       const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
       const sections = document.querySelectorAll('.section');
 
@@ -853,7 +846,6 @@ async function loginWithUserId(userId) {
         sec.classList.toggle('active', active);
       });
 
-      // Kalau tidak ada plans-section (untuk jaga-jaga), fallback ke dashboard
       if (!hasTarget) {
         const fallback = 'dashboard-section';
         sections.forEach(sec => {
@@ -867,13 +859,11 @@ async function loginWithUserId(userId) {
         l.classList.toggle('active', isActive || (!hasTarget && isFallback));
       });
 
-      // Tutup sidebar di layar kecil
       if (window.innerWidth <= 800) {
         const sidebar = document.querySelector('.sidebar');
         if (sidebar) sidebar.classList.add('sidebar-hidden');
       }
 
-      // Scroll ke atas supaya operator langsung lihat 生産一覧
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1016,7 +1006,6 @@ async function handleSaveLog() {
   const qtyTotal = qtyOk + qtyNg;
   if (totalInput) totalInput.value = qtyTotal;
 
-  // === Multi-operator support: 作業人数（デフォルト1名） ===
   const crewInput = document.getElementById('log-crew-size');
   let crewSize = 1;
   if (crewInput) {
@@ -1028,7 +1017,6 @@ async function handleSaveLog() {
   [okInput, ngInput, totalInput].forEach(el => el && el.classList.remove('required-missing'));
 
   const missing = [];
-  // 終了登録の場合のみ数量必須
   if (status === '工程終了' && qtyTotal <= 0) {
     missing.push(totalInput);
   }
@@ -1047,7 +1035,6 @@ async function handleSaveLog() {
   const sessionKey = buildSessionKey(currentUser.user_id, currentTerminal.terminal_id, productCode);
   let sessions = loadActiveSessions();
 
-  // 工程開始だけ登録して、終了時に同じキーで所要時間を計算
   if (status === '工程開始') {
     sessions[sessionKey] = now.toISOString();
     saveActiveSessions(sessions);
@@ -1064,7 +1051,6 @@ async function handleSaveLog() {
   const end = now;
   const durationSec = Math.round((end - start) / 1000);
 
-  // === 区分：社内 / 外注 を自動判定（location を利用） ===
   const location = currentTerminal.location || '';
   const isExternal = /外注|subcon|vendor/i.test(String(location).toLowerCase());
   const workType = isExternal ? '外注' : '社内';
@@ -1084,20 +1070,19 @@ async function handleSaveLog() {
     qty_total: qtyTotal,
     qty_ok: qtyOk,
     qty_ng: qtyNg,
-    crew_size: crewSize,           // ← 追加（作業人数）
+    crew_size: crewSize,
     note: noteInput ? noteInput.value.trim() : '',
     timestamp_start: formatDateTime(start),
     timestamp_end: formatDateTime(end),
     duration_sec: durationSec,
-    location,                      // ← 変数をそのまま保存
-    work_type: workType            // ← 追加（社内 / 外注）
+    location,
+    work_type: workType
   };
 
   try {
     setGlobalLoading(true, '実績を保存中...');
     await callApi('logEvent', { log });
 
-    // セッション削除（次の作業に備える）
     delete sessions[sessionKey];
     saveActiveSessions(sessions);
 
@@ -1209,7 +1194,7 @@ async function loadDashboard() {
     dashboardLogs = data || [];
     renderDashboardTable();
     updateAlertBanner();
-    renderPlanTable(); // 計画一覧の実績/計画も更新
+    renderPlanTable();
   } catch (err) {
     console.error(err);
     alert('ダッシュボード取得に失敗しました: ' + err.message);
@@ -1222,18 +1207,15 @@ function renderDashboardTable() {
   tbody.innerHTML = '';
 
   const processFilter = document.getElementById('filter-process').value;
-const terminalFilter = document.getElementById('filter-terminal').value.trim().toLowerCase();
-const productFilter = document.getElementById('filter-product').value.trim().toLowerCase();
-const workTypeFilterEl = document.getElementById('filter-work-type');
-const workTypeFilter = workTypeFilterEl ? workTypeFilterEl.value : '';
-const dateFrom = document.getElementById('filter-date-from').value;
-const dateTo = document.getElementById('filter-date-to').value;
+  const terminalFilter = document.getElementById('filter-terminal').value.trim().toLowerCase();
+  const productFilter = document.getElementById('filter-product').value.trim().toLowerCase();
+  const workTypeFilterEl = document.getElementById('filter-work-type');
+  const workTypeFilter = workTypeFilterEl ? workTypeFilterEl.value : '';
+  const dateFrom = document.getElementById('filter-date-from').value;
+  const dateTo = document.getElementById('filter-date-to').value;
 
-
-  // 1) ベース: 実績ログ
   const rows = (dashboardLogs || []).map(l => Object.assign({ is_plan_only: false }, l));
 
-  // 2) 実績がまだ1件もない「未完了の計画」を 予定 として追加
   if (Array.isArray(plans) && plans.length > 0) {
     plans.forEach(plan => {
       const related = (dashboardLogs || []).filter(l =>
@@ -1280,7 +1262,6 @@ const dateTo = document.getElementById('filter-date-to').value;
     });
   }
 
-  // helper: ベース日時
   function getBaseDate(log) {
     const s = log.timestamp_start || log.timestamp_end || log.planned_start || log.created_at || '';
     if (!s) return null;
@@ -1288,8 +1269,7 @@ const dateTo = document.getElementById('filter-date-to').value;
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // 3) フィルター
-   const filtered = rows.filter(log => {
+  const filtered = rows.filter(log => {
     if (processFilter && log.process_name !== processFilter) return false;
 
     if (terminalFilter) {
@@ -1302,7 +1282,6 @@ const dateTo = document.getElementById('filter-date-to').value;
       if (!pc.includes(productFilter)) return false;
     }
 
-    // NEW: 作業区分フィルター（社内 / 外注）
     if (workTypeFilter && !log.is_plan_only) {
       let wt = log.work_type || '';
       if (!wt) {
@@ -1331,8 +1310,6 @@ const dateTo = document.getElementById('filter-date-to').value;
     return true;
   });
 
-
-  // 4) 日付の新しい順
   filtered.sort((a, b) => {
     const da = getBaseDate(a);
     const db = getBaseDate(b);
@@ -1341,7 +1318,6 @@ const dateTo = document.getElementById('filter-date-to').value;
     return tb - ta;
   });
 
-  // 5) レンダリング
   filtered.forEach(log => {
     const tr = document.createElement('tr');
     const isPlan = !!log.is_plan_only;
@@ -1349,41 +1325,35 @@ const dateTo = document.getElementById('filter-date-to').value;
       ? (log.duration_sec / 60).toFixed(1)
       : '';
 
-    // ステータスバッジ
- statusCell = document.createElement('td');
-const badge = document.createElement('span');
-badge.classList.add('badge');
+    const statusCell = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.classList.add('badge');
 
-if (isPlan) {
-  badge.classList.add('badge-plan');
-} else if (log.status === '検査保留' || log.status === '一時停止') {
-  // ← 一時停止 も HOLD 表示
-  badge.classList.add('badge-hold');
-} else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
-  badge.classList.add('badge-normal');
-} else {
-  badge.classList.add('badge-error');
-}
-badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
-statusCell.appendChild(badge);
+    if (isPlan) {
+      badge.classList.add('badge-plan');
+    } else if (log.status === '検査保留' || log.status === '一時停止') {
+      badge.classList.add('badge-hold');
+    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
+      badge.classList.add('badge-normal');
+    } else {
+      badge.classList.add('badge-error');
+    }
+    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
+    statusCell.appendChild(badge);
 
+    const startText = formatDateTime(
+      log.timestamp_start || log.timestamp_end || log.planned_start || ''
+    );
 
-   const startText = formatDateTime(
-  log.timestamp_start || log.timestamp_end || log.planned_start || ''
-);
+    const crewSize = Number(log.crew_size || 1);
+    const userText = isPlan
+      ? '-'
+      : `${log.user_name || ''}${crewSize > 1 ? `（${crewSize}名）` : ''}`;
 
-// 作業人数をユーザー名の後ろに付与（2名以上のときだけ）
-const crewSize = Number(log.crew_size || 1);
-const userText = isPlan
-  ? '-'
-  : `${log.user_name || ''}${crewSize > 1 ? `（${crewSize}名）` : ''}`;
+    const qtyText = isPlan
+      ? `- / ${log.plan_qty || 0}`
+      : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
-const qtyText = isPlan
-  ? `- / ${log.plan_qty || 0}`
-  : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
-
-
-    // ヘッダー順: 工程開始 / 図番 / 品名 / 工程 / ユーザー / 数量
     tr.innerHTML = `
       <td>${startText}</td>
       <td>${log.product_code || ''}</td>
@@ -1398,69 +1368,68 @@ const qtyText = isPlan
     tdDuration.textContent = durationMin || '';
     tr.appendChild(tdDuration);
 
-const tdLoc = document.createElement('td');
-const locWrapper = document.createElement('div');
-locWrapper.className = 'location-cell';
+    const tdLoc = document.createElement('td');
+    const locWrapper = document.createElement('div');
+    locWrapper.className = 'location-cell';
 
-const locationText = log.location || '';
-const isExternal = /外注|subcon|vendor/i.test(String(locationText).toLowerCase()) ||
-  (log.work_type && /外注|external/i.test(String(log.work_type)));
+    const locationText = log.location || '';
+    const isExternal = /外注|subcon|vendor/i.test(String(locationText).toLowerCase()) ||
+      (log.work_type && /外注|external/i.test(String(log.work_type)));
 
-const locBadge = document.createElement('span');
-locBadge.className = 'badge ' + (isExternal ? 'badge-external' : 'badge-internal');
-locBadge.textContent = isExternal ? '外注' : '社内';
-locWrapper.appendChild(locBadge);
+    const locBadge = document.createElement('span');
+    locBadge.className = 'badge ' + (isExternal ? 'badge-external' : 'badge-internal');
+    locBadge.textContent = isExternal ? '外注' : '社内';
+    locWrapper.appendChild(locBadge);
 
-if (locationText) {
-  const locTextSpan = document.createElement('span');
-  locTextSpan.className = 'location-text';
-  locTextSpan.textContent = locationText;
-  locWrapper.appendChild(locTextSpan);
-}
+    if (locationText) {
+      const locTextSpan = document.createElement('span');
+      locTextSpan.className = 'location-text';
+      locTextSpan.textContent = locationText;
+      locWrapper.appendChild(locTextSpan);
+    }
 
-tdLoc.appendChild(locWrapper);
-tr.appendChild(tdLoc);
+    tdLoc.appendChild(locWrapper);
+    tr.appendChild(tdLoc);
 
- // ★ Jika log ini punya NG atau 検査保留 → highlight baris
     if (!isPlan && ((log.qty_ng || 0) > 0 || log.status === '検査保留')) {
       tr.classList.add('row-alert');
     }
-   const tdActions = document.createElement('td');
 
-if (isPlan) {
-  tdActions.classList.add('plans-actions');
+    const tdActions = document.createElement('td');
 
-  const planLike = {
-    plan_id: log.plan_id,
-    product_code: log.product_code,
-    product_name: log.product_name,
-    process_name: log.process_name,
-    planned_qty: log.plan_qty,
-    planned_start: log.planned_start,
-    planned_end: log.planned_end,
-    status: log.status
-  };
+    if (isPlan) {
+      tdActions.classList.add('plans-actions');
 
-  const scanBtn = document.createElement('button');
-  scanBtn.textContent = 'スキャン/更新';
-  scanBtn.className = 'ghost-button btn-scan-primary';
-  scanBtn.addEventListener('click', () => startScanForPlan(planLike));
+      const planLike = {
+        plan_id: log.plan_id,
+        product_code: log.product_code,
+        product_name: log.product_name,
+        process_name: log.process_name,
+        planned_qty: log.plan_qty,
+        planned_start: log.planned_start,
+        planned_end: log.planned_end,
+        status: log.status
+      };
 
-  const detailBtn = document.createElement('button');
-  detailBtn.textContent = '詳細';
-  detailBtn.className = 'ghost-button';
-  detailBtn.addEventListener('click', () => showPlanDetail(planLike));
+      const scanBtn = document.createElement('button');
+      scanBtn.textContent = 'スキャン/更新';
+      scanBtn.className = 'ghost-button btn-scan-primary';
+      scanBtn.addEventListener('click', () => startScanForPlan(planLike));
 
-  const exportBtn = document.createElement('button');
-  exportBtn.textContent = '実績CSV';
-  exportBtn.className = 'ghost-button';
-  exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
+      const detailBtn = document.createElement('button');
+      detailBtn.textContent = '詳細';
+      detailBtn.className = 'ghost-button';
+      detailBtn.addEventListener('click', () => showPlanDetail(planLike));
 
-  tdActions.appendChild(scanBtn);
-  tdActions.appendChild(detailBtn);
-  tdActions.appendChild(exportBtn);
-}
-else if (currentUser && currentUser.role === 'admin') {
+      const exportBtn = document.createElement('button');
+      exportBtn.textContent = '実績CSV';
+      exportBtn.className = 'ghost-button';
+      exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
+
+      tdActions.appendChild(scanBtn);
+      tdActions.appendChild(detailBtn);
+      tdActions.appendChild(exportBtn);
+    } else if (currentUser && currentUser.role === 'admin') {
       const editBtn = document.createElement('button');
       editBtn.textContent = '編集';
       editBtn.className = 'ghost-button';
@@ -1643,7 +1612,6 @@ function updateAdminVisibility() {
   const terminalListCard = document.getElementById('admin-terminal-list-card');
   const userManagementCard = document.getElementById('admin-user-management-card');
 
-  // サイドバーの管理者専用メニュー
   const adminLinks = document.querySelectorAll('.sidebar-link.admin-only');
 
   const isAdmin = !!(currentUser && currentUser.role === 'admin');
@@ -1655,15 +1623,12 @@ function updateAdminVisibility() {
     if (userListCard) userListCard.classList.remove('hidden');
     if (terminalListCard) terminalListCard.classList.remove('hidden');
 
-    // 管理者専用メニューを表示
     adminLinks.forEach(link => link.classList.add('visible'));
 
-    // 「Create User」カードを feature flag + role で制御
     if (userManagementCard) {
       if (canUseCreateUser) {
         userManagementCard.classList.remove('hidden');
 
-        // 初回表示時だけユーザー一覧を読込
         if (!userManagementCard.dataset.loaded) {
           userManagementCard.dataset.loaded = 'true';
           loadUserList().catch(err =>
@@ -1675,7 +1640,6 @@ function updateAdminVisibility() {
       }
     }
 
-    // 既存の admin テーブル描画ロジックを維持
     renderAdminUserList();
     renderAdminTerminalList();
   } else {
@@ -1689,7 +1653,6 @@ function updateAdminVisibility() {
       userManagementCard.dataset.loaded = '';
     }
 
-    // 管理者専用メニューを非表示
     adminLinks.forEach(link => link.classList.remove('visible'));
   }
 }
@@ -1803,27 +1766,24 @@ function renderTerminalQrListIfAdmin() {
 
 async function loadAnalytics() {
   try {
-   const data = await callApi('getAnalytics', {});
-const today = data.today || { total: 0, ng: 0 };
-const byProcess = data.byProcess || [];
-const counts = data.counts || { terminals: 0, plans: 0 };
-const planVsActual = data.planVsActual || { plan_total: 0, actual_total: 0 };
-const manhourByProduct = data.manhourByProduct || [];
-const manhourByProcess = data.manhourByProcess || [];
+    const data = await callApi('getAnalytics', {});
+    const today = data.today || { total: 0, ng: 0 };
+    const byProcess = data.byProcess || [];
+    const counts = data.counts || { terminals: 0, plans: 0 };
+    const planVsActual = data.planVsActual || { plan_total: 0, actual_total: 0 };
+    const manhourByProduct = data.manhourByProduct || [];
+    const manhourByProcess = data.manhourByProcess || [];
 
-
-    // Summary angka di dashboard
     document.getElementById('today-total').textContent = today.total;
     document.getElementById('today-ng').textContent = today.ng;
     document.getElementById('summary-terminals').textContent = counts.terminals;
     document.getElementById('summary-plans').textContent = counts.plans;
 
-    // Plan vs Actual
     const planTotalEl     = document.getElementById('plan-total');
     const actualTotalEl   = document.getElementById('actual-total');
     const planRateEl      = document.getElementById('plan-rate');
     const planProgressEl  = document.getElementById('plan-progress');
-    const planStatusBadgeEl = document.getElementById('plan-status-badge'); // ★ DITAMBAHKAN
+    const planStatusBadgeEl = document.getElementById('plan-status-badge');
 
     if (planTotalEl && actualTotalEl && planRateEl && planProgressEl) {
       const planTotal   = planVsActual.plan_total  || 0;
@@ -1837,7 +1797,6 @@ const manhourByProcess = data.manhourByProcess || [];
       const width = planTotal > 0 ? Math.min(100, (actualTotal * 100) / planTotal) : 0;
       planProgressEl.style.width = width + '%';
 
-      // ★ Status badge (warna & teks)
       if (planStatusBadgeEl) {
         planStatusBadgeEl.classList.remove('ok', 'warning', 'danger');
 
@@ -1858,7 +1817,6 @@ const manhourByProcess = data.manhourByProcess || [];
       }
     }
 
-    // Ticker berjalan
     const tickerEl = document.getElementById('ticker-text');
     if (tickerEl) {
       let msg;
@@ -1872,7 +1830,6 @@ const manhourByProcess = data.manhourByProcess || [];
       tickerEl.textContent = msg;
     }
 
-    // ★ Safety message dinamis (opsional, tapi saya sekalian aktifkan)
     const safetyMsgEl = document.getElementById('safety-message');
     if (safetyMsgEl) {
       if (today.ng > 0) {
@@ -1883,7 +1840,7 @@ const manhourByProcess = data.manhourByProcess || [];
         safetyMsgEl.textContent = '作業前点検と指差し呼称を徹底し、安全第一でスタートしましょう。';
       }
     }
-    // Man-hour tables (全期間, 上位20件まで表示)
+
     const mhProdTbody = document.getElementById('manhour-product-tbody');
     if (mhProdTbody) {
       mhProdTbody.innerHTML = '';
@@ -1918,11 +1875,8 @@ const manhourByProcess = data.manhourByProcess || [];
         });
     }
 
-    // Chart by process
     const labels = byProcess.map(x => x.process_name || '不明');
-
     const totals = byProcess.map(x => x.total || 0);
-
     const ctx = document.getElementById('process-chart');
     if (!ctx || typeof Chart === 'undefined') {
       console.error('process-chart canvas or Chart.js is not available');
@@ -1960,8 +1914,8 @@ async function loadPlans() {
   try {
     const data = await callApi('getPlans', {});
     plans = data || [];
-    renderPlanTable();      // 生産一覧
-    renderDashboardTable(); // Dashboard 最新の実績一覧 にも反映
+    renderPlanTable();
+    renderDashboardTable();
   } catch (err) {
     console.error(err);
     alert('生産計画の取得に失敗しました: ' + err.message);
@@ -2002,31 +1956,26 @@ function renderPlanTable() {
     `;
 
     const tdActions = document.createElement('td');
-tdActions.classList.add('plans-actions'); // <- untuk styling responsif
+    tdActions.classList.add('plans-actions');
 
-// スキャン/更新 を一番目に＆強調
-const scanBtn = document.createElement('button');
-scanBtn.textContent = 'スキャン/更新';
-scanBtn.className = 'ghost-button btn-scan-primary';
-scanBtn.addEventListener('click', () => startScanForPlan(plan));
+    const scanBtn = document.createElement('button');
+    scanBtn.textContent = 'スキャン/更新';
+    scanBtn.className = 'ghost-button btn-scan-primary';
+    scanBtn.addEventListener('click', () => startScanForPlan(plan));
 
-// 詳細
-const detailBtn = document.createElement('button');
-detailBtn.textContent = '詳細';
-detailBtn.className = 'ghost-button';
-detailBtn.addEventListener('click', () => showPlanDetail(plan));
+    const detailBtn = document.createElement('button');
+    detailBtn.textContent = '詳細';
+    detailBtn.className = 'ghost-button';
+    detailBtn.addEventListener('click', () => showPlanDetail(plan));
 
-// 実績CSV
-const exportBtn = document.createElement('button');
-exportBtn.textContent = '実績CSV';
-exportBtn.className = 'ghost-button';
-exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = '実績CSV';
+    exportBtn.className = 'ghost-button';
+    exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
 
-// 追加順番：スキャン → 詳細 → CSV
-tdActions.appendChild(scanBtn);
-tdActions.appendChild(detailBtn);
-tdActions.appendChild(exportBtn);
-
+    tdActions.appendChild(scanBtn);
+    tdActions.appendChild(detailBtn);
+    tdActions.appendChild(exportBtn);
 
     if (currentUser && currentUser.role === 'admin') {
       const delPlanBtn = document.createElement('button');
@@ -2158,7 +2107,6 @@ async function handleImportPlans() {
    ================================ */
 
 function setWelcomeDate() {
-  // Dashboard header に表示する日付 (例: 2025-11-28（金）)
   const todayEl = document.getElementById('welcome-date');
   if (!todayEl) return;
 
@@ -2171,8 +2119,9 @@ function setWelcomeDate() {
 
   todayEl.textContent = `${year}-${month}-${date}（${weekday}）`;
 }
-  /* ================================
-   Safety Message (今日の安全メッセージ)
+
+/* ================================
+   Safety Message
    ================================ */
 
 function setSafetyMessage() {
@@ -2190,7 +2139,6 @@ function setSafetyMessage() {
     'ヒヤリハットも立派な情報です。小さな気づきを仲間と共有しましょう。'
   ];
 
-  // Hari dalam sebulan → index, supaya 1 hari 1 pesan (tidak random lompat-lompat)
   const today = new Date();
   const idx = today.getDate() % messages.length;
 
@@ -2199,15 +2147,10 @@ function setSafetyMessage() {
 
 
 /* =====================================
-   ★★★ USER MANAGEMENT ENHANCEMENTS ★★★
+   USER MANAGEMENT ENHANCEMENTS
    ===================================== */
 
-// State variable for last created user (for QR download, etc.)
 let lastCreatedUser = null;
-
-/* ================================
-   USER MANAGEMENT FUNCTIONS
-   ================================ */
 
 async function handleCreateNewUser() {
   const userIdInput = document.getElementById('new-user-id');
@@ -2231,7 +2174,6 @@ async function handleCreateNewUser() {
   try {
     setGlobalLoading(true, 'ユーザー登録中...');
 
-    // Apps Script 側の createUser を呼び出し
     const result = await callApi('createUser', {
       userId: userId,
       userName: userName,
@@ -2239,7 +2181,6 @@ async function handleCreateNewUser() {
     });
 
     if (result && result.success) {
-      // 最後に作成したユーザーを保持
       lastCreatedUser = {
         user_id: userId,
         name_ja: userName,
@@ -2247,16 +2188,13 @@ async function handleCreateNewUser() {
         created_at: new Date().toISOString()
       };
 
-      // QRコード生成
       generateUserQRCode(userId, userName, userRole);
 
-      // QR表示エリアを表示
       const qrArea = document.getElementById('new-user-qr-area');
       if (qrArea) {
         qrArea.classList.remove('hidden');
       }
 
-      // QR情報テキスト更新
       const qrId = document.getElementById('new-user-qr-id');
       const qrName = document.getElementById('new-user-qr-name');
       const qrRole = document.getElementById('new-user-qr-role');
@@ -2265,17 +2203,14 @@ async function handleCreateNewUser() {
       if (qrName) qrName.textContent = userName;
       if (qrRole) qrRole.textContent = getRoleLabel(userRole);
 
-      // フォームクリア
       userIdInput.value = '';
       userNameInput.value = '';
       userRoleSelect.value = 'operator';
 
-      // ユーザー一覧再読み込み
       await loadUserList();
 
       showToast('✅ ユーザー登録が完了しました！', 'success');
 
-      // QRエリアにスクロール
       if (qrArea) {
         setTimeout(() => {
           qrArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2299,7 +2234,6 @@ function generateUserQRCode(userId, userName, userRole) {
     return;
   }
 
-  // 既存QRをクリア
   container.innerHTML = '';
 
   const qrData = JSON.stringify({
@@ -2344,7 +2278,6 @@ function handleDownloadNewUserQR() {
   showToast('📥 QRコードをダウンロードしました。', 'success');
 }
 
-// Flag to prevent multiple simultaneous loads
 let isLoadingUserList = false;
 
 async function loadUserList() {
@@ -2414,15 +2347,12 @@ function renderUserListTable(users) {
 
     tbody.appendChild(tr);
 
-    // --- Mini QR 50x50: cukup encode ID saja supaya tidak overflow ---
     setTimeout(() => {
       const miniContainer = document.getElementById(qrContainerId);
       if (!miniContainer) return;
 
-      // bersihkan QR sebelumnya
       miniContainer.innerHTML = '';
 
-      // data mini: pendek → aman untuk QR kecil
       let qrData = JSON.stringify({
         type: 'user',
         id: user.user_id
@@ -2437,7 +2367,6 @@ function renderUserListTable(users) {
         });
       } catch (err) {
         console.error('Mini QR generation error (fallback to plain ID):', err);
-        // fallback terakhir: hanya ID plain string
         try {
           new QRCode(miniContainer, {
             text: String(user.user_id || ''),
@@ -2449,7 +2378,7 @@ function renderUserListTable(users) {
           console.error('Mini QR generation failed completely:', err2);
         }
       }
-    }, 100 * (index + 1)); // stagger supaya tidak berat
+    }, 100 * (index + 1));
   });
 }
 
@@ -2508,7 +2437,6 @@ async function deleteUser(userId) {
 }
 
 function downloadUserQR(userId, userName, userRole) {
-  // 一時的なコンテナを作成して高解像度QRを生成
   const tempContainer = document.createElement('div');
   tempContainer.style.display = 'none';
   document.body.appendChild(tempContainer);
@@ -2572,13 +2500,11 @@ function updateRequiredFieldStatus() {
     return;
   }
 
-  // 合計を自動計算
   const ok = Number(okInput.value || 0);
   const ng = Number(ngInput.value || 0);
   const total = ok + ng;
   totalInput.value = total;
 
-  // 必須項目の状態クラスを更新
   const requiredFields = [okInput, ngInput, totalInput, statusSelect];
 
   requiredFields.forEach(field => {
@@ -2607,21 +2533,16 @@ function updateRequiredFieldStatus() {
    ================================ */
 
 function initUserManagement() {
-  console.log('Initializing user management features...');
-
-  // Create User ボタン
   const btnCreateUser = document.getElementById('btn-create-new-user');
   if (btnCreateUser) {
     btnCreateUser.addEventListener('click', handleCreateNewUser);
   }
 
-  // Download QR ボタン
   const btnDownloadUserQR = document.getElementById('btn-download-new-user-qr');
   if (btnDownloadUserQR) {
     btnDownloadUserQR.addEventListener('click', handleDownloadNewUserQR);
   }
 
-  // 必須フィールドのバリデーション
   const qtyOkInput = document.getElementById('log-qty-ok');
   const qtyNgInput = document.getElementById('log-qty-ng');
   const statusSelect = document.getElementById('log-status');
@@ -2629,11 +2550,8 @@ function initUserManagement() {
   if (qtyOkInput) qtyOkInput.addEventListener('input', updateRequiredFieldStatus);
   if (qtyNgInput) qtyNgInput.addEventListener('input', updateRequiredFieldStatus);
   if (statusSelect) statusSelect.addEventListener('change', updateRequiredFieldStatus);
-
-  console.log('User management features initialized');
 }
 
-// DOM 準備完了後に初期化
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initUserManagement);
 } else {
