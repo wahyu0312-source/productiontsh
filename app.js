@@ -1016,9 +1016,19 @@ async function handleSaveLog() {
   const qtyTotal = qtyOk + qtyNg;
   if (totalInput) totalInput.value = qtyTotal;
 
+  // === Multi-operator support: 作業人数（デフォルト1名） ===
+  const crewInput = document.getElementById('log-crew-size');
+  let crewSize = 1;
+  if (crewInput) {
+    const rawCrew = Number(crewInput.value || 1);
+    crewSize = Number.isFinite(rawCrew) && rawCrew > 0 ? Math.round(rawCrew) : 1;
+    crewInput.value = String(crewSize);
+  }
+
   [okInput, ngInput, totalInput].forEach(el => el && el.classList.remove('required-missing'));
 
   const missing = [];
+  // 終了登録の場合のみ数量必須
   if (status === '工程終了' && qtyTotal <= 0) {
     missing.push(totalInput);
   }
@@ -1037,6 +1047,7 @@ async function handleSaveLog() {
   const sessionKey = buildSessionKey(currentUser.user_id, currentTerminal.terminal_id, productCode);
   let sessions = loadActiveSessions();
 
+  // 工程開始だけ登録して、終了時に同じキーで所要時間を計算
   if (status === '工程開始') {
     sessions[sessionKey] = now.toISOString();
     saveActiveSessions(sessions);
@@ -1053,6 +1064,11 @@ async function handleSaveLog() {
   const end = now;
   const durationSec = Math.round((end - start) / 1000);
 
+  // === 区分：社内 / 外注 を自動判定（location を利用） ===
+  const location = currentTerminal.location || '';
+  const isExternal = /外注|subcon|vendor/i.test(String(location).toLowerCase());
+  const workType = isExternal ? '外注' : '社内';
+
   const log = {
     product_code: productCode,
     product_name: productName,
@@ -1068,16 +1084,20 @@ async function handleSaveLog() {
     qty_total: qtyTotal,
     qty_ok: qtyOk,
     qty_ng: qtyNg,
+    crew_size: crewSize,           // ← 追加（作業人数）
     note: noteInput ? noteInput.value.trim() : '',
     timestamp_start: formatDateTime(start),
     timestamp_end: formatDateTime(end),
     duration_sec: durationSec,
-    location: currentTerminal.location
+    location,                      // ← 変数をそのまま保存
+    work_type: workType            // ← 追加（社内 / 外注）
   };
 
   try {
     setGlobalLoading(true, '実績を保存中...');
     await callApi('logEvent', { log });
+
+    // セッション削除（次の作業に備える）
     delete sessions[sessionKey];
     saveActiveSessions(sessions);
 
@@ -1097,6 +1117,7 @@ async function handleSaveLog() {
     setGlobalLoading(false);
   }
 }
+
 
 /* ================================
    Active session (durasi)
@@ -1167,13 +1188,16 @@ function clearForm() {
   const totalInput = document.getElementById('log-qty-total');
   const noteInput = document.getElementById('log-note');
   const lotInput = document.getElementById('log-lot-number');
+  const crewInput = document.getElementById('log-crew-size');
 
   if (okInput) okInput.value = 0;
   if (ngInput) ngInput.value = 0;
   if (totalInput) totalInput.value = 0;
   if (noteInput) noteInput.value = '';
   if (lotInput) lotInput.value = '';
+  if (crewInput) crewInput.value = 1;
 }
+
 
 /* ================================
    Dashboard: load & render
@@ -1323,13 +1347,20 @@ function renderDashboardTable() {
     badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
     statusCell.appendChild(badge);
 
-    const startText = formatDateTime(
-      log.timestamp_start || log.timestamp_end || log.planned_start || ''
-    );
-    const userText = isPlan ? '-' : (log.user_name || '');
-    const qtyText = isPlan
-      ? `- / ${log.plan_qty || 0}`
-      : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
+   const startText = formatDateTime(
+  log.timestamp_start || log.timestamp_end || log.planned_start || ''
+);
+
+// 作業人数をユーザー名の後ろに付与（2名以上のときだけ）
+const crewSize = Number(log.crew_size || 1);
+const userText = isPlan
+  ? '-'
+  : `${log.user_name || ''}${crewSize > 1 ? `（${crewSize}名）` : ''}`;
+
+const qtyText = isPlan
+  ? `- / ${log.plan_qty || 0}`
+  : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
+
 
     // ヘッダー順: 工程開始 / 図番 / 品名 / 工程 / ユーザー / 数量
     tr.innerHTML = `
@@ -1346,9 +1377,29 @@ function renderDashboardTable() {
     tdDuration.textContent = durationMin || '';
     tr.appendChild(tdDuration);
 
-    const tdLoc = document.createElement('td');
-    tdLoc.textContent = log.location || '';
-    tr.appendChild(tdLoc);
+   const tdLoc = document.createElement('td');
+const locWrapper = document.createElement('div');
+locWrapper.className = 'location-cell';
+
+const locationText = log.location || '';
+const isExternal = /外注|subcon|vendor/i.test(String(locationText).toLowerCase()) ||
+  (log.work_type && /外注|external/i.test(String(log.work_type)));
+
+const badge = document.createElement('span');
+badge.className = 'badge ' + (isExternal ? 'badge-external' : 'badge-internal');
+badge.textContent = isExternal ? '外注' : '社内';
+locWrapper.appendChild(badge);
+
+if (locationText) {
+  const locTextSpan = document.createElement('span');
+  locTextSpan.className = 'location-text';
+  locTextSpan.textContent = locationText;
+  locWrapper.appendChild(locTextSpan);
+}
+
+tdLoc.appendChild(locWrapper);
+tr.appendChild(tdLoc);
+
  // ★ Jika log ini punya NG atau 検査保留 → highlight baris
     if (!isPlan && ((log.qty_ng || 0) > 0 || log.status === '検査保留')) {
       tr.classList.add('row-alert');
