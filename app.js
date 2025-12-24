@@ -97,6 +97,270 @@ function getRoleLabel(role) {
 function iconMarkup(symbolId, extraClass = '') {
   const cls = ['icon', extraClass].filter(Boolean).join(' ');
   return `<svg class="${cls}" aria-hidden="true"><use href="#${symbolId}"></use></svg>`;
+
+/* ================================
+   Monitor Carousel (Digital Signage)
+   ================================ */
+
+const monitorCarousel = {
+  active: false,
+  index: 0,
+  timer: null,
+  autoMs: 12000,
+  restoreMap: new Map(),
+  root: null,
+  track: null,
+  slides: [],
+  dotsEl: null,
+  viewport: null,
+  bound: false,
+  clockTimer: null
+};
+
+function setupMonitorCarouselUI() {
+  const root = document.getElementById('monitor-carousel');
+  const track = document.getElementById('monitor-track');
+  const dotsEl = document.getElementById('monitor-dots');
+  const viewport = root ? root.querySelector('.monitor-viewport') : null;
+
+  if (!root || !track || !dotsEl || !viewport) return;
+
+  monitorCarousel.root = root;
+  monitorCarousel.track = track;
+  monitorCarousel.dotsEl = dotsEl;
+  monitorCarousel.viewport = viewport;
+  monitorCarousel.slides = Array.from(root.querySelectorAll('.monitor-slide'));
+
+  // Build dots once
+  if (!dotsEl.dataset.built) {
+    dotsEl.dataset.built = '1';
+    dotsEl.innerHTML = '';
+    monitorCarousel.slides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'monitor-dot';
+      dot.title = `スライド ${i + 1}`;
+      dot.setAttribute('aria-label', `スライド ${i + 1}`);
+      dot.addEventListener('click', () => {
+        setMonitorIndex(i);
+        restartMonitorAuto();
+      });
+      dotsEl.appendChild(dot);
+    });
+  }
+
+  const prevBtn = document.getElementById('monitor-prev');
+  const nextBtn = document.getElementById('monitor-next');
+  const exitBtn = document.getElementById('btn-exit-monitor');
+
+  if (prevBtn && !prevBtn.dataset.bound) {
+    prevBtn.dataset.bound = '1';
+    prevBtn.addEventListener('click', () => {
+      setMonitorIndex(monitorCarousel.index - 1);
+      restartMonitorAuto();
+    });
+  }
+  if (nextBtn && !nextBtn.dataset.bound) {
+    nextBtn.dataset.bound = '1';
+    nextBtn.addEventListener('click', () => {
+      setMonitorIndex(monitorCarousel.index + 1);
+      restartMonitorAuto();
+    });
+  }
+  if (exitBtn && !exitBtn.dataset.bound) {
+    exitBtn.dataset.bound = '1';
+    exitBtn.addEventListener('click', () => {
+      document.body.classList.remove('monitor-mode');
+      exitMonitorModeCarousel();
+      showToast('通常表示に戻りました。', 'info');
+    });
+  }
+
+  // Swipe gesture
+  if (!monitorCarousel.bound) {
+    monitorCarousel.bound = true;
+    let startX = 0;
+    let startY = 0;
+    let isTouching = false;
+
+    viewport.addEventListener('touchstart', (e) => {
+      if (!e.touches || !e.touches[0]) return;
+      isTouching = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', (e) => {
+      if (!isTouching || !e.touches || !e.touches[0]) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      // If vertical scroll is dominant, ignore (allow scrolling inside slide)
+      if (Math.abs(dy) > Math.abs(dx)) return;
+      // prevent page bounce while swiping horizontally
+      e.preventDefault();
+    }, { passive: false });
+
+    viewport.addEventListener('touchend', (e) => {
+      if (!isTouching) return;
+      isTouching = false;
+      const touch = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      if (!touch) return;
+      const dx = touch.clientX - startX;
+      const threshold = 50;
+      if (dx > threshold) {
+        setMonitorIndex(monitorCarousel.index - 1);
+        restartMonitorAuto();
+      } else if (dx < -threshold) {
+        setMonitorIndex(monitorCarousel.index + 1);
+        restartMonitorAuto();
+      }
+    });
+
+    // Keyboard (useful on TV/PC)
+    document.addEventListener('keydown', (e) => {
+      if (!document.body.classList.contains('monitor-mode')) return;
+      if (e.key === 'ArrowLeft') {
+        setMonitorIndex(monitorCarousel.index - 1);
+        restartMonitorAuto();
+      } else if (e.key === 'ArrowRight') {
+        setMonitorIndex(monitorCarousel.index + 1);
+        restartMonitorAuto();
+      } else if (e.key === 'Escape') {
+        document.body.classList.remove('monitor-mode');
+        exitMonitorModeCarousel();
+        showToast('通常表示に戻りました。', 'info');
+      }
+    });
+  }
+
+  startMonitorClock();
+  setMonitorIndex(monitorCarousel.index, true);
+}
+
+function setMonitorIndex(i, instant = false) {
+  const root = monitorCarousel.root;
+  const track = monitorCarousel.track;
+  const dotsEl = monitorCarousel.dotsEl;
+  if (!root || !track || !dotsEl) return;
+
+  const count = monitorCarousel.slides.length || 1;
+  monitorCarousel.index = (i % count + count) % count;
+
+  if (instant) {
+    track.style.transition = 'none';
+  } else {
+    track.style.transition = 'transform .55s ease';
+  }
+  track.style.transform = `translateX(${-monitorCarousel.index * 100}%)`;
+
+  const dots = Array.from(dotsEl.querySelectorAll('.monitor-dot'));
+  dots.forEach((d, idx) => d.classList.toggle('active', idx === monitorCarousel.index));
+}
+
+function startMonitorAuto() {
+  stopMonitorAuto();
+  monitorCarousel.timer = setInterval(() => {
+    setMonitorIndex(monitorCarousel.index + 1);
+  }, monitorCarousel.autoMs);
+}
+
+function stopMonitorAuto() {
+  if (monitorCarousel.timer) {
+    clearInterval(monitorCarousel.timer);
+    monitorCarousel.timer = null;
+  }
+}
+
+function restartMonitorAuto() {
+  startMonitorAuto();
+}
+
+function startMonitorClock() {
+  const clockEl = document.getElementById('monitor-clock');
+  if (!clockEl) return;
+
+  const update = () => {
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    clockEl.textContent = `${hh}:${mm}:${ss}`;
+  };
+  update();
+
+  if (monitorCarousel.clockTimer) clearInterval(monitorCarousel.clockTimer);
+  monitorCarousel.clockTimer = setInterval(update, 1000);
+}
+
+function enterMonitorModeCarousel() {
+  setupMonitorCarouselUI();
+  const root = monitorCarousel.root;
+  const slides = monitorCarousel.slides;
+  if (!root || slides.length === 0) return;
+
+  const sources = [
+    { id: 'dash-summary-block', title: '概要' },
+    { id: 'dash-chart-block', title: 'グラフ' },
+    { id: 'plan-list-block', title: '計画一覧' },
+    { id: 'dash-latest-block', title: '最新実績' }
+  ];
+
+  // Fill each slide by moving existing DOM blocks (keeps live updates)
+  sources.forEach((s, idx) => {
+    const slide = slides[idx];
+    if (!slide) return;
+    slide.innerHTML = '';
+
+    const el = document.getElementById(s.id);
+    if (!el) {
+      slide.innerHTML = `
+        <div class="card">
+          <h2 class="card-title">${s.title}</h2>
+          <p>表示対象が見つかりませんでした。</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (!monitorCarousel.restoreMap.has(el)) {
+      monitorCarousel.restoreMap.set(el, { parent: el.parentNode, next: el.nextSibling });
+    }
+    slide.appendChild(el);
+  });
+
+  root.classList.add('active');
+  root.setAttribute('aria-hidden', 'false');
+  setMonitorIndex(0, true);
+  startMonitorAuto();
+}
+
+function exitMonitorModeCarousel() {
+  stopMonitorAuto();
+  const root = monitorCarousel.root;
+  const restoreMap = monitorCarousel.restoreMap;
+
+  // Restore moved blocks to original parents
+  restoreMap.forEach((info, el) => {
+    if (!info || !info.parent) return;
+    try {
+      if (info.next && info.parent.contains(info.next)) {
+        info.parent.insertBefore(el, info.next);
+      } else {
+        info.parent.appendChild(el);
+      }
+    } catch (e) {
+      // If restoration fails, append to dashboard as safe fallback
+      const fallback = document.getElementById('dash-summary-block');
+      if (fallback) fallback.appendChild(el);
+    }
+  });
+  restoreMap.clear();
+
+  if (root) {
+    root.classList.remove('active');
+    root.setAttribute('aria-hidden', 'true');
+  }
+}
 }
 
 
@@ -567,7 +831,7 @@ function setupButtons() {
     helpClose.addEventListener('click', closeHelpModal);
   }
 
-  // Monitor mode (digital signage)
+  // Monitor mode (digital signage + carousel)
   const monitorBtn = document.getElementById('btn-monitor-mode');
   if (monitorBtn) {
     monitorBtn.addEventListener('click', () => {
@@ -576,20 +840,22 @@ function setupButtons() {
       body.classList.toggle('monitor-mode', isMonitor);
 
       if (isMonitor) {
+        // Always keep monitor content consistent by starting from dashboard
         const links = document.querySelectorAll('.sidebar-link');
         const sections = document.querySelectorAll('.section');
-
         sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
         links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
 
+        enterMonitorModeCarousel();
         showToast('モニタ表示モードをONにしました。', 'info');
       } else {
+        exitMonitorModeCarousel();
         showToast('モニタ表示モードをOFFにしました。', 'info');
       }
     });
   }
 
-  // ヘッダー製品検索
+// ヘッダー製品検索
   const headerSearchBtn = document.getElementById('btn-header-search');
   const headerSearchInput = document.getElementById('header-product-search');
   if (headerSearchBtn && headerSearchInput) {
