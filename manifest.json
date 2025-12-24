@@ -5,7 +5,7 @@
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#2f80ed",
   "orientation": "any",
   "icons": [
     {
@@ -21,9 +21,6 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": [
-    "productivity",
-    "business"
-  ],
+  "categories": ["productivity", "business"],
   "lang": "ja"
 }
