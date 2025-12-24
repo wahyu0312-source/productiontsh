@@ -1,1264 +1,3273 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <title>生産進捗トラッキングシステム</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2f80ed">
-  <link rel="icon" type="image/png" href="tsh.png">
-  <!-- Fonts: Inter + Noto Sans JP -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
-    rel="stylesheet">
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css">
-
-  <!-- Libs -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-</head>
-<body>
-<div class="app-shell">
-
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <img src="tsh.png" alt="ロゴ">
-      <span>生産進捗</span>
-    </div>
-    <nav class="sidebar-nav">
-      <button class="sidebar-link active" data-section="dashboard-section">ダッシュボード</button>
-      <button class="sidebar-link" data-section="scan-section">スキャン</button>
-      <button class="sidebar-link" data-section="plan-input-section">生産計画入力</button>
-      <button class="sidebar-link" data-section="plan-list-section">生産一覧</button>
-      <button class="sidebar-link admin-only" data-section="admin-section">ユーザー / QR</button>
-      <button class="sidebar-link admin-only" data-section="terminalqr-section">工程一覧</button>
-    </nav>
-  </aside>
-
-  <!-- Main area -->
-  <div id="sidebar-overlay" class="sidebar-overlay"></div>
-
-  <div class="main-area">
-
-
-    <!-- Top bar -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <!-- Burger (mobile) -->
-        <button id="btn-menu-toggle" class="burger-button" aria-label="メニュー">
-          <span></span><span></span><span></span>
-        </button>
-
-        <div>
-          <h1 class="topbar-title">生産進捗トラッキングシステム</h1>
-          <p class="topbar-subtitle">リアルタイムで進捗と不良を可視化する簡易生産管理</p>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <!-- Quick search -->
-        <div class="quick-search">
-          <input id="header-product-search" type="text" placeholder="製品番号検索">
-          <button id="btn-header-search" class="ghost-button ghost-small"><svg class="icon"><use href="#i-search"></use></svg>検索</button>
-        </div>
-        <button id="btn-monitor-mode" class="ghost-button ghost-small">
-          モニタ表示
-        </button>
-        <!-- Help -->
-        <button id="btn-help" class="ghost-icon-button" title="ヘルプ">?</button>
-
-        <!-- User menu (popup style) -->
-        <div class="user-menu-wrapper">
-          <button type="button" class="user-chip" id="user-menu-toggle">
-            <div class="user-avatar">👤</div>
-            <div class="user-meta">
-              <div id="top-username">ゲスト</div>
-              <div class="user-role"><span id="top-userrole">未ログイン</span></div>
-            </div>
-          </button>
-
-          <div id="user-menu-panel" class="user-menu hidden">
-            <!-- 現在のユーザー -->
-            <div class="user-menu-section">
-              <div class="user-menu-title">現在のユーザー</div>
-              <div class="user-menu-row">
-                <span>ログインユーザー:</span>
-                <span id="current-user-name">未ログイン</span>
-              </div>
-              <div class="user-menu-row">
-                <span>ユーザーID:</span>
-                <span id="current-user-id">-</span>
-              </div>
-              <div class="user-menu-row">
-                <span>権限:</span>
-                <span id="current-user-role">-</span>
-              </div>
-            </div>
-
-            <!-- ログイン -->
-            <div class="user-menu-section">
-              <div class="user-menu-title">ログイン</div>
-              <div class="manual-login-row">
-                <input id="manual-user-id" type="text" placeholder="ユーザーIDを入力（例: ADMIN001）">
-                <button id="btn-manual-login" class="secondary-button">ユーザーIDでログイン</button>
-              </div>
-              <div id="last-user-quick-login" class="manual-login-row hidden">
-                <div class="hint">
-                  前回ログイン: <span id="last-user-label"></span>
-                </div>
-                <button id="btn-last-user-login" class="primary-button">
-                  このユーザーでログイン
-                </button>
-              </div>
-              <button id="btn-start-user-scan" class="ghost-button" style="margin-top:8px;">
-                ユーザーQRスキャン開始
-              </button>
-            </div>
-
-            <!-- ショートカット -->
-            <div class="user-menu-section">
-              <div class="user-menu-title">ショートカット</div>
-              <div class="button-row">
-                <button type="button" class="ghost-button ghost-small"
-                        onclick="document.querySelector('.sidebar-link[data-section=\'dashboard-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
-                  ダッシュボードへ
-                </button>
-                <button type="button" class="ghost-button ghost-small"
-                        onclick="document.querySelector('.sidebar-link[data-section=\'scan-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
-                  スキャン画面へ
-                </button>
-                <button type="button" class="ghost-button ghost-small"
-                        onclick="document.querySelector('.sidebar-link[data-section=\'plan-list-section\']')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
-                  生産一覧へ
-                </button>
-                <button type="button" class="ghost-button ghost-small"
-                        onclick="document.getElementById('btn-monitor-mode')?.click(); document.getElementById('user-menu-panel').classList.add('hidden');">
-                  モニタ表示ON/OFF
-                </button>
-              </div>
-            </div>
-
-            <!-- ログアウト -->
-            <div class="user-menu-section">
-              <button id="btn-logout" class="ghost-button" style="width:100%;">ログアウト</button>
-            </div>
-
-            <p class="hint" style="margin-top:6px;">
-              ユーザー認証はこのメニューから行ってください。
-            </p>
-          </div>
-        </div>
-
-      </div>
-    </header>
-
-    <!-- Content -->
-    <main class="content">
-
-      <!-- Offline indicator -->
-      <div id="offline-indicator" class="offline-indicator hidden">
-        オフラインモード：オンライン復帰後に自動同期します。
-      </div>
-
-      <!-- Dashboard -->
-      <section id="dashboard-section" class="section active">
-        <div class="page">
-          <div class="page-header">
-            <div class="page-title-group">
-              <h1 class="page-title">ダッシュボード</h1>
-              <p class="page-subtitle">最新の進捗状況と生産計画を確認します。</p>
-            </div>
-            <div class="page-actions"></div>
-          </div>
-          <div class="page-content">
-            <div id="dash-summary-block" class="monitor-source">
-
-        <div class="card welcome-card">
-          <div class="welcome-main">
-            <div class="welcome-icon">👋</div>
-            <div>
-              <p class="welcome-title">ようこそ、<span id="welcome-name">ゲスト</span> さん。</p>
-              <p class="welcome-text">最新の進捗状況と生産計画を確認しましょう。</p>
-            </div>
-          </div>
-          <!-- Safety card -->
-          <div class="card safety-card">
-            <div class="safety-icon">🦺</div>
-            <div class="safety-body">
-              <div class="safety-title">今日の安全メッセージ</div>
-              <div class="safety-text" id="safety-message">
-                安全第一で作業しましょう。
-              </div>
-            </div>
-          </div>
-          <div class="welcome-meta">
-            <div class="welcome-meta-item">
-              <span class="meta-label">本日</span>
-              <span id="welcome-date"></span>
-            </div>            </div>
-
-          </div>
-        </div>
-
-        <!-- Summary -->
-        <div class="summary-grid">
-          <div class="summary-card">
-            <p class="summary-label">本日の総生産数量</p>
-            <p class="summary-value" id="today-total">0</p>
-          </div>
-          <div class="summary-card warning-card">
-            <p class="summary-label">本日の不良数量</p>
-            <p class="summary-value" id="today-ng">0</p>
-          </div>
-          <div class="summary-card">
-            <p class="summary-label">登録工程数</p>
-            <p class="summary-value" id="summary-terminals">0</p>
-          </div>
-          <div class="summary-card">
-            <p class="summary-label">登録生産計画数</p>
-            <p class="summary-value" id="summary-plans">0</p>
-          </div>
-        </div>
-
-        <div id="alert-banner" class="alert-banner hidden">
-          最近の工程で不良または検査保留が発生しています。詳細は一覧を確認してください。
-        </div>
-
-        <div class="ticker-card">
-          <div class="ticker-label">INFO</div>
-          <div class="ticker-content">
-            <div id="ticker-text" class="ticker-text">
-              生産システムへようこそ。最新の実績と生産計画を確認してください。
-            </div>
-          </div>
-        </div>
-
-        <!-- KPI 計画 vs 実績 -->
-        <div class="card plan-actual-card">
-          <h3 class="card-title">計画 vs 実績</h3>
-          <p class="plan-actual-text">
-            本日の計画数量: <span id="plan-total">0</span> 個 / 実績: <span id="actual-total">0</span> 個
-            （達成率: <span id="plan-rate">0</span>%）
-          </p>
-          <div class="progress-bar">
-            <div id="plan-progress" class="progress-fill" style="width: 0%;"></div>
-          </div>
-
-          <div id="plan-status-badge" class="plan-status-badge">
-            計画データなし
-          </div>
-        </div>
-
-                    </div>
-
-            <div id="dash-latest-block" class="monitor-source">
-
-        <!-- 最新実績一覧 -->
-        <div class="card">
-          <div class="card-header-row">
-            <div class="card-header-left">
-              <h2 class="card-title">最新の実績一覧</h2>
-              <div class="dashboard-update-info">
-                <span id="dashboard-last-updated">最終更新: -</span>
-                <span id="dashboard-next-refresh">次の自動更新まで: 60 秒</span>
-              </div>
-            </div>
-            <div class="button-row">
-              <button id="btn-refresh-dashboard" class="primary-button"><svg class="icon"><use href="#i-refresh"></use></svg>更新</button>
-              <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
-            </div>
-          </div>
-
-          <div class="filter-grid">
-            <div class="form-group">
-              <label for="filter-process">工程フィルター</label>
-              <select id="filter-process">
-                <option value="">すべて</option>
-                <option>レザー加工</option>
-                <option>外注工程</option>
-                <option>曲げ加工</option>
-                <option>準備工程</option>
-                <option>外枠組立工程</option>
-                <option>パンタ組立工程</option>
-                <option>シャッター組立工程</option>
-                <option>スポット工程</option>
-                <option>コーキング工程</option>
-                <option>溶接工程</option>
-                <option>組立工程</option>
-                <option>検査工程</option>
-                <option>検査保留</option>
-                <option>出荷準備</option>
-                <option>出荷完成</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="filter-terminal">工程名フィルター</label>
-              <input id="filter-terminal" type="text" placeholder="工程IDまたは名称で検索">
-            </div>
-            <div class="form-group">
-              <label for="filter-product">製品番号フィルター</label>
-              <input id="filter-product" type="text" placeholder="製品番号/ロット番号">
-            </div>
-            <div class="form-group">
-              <label for="filter-work-type">作業区分</label>
-              <select id="filter-work-type">
-                <option value="">社内＋外注すべて</option>
-                <option value="社内">社内のみ</option>
-                <option value="外注">外注のみ</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>期間フィルター</label>
-              <div class="date-range">
-                <input id="filter-date-from" type="date">
-                <span>〜</span>
-                <input id="filter-date-to" type="date">
-              </div>
-            </div>
-          </div>
-
-          <div class="table-wrapper">
-            <table class="logs-table responsive-table">
-              <thead>
-              <tr>
-                <th>工程開始</th>
-                <th>図番</th>
-                <th>品名</th>
-                <th>工程</th>
-                <th>ユーザー</th>
-                <th>数量(OK/不良)</th>
-                <th>ステータス</th>
-                <th>所要時間(分)</th>
-                <th>ロケーション</th>
-                <th>操作</th>
-              </tr>
-              </thead>
-              <tbody id="logs-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
-                    </div>
-
-            <div id="dash-chart-block" class="monitor-source">
-
-        <!-- 工程別 生産量 -->
-        <div class="card small-gap">
-          <h2 class="card-title">工程別 生産量（直近7日）</h2>
-          <div class="chart-wrapper">
-            <canvas id="process-chart"></canvas>
-          </div>
-        </div>
-
-        <!-- 製品別 合計工数 -->
-        <div class="card small-gap">
-          <h2 class="card-title">製品別 合計工数（全期間）</h2>
-          <div class="table-wrapper compact">
-            <table class="logs-table compact">
-              <thead>
-              <tr>
-                <th>製品番号</th>
-                <th class="align-right">合計工数 [h]</th>
-              </tr>
-              </thead>
-              <tbody id="manhour-product-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- 工程別 合計工数 -->
-        <div class="card small-gap">
-          <h2 class="card-title">工程別 合計工数（全期間）</h2>
-          <div class="table-wrapper compact">
-            <table class="logs-table compact">
-              <thead>
-              <tr>
-                <th>工程名</th>
-                <th class="align-right">合計工数 [h]</th>
-              </tr>
-              </thead>
-              <tbody id="manhour-process-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-            <!-- Monitor-only: Special Slides (Overdue / Top NG / Bottleneck / Top Items) -->
-            <div id="dash-overdue-block" class="monitor-source monitor-only">
-              <div class="card">
-                <div class="card-header-row">
-                  <div class="card-header-left">
-                    <h2 class="card-title">遅れ計画（Overdue）</h2>
-                    <div class="hint">計画終了を過ぎても未達の計画（上位10件）</div>
-                  </div>
-                </div>
-                <div class="table-wrapper compact">
-                  <table class="logs-table compact responsive-table">
-                    <thead>
-                      <tr>
-                        <th>図番</th><th>工程</th><th class="align-right">計画</th><th class="align-right">実績</th><th class="align-right">遅れ(h)</th>
-                      </tr>
-                    </thead>
-                    <tbody id="overdue-tbody"></tbody>
-                  </table>
-                  <div id="overdue-empty" class="empty-state hidden">遅れ計画はありません。</div>
-                </div>
-              </div>
-            </div>
-
-            <div id="dash-topng-block" class="monitor-source monitor-only">
-              <div class="card">
-                <div class="card-header-row">
-                  <div class="card-header-left">
-                    <h2 class="card-title">Top NG（直近7日）</h2>
-                    <div class="hint">不良数量が多い製品・工程（上位）</div>
-                  </div>
-                </div>
-
-                <div class="two-col">
-                  <div>
-                    <h3 class="sub-title">製品別（NG数量）</h3>
-                    <div class="table-wrapper compact">
-                      <table class="logs-table compact">
-                        <thead>
-                          <tr><th>図番</th><th class="align-right">NG</th><th class="align-right">NG率</th></tr>
-                        </thead>
-                        <tbody id="topng-product-tbody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 class="sub-title">工程別（NG数量）</h3>
-                    <div class="table-wrapper compact">
-                      <table class="logs-table compact">
-                        <thead>
-                          <tr><th>工程</th><th class="align-right">NG</th></tr>
-                        </thead>
-                        <tbody id="topng-process-tbody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                <div id="topng-empty" class="empty-state hidden">対象データがありません。</div>
-              </div>
-            </div>
-
-            <div id="dash-bottleneck-block" class="monitor-source monitor-only">
-              <div class="card">
-                <div class="card-header-row">
-                  <div class="card-header-left">
-                    <h2 class="card-title">ボトルネック工程（直近7日）</h2>
-                    <div class="hint">工数（h）が大きい工程（上位）</div>
-                  </div>
-                </div>
-                <div class="table-wrapper compact">
-                  <table class="logs-table compact responsive-table">
-                    <thead>
-                      <tr>
-                        <th>工程</th>
-                        <th class="align-right">工数(h)</th>
-                        <th class="align-right">平均(分)</th>
-                        <th class="align-right">件数</th>
-                      </tr>
-                    </thead>
-                    <tbody id="bottleneck-tbody"></tbody>
-                  </table>
-                  <div id="bottleneck-empty" class="empty-state hidden">対象データがありません。</div>
-                </div>
-              </div>
-            </div>
-
-            <div id="dash-topitems-block" class="monitor-source monitor-only">
-              <div class="card">
-                <div class="card-header-row">
-                  <div class="card-header-left">
-                    <h2 class="card-title">頻出品目（直近7日 / 30日）</h2>
-                    <div class="hint">作業回数（ログ件数）が多い製品（上位）</div>
-                  </div>
-                </div>
-
-                <div class="two-col">
-                  <div>
-                    <h3 class="sub-title">直近7日</h3>
-                    <div class="table-wrapper compact">
-                      <table class="logs-table compact">
-                        <thead>
-                          <tr><th>図番</th><th class="align-right">回数</th><th class="align-right">数量</th></tr>
-                        </thead>
-                        <tbody id="topitems-weekly-tbody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 class="sub-title">直近30日</h3>
-                    <div class="table-wrapper compact">
-                      <table class="logs-table compact">
-                        <thead>
-                          <tr><th>図番</th><th class="align-right">回数</th><th class="align-right">数量</th></tr>
-                        </thead>
-                        <tbody id="topitems-monthly-tbody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                <div id="topitems-empty" class="empty-state hidden">対象データがありません。</div>
-              </div>
-            </div>
-
-      
-          </div>
-        </div>
-</section>
-
-      <!-- Scan -->
-      <section id="scan-section" class="section">
-        <div class="page">
-          <div class="page-header">
-            <div class="page-title-group">
-              <h1 class="page-title">スキャン / 生産データ入力</h1>
-              <p class="page-subtitle">工程QRを読み取り、実績を入力します。</p>
-            </div>
-            <div class="page-actions"></div>
-          </div>
-          <div class="page-content">
-
-        <!-- ユーザー認証案内 -->
-        <div class="card">
-          <h2 class="card-title">ユーザー認証</h2>
-          <p>ユーザー認証は画面右上のメニューから行ってください。</p>
-        </div>
-
-        <!-- 工程スキャン -->
-        <div class="card">
-          <h2 class="card-title">工程スキャン</h2>
-          <p>工程に設置されたQRコードをスキャンして、生産を記録します。</p>
-
-          <div class="terminal-info">
-            <div><strong>現在の工程:</strong> <span id="current-terminal-name">未スキャン</span></div>
-            <div><strong>工程ID:</strong> <span id="current-terminal-id">-</span></div>
-            <div><strong>工程:</strong> <span id="current-process-name">-</span></div>
-            <div><strong>ロケーション:</strong> <span id="current-location">-</span></div>
-          </div>
-
-          <div style="margin-top:8px;">
-            <button id="btn-start-terminal-scan" class="primary-button">工程QRスキャン開始</button>
-          </div>
-
-          <div id="qr-reader-terminal" class="qr-reader"></div>
-        </div>
-
-        <!-- 生産データ入力 -->
-        <div class="card">
-          <h2 class="card-title">生産データ入力</h2>
-          <p>生産計画一覧から対象行の「スキャン/更新」を選択し、工程をスキャンしてから実績を入力してください。</p>
-
-          <!-- Plan情報 -->
-          <div class="form-grid">
-            <div class="form-group">
-              <label>製品番号</label>
-              <input id="log-product-code" type="text" readonly placeholder="生産計画から自動設定">
-            </div>
-            <div class="form-group">
-              <label>製品名</label>
-              <input id="log-product-name" type="text" readonly>
-            </div>
-            <div class="form-group">
-              <label>計画数量</label>
-              <input id="log-plan-qty" type="number" readonly value="0">
-            </div>
-            <div class="form-group">
-              <label for="log-lot-number">ロット番号（任意）</label>
-              <input id="log-lot-number" type="text" placeholder="例: LOT20241001">
-            </div>
-          </div>
-
-        <!-- Input utama operator - WITH REQUIRED FIELD HIGHLIGHTING -->
-<div class="form-grid">
-  <div class="form-group">
-    <label for="log-status" class="field-required">ステータス</label>
-    <select id="log-status" class="required-field">
-      <option value="工程開始">工程開始</option>
-      <option value="工程終了" selected>工程終了</option>
-      <option value="一時停止">一時停止（保留）</option>
-      <option value="検査保留">検査保留</option>
-    </select>
-  </div>
-
-  <div class="form-group">
-    <label for="log-qty-ok" class="field-required">OK数量</label>
-    <input id="log-qty-ok" type="number" min="0" value="0" class="required-field">
-  </div>
-
-  <div class="form-group">
-    <label for="log-qty-ng" class="field-required">不良数量</label>
-    <input id="log-qty-ng" type="number" min="0" value="0" class="required-field">
-  </div>
-
-  <div class="form-group">
-    <label for="log-qty-total">総数量</label>
-    <input id="log-qty-total" type="number" min="0" value="0" readonly>
-  </div>
-</div>
-
-
-          <!-- Multi-operator -->
-          <div class="form-grid two-col">
-            <div class="form-group">
-              <label for="log-crew-size">作業人数</label>
-              <input id="log-crew-size" type="number" min="1" value="1">
-              <small class="field-hint">
-                複数人で同じ工程を行った場合のみ人数を変更してください。（例：2人作業なら「2」）
-              </small>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="log-note">備考（任意）</label>
-            <input id="log-note" type="text" placeholder="例: 金型異常あり">
-          </div>
-
-          <div class="button-row">
-            <button id="btn-save-log" class="primary-button">保存</button>
-            <button id="btn-clear-form" class="ghost-button">クリア</button>
-          </div>
-
-          <p class="hint" style="margin-top:6px;">
-            ※ 現在のユーザーは右上メニューで確認できます。生産計画と工程を選択した状態で実績を登録してください。
-          </p>
-        </div>
-      
-          </div>
-        </div>
-</section>
-
-      <!-- 生産計画入力 -->
-      <section id="plan-input-section" class="section">
-        <div class="page">
-          <div class="page-header">
-            <div class="page-title-group">
-              <h1 class="page-title">生産計画入力</h1>
-              <p class="page-subtitle">新しい生産計画を登録します。</p>
-            </div>
-            <div class="page-actions"></div>
-          </div>
-          <div class="page-content">
-
-        <div class="card">
-          <h2 class="card-title">生産計画登録</h2>
-          <p>新しい生産計画を登録してください。（製品 × 工程 × 数量 単位）</p>
-          <div class="form-grid">
-  <div class="form-group">
-    <label for="plan-product-code" class="field-required">図番</label>
-    <input id="plan-product-code" type="text" placeholder="例: Z-001">
-  </div>
-
-  <div class="form-group">
-    <label for="plan-product-name" class="field-required">品名</label>
-    <input id="plan-product-name" type="text" placeholder="例: 品名A">
-  </div>
-
-  <div class="form-group">
-    <label for="plan-process" class="field-required">工程名</label>
-    <select id="plan-process">
-      <option value="">選択してください</option>
-                <option value="準備工程">準備工程</option>
-                <option value="レザー加工">レザー加工</option>
-                <option value="外注工程">外注工程</option>
-                <option value="曲げ加工">曲げ加工</option>
-                <option value="外枠組立工程">外枠組立工程</option>
-                <option value="パンタ組立工程">パンタ組立工程</option>
-                <option value="シャッター組立">工程シャッター組立工程</option>
-                <option value="スポット工程">スポット工程</option>
-                <option value="コーキング工程">コーキング工程</option>
-                <option value="溶接工程">溶接工程</option>
-                <option value="組立工程">組立工程</option>
-                <option value="検査工程">検査工程</option>
-                <option value="出荷準備">出荷準備</option>
-                <option value="出荷完成">出荷完成</option>
-              </select>
-            </div>
-           <div class="form-group">
-    <label for="plan-qty" class="field-required">計画数量</label>
-    <input id="plan-qty" type="number" min="0" value="0">
-  </div>
-
-  <div class="form-group">
-    <label for="plan-start" class="field-required">計画開始</label>
-    <input id="plan-start" type="datetime-local">
-  </div>
-
-  <div class="form-group">
-    <label for="plan-end" class="field-required">計画終了</label>
-    <input id="plan-end" type="datetime-local">
-  </div>
-            <div class="form-group">
-              <label for="plan-status">ステータス</label>
-              <select id="plan-status">
-                <option value="計画中">計画中</option>
-                <option value="進行中">進行中</option>
-                <option value="完了">完了</option>
-                <option value="中止">中止</option>
-              </select>
-            </div>
-          </div>
-          <div class="button-row">
-            <button id="btn-save-plan" class="primary-button">計画登録</button>
-            <button id="btn-clear-plan" class="ghost-button">クリア</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2 class="card-title">生産計画インポート（CSV）</h2>
-          <p>
-            Excelから「CSV UTF-8」で保存し、1行目をヘッダーとして貼り付けてください。<br>
-            列順: 図番, 品名, 工程名, 計画数量, 計画開始, 計画終了, ステータス
-          </p>
-          <div class="form-group">
-            <textarea id="plan-import-text" rows="6"
-                      placeholder="図番,品名,工程名,計画数量,計画開始,計画終了,ステータス"></textarea>
-          </div>
-          <button id="btn-import-plans" class="secondary-button">インポート実行</button>
-        </div>
-      
-          </div>
-        </div>
-</section>
-
-      <!-- 生産一覧 -->
-      <section id="plan-list-section" class="section">
-        <div class="page">
-          <div class="page-header">
-            <div class="page-title-group">
-              <h1 class="page-title">生産計画一覧</h1>
-              <p class="page-subtitle">登録済み計画の進捗確認・スキャン開始・更新ができます。</p>
-            </div>
-            <div class="page-actions"></div>
-          </div>
-          <div class="page-content">
-            <div id="plan-list-block" class="monitor-source">
-
-        <div class="card">
-          <div class="card-header-row">
-            <h2 class="card-title">生産計画一覧</h2>
-            <div class="button-row">
-              <button id="btn-refresh-plans" class="primary-button"><svg class="icon"><use href="#i-refresh"></use></svg>更新</button>
-            </div>
-          </div>
-          <div class="table-wrapper">
-            <table class="responsive-table">
-              <thead>
-              <tr>
-                <th>図番</th>
-                <th>品名</th>
-                <th>工程名</th>
-                <th>計画数量</th>
-                <th>計画開始</th>
-                <th>計画終了</th>
-                <th>実績/計画</th>
-                <th>ステータス</th>
-                <th>操作</th>
-              </tr>
-              </thead>
-              <tbody id="plans-tbody"></tbody>
-            </table>
-            </div>
-
-          </div>
-        </div>
-      
-          </div>
-        </div>
-</section>
-
-      <!-- Admin: user & terminal register -->
-      <section id="admin-section" class="section">
-        <div class="page">
-          <div class="page-header">
-            <div class="page-title-group">
-              <h1 class="page-title">管理者</h1>
-              <p class="page-subtitle">ユーザー/工程の登録と管理を行います。</p>
-            </div>
-            <div class="page-actions"></div>
-          </div>
-          <div class="page-content">
-
-        <div class="card">
-          <h2 class="card-title">管理者メニュー（ユーザー / 工程登録）</h2>
-          <p>管理者権限ユーザーでログインすると使用できます。（ロール: admin）</p>
-          <p id="admin-guard-message" class="warning">
-            現在のユーザーには管理者権限がありません。
-          </p>
-          <div id="admin-content" class="admin-grid hidden">
-            <div class="admin-section">
-              <h3>ユーザー登録</h3>
-              <div class="form-group">
-                <label for="admin-user-id">ユーザーID</label>
-                <input id="admin-user-id" type="text" placeholder="例: U001">
-              </div>
-              <div class="form-group">
-                <label for="admin-user-name">氏名（日本語）</label>
-                <input id="admin-user-name" type="text" placeholder="例: 山田 太郎">
-              </div>
-              <div class="form-group">
-                <label for="admin-user-role">権限</label>
-                <select id="admin-user-role">
-                  <option value="operator">オペレーター</option>
-                  <option value="qc">QC</option>
-                  <option value="admin">管理者</option>
-                </select>
-              </div>
-              <button id="btn-admin-create-user" class="primary-button">ユーザー登録</button>
-
-              <h4>ユーザーQRコード</h4>
-              <p>登録後に下のQRコードを印刷して、現場で使用してください。</p>
-              <div id="user-qr-container" class="qr-container"></div>
-            </div>
-
-            <div class="admin-section">
-              <h3>工程登録</h3>
-              <div class="form-group">
-                <label for="admin-terminal-id">工程ID</label>
-                <input id="admin-terminal-id" type="text" placeholder="例: T001">
-              </div>
-              <div class="form-group">
-                <label for="admin-terminal-name">工程名称</label>
-                <input id="admin-terminal-name" type="text" placeholder="例: レザー加工工程1">
-              </div>
-              <div class="form-group">
-                <label for="admin-terminal-process">工程</label>
-                <select id="admin-terminal-process">
-                  <option>レザー加工</option>
-                  <option>外注工程</option>
-                  <option>曲げ加工</option>
-                  <option>準備工程</option>
-                  <option>外枠組立工程</option>
-                  <option>パンタ組立工程</option>
-                  <option>シャッター組立工程</option>
-                  <option>スポット工程</option>
-                  <option>コーキング工程</option>
-                  <option>溶接工程</option>
-                  <option>組立工程</option>
-                  <option>検査工程</option>
-                  <option>出荷準備</option>
-                  <option>出荷完成</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="admin-terminal-location">ロケーション</label>
-                <input id="admin-terminal-location" type="text" placeholder="例: 第1工場 ラインA">
-              </div>
-              <button id="btn-admin-create-terminal" class="primary-button">工程登録</button>
-
-              <h4>工程QRコード</h4>
-              <p>登録後に下のQRコードを印刷して、各工程の工程に貼り付けてください。</p>
-              <div id="terminal-qr-container" class="qr-container"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ユーザー一覧 / QRラベル -->
-        <div id="admin-user-list-card" class="card hidden">
-          <h3 class="card-title">ユーザー一覧 / QRラベル</h3>
-          <div class="table-wrapper">
-            <table class="responsive-table">
-              <thead>
-              <tr>
-                <th>QR</th>
-                <th>ユーザーID</th>
-                <th>氏名</th>
-                <th>権限</th>
-                <th>操作</th>
-              </tr>
-              </thead>
-              <tbody id="admin-user-list-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- User Management Card -->
-        <div id="admin-user-management-card" class="card hidden">
-          <h3 class="card-title">👥 ユーザー管理</h3>
-
-          <!-- New User -->
-          <div class="admin-section">
-            <h4>✨ 新規ユーザー登録</h4>
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="new-user-id">ユーザーID *</label>
-                <input id="new-user-id" type="text" placeholder="例: U001" required>
-              </div>
-              <div class="form-group">
-                <label for="new-user-name">氏名（日本語）*</label>
-                <input id="new-user-name" type="text" placeholder="例: 山田 太郎" required>
-              </div>
-              <div class="form-group">
-                <label for="new-user-role">権限 *</label>
-                <select id="new-user-role">
-                  <option value="operator">オペレーター</option>
-                  <option value="qc">QC</option>
-                  <option value="admin">管理者</option>
-                </select>
-              </div>
-            </div>
-            <button id="btn-create-new-user" class="primary-button">
-              <span>➕ ユーザー登録してQR生成</span>
-            </button>
-
-            <!-- QR Display -->
-            <div id="new-user-qr-area" class="qr-display-area hidden">
-              <h5>✅ ユーザー登録完了！</h5>
-              <p>下記のQRコードを印刷して現場で使用してください。</p>
-              <div class="qr-result-card">
-                <div id="new-user-qr-container" class="qr-container-large"></div>
-                <div class="qr-info">
-                  <p><strong>ユーザーID:</strong> <span id="new-user-qr-id"></span></p>
-                  <p><strong>氏名:</strong> <span id="new-user-qr-name"></span></p>
-                  <p><strong>権限:</strong> <span id="new-user-qr-role"></span></p>
-                </div>
-                <button id="btn-download-new-user-qr" class="secondary-button">
-                  📥 QRコードをダウンロード
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- User list -->
-          <div class="admin-section">
-            <h4>📋 ユーザー一覧</h4>
-            <div class="table-wrapper">
-              <table class="responsive-table">
-                <thead>
-                <tr>
-                  <th>QR</th>
-                  <th>ユーザーID</th>
-                  <th>氏名</th>
-                  <th>権限</th>
-                  <th>作成日時</th>
-                  <th>操作</th>
-                </tr>
-                </thead>
-                <tbody id="user-list-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      
-          </div>
-        </div>
-</section>
-
-      <!-- 工程一覧 / QRラベル -->
-      <section id="terminalqr-section" class="section">
-        <div class="page">
-          <div class="page-header">
-            <div class="page-title-group">
-              <h1 class="page-title">工程一覧 / QRラベル</h1>
-              <p class="page-subtitle">工程一覧の確認とQRラベルの印刷/ダウンロードを行います。</p>
-            </div>
-            <div class="page-actions"></div>
-          </div>
-          <div class="page-content">
-
-        <div id="admin-terminal-list-card" class="card">
-          <h2 class="card-title">工程一覧 / QRラベル</h2>
-          <p>登録済みの工程一覧と各工程のQRラベルを確認できます。</p>
-          <p class="warning">管理者としてログインすると内容が表示されます。（ロール: admin）</p>
-
-          <div class="table-wrapper">
-            <table class="responsive-table">
-              <thead>
-              <tr>
-                <th>QR</th>
-                <th>工程ID</th>
-                <th>工程名称</th>
-                <th>工程</th>
-                <th>ロケーション</th>
-                <th>操作</th>
-              </tr>
-              </thead>
-              <tbody id="admin-terminal-list-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2 class="card-title">工程QR一覧（印刷用）</h2>
-          <p>すべての工程のQRコードを一覧表示します。このページを印刷して現場に配布してください。</p>
-          <p id="terminalqr-guard" class="warning">
-            管理者としてログインすると表示されます。（ロール: admin）
-          </p>
-          <div id="terminal-qr-list" class="terminalqr-grid hidden"></div>
-        </div>
-      
-          </div>
-        </div>
-</section>
-
-    </main>
-
-    <!-- Floating Scan button (mobile) -->
-    <button id="fab-scan" class="fab-scan" aria-label="スキャン画面へ">
-      <svg class="icon icon-lg" aria-hidden="true"><use href="#i-scan"></use></svg>
-      <span class="fab-label">SCAN</span>
-    </button>
-
-    <!-- Mobile bottom navigation -->
-    <nav class="mobile-bottom-nav">
-      <button class="mobile-nav-link active" data-section="dashboard-section">
-        <svg class="icon icon-lg mobile-nav-icon" aria-hidden="true"><use href="#i-home"></use></svg>
-        <span class="mobile-nav-label">ダッシュボード</span>
-      </button>
-      <button class="mobile-nav-link" data-section="scan-section">
-        <svg class="icon icon-lg mobile-nav-icon" aria-hidden="true"><use href="#i-scan"></use></svg>
-        <span class="mobile-nav-label">スキャン</span>
-      </button>
-      <button class="mobile-nav-link" data-section="plan-list-section">
-        <svg class="icon icon-lg mobile-nav-icon" aria-hidden="true"><use href="#i-list"></use></svg>
-        <span class="mobile-nav-label">生産一覧</span>
-      </button>
-    </nav>
-
-    <footer class="app-footer">
-      Design by Wahyu
-    </footer>
-
-  </div>
-</div>
-
-<!-- 編集モーダル -->
-<div id="edit-modal" class="modal hidden">
-  <div class="modal-content">
-    <h3>ログ編集</h3>
-    <input type="hidden" id="edit-log-id">
-    <div class="form-group">
-      <label for="edit-qty-total">総数量</label>
-      <input id="edit-qty-total" type="number" min="0">
-    </div>
-    <div class="form-group">
-      <label for="edit-qty-ok">OK数量</label>
-      <input id="edit-qty-ok" type="number" min="0">
-    </div>
-    <div class="form-group">
-      <label for="edit-qty-ng">不良数量</label>
-      <input id="edit-qty-ng" type="number" min="0">
-    </div>
-    <div class="form-group">
-      <label for="edit-status">ステータス</label>
-      <select id="edit-status">
-        <option value="通常">通常</option>
-        <option value="検査保留">検査保留</option>
-        <option value="終了">終了</option>
-      </select>
-    </div>
-    <div class="button-row">
-      <button id="btn-edit-save" class="primary-button">更新</button>
-      <button id="btn-edit-cancel" class="ghost-button">キャンセル</button>
-    </div>
-  </div>
-</div>
-
-<!-- ヘルプモーダル -->
-<div id="help-modal" class="modal hidden">
-  <div class="modal-content">
-    <h3>ヘルプ</h3>
-
-    <p>このシステムの基本的な使い方:</p>
-    <ol class="help-list">
-      <li>① 右上メニューでユーザーQRまたはユーザーIDでログインします。</li>
-      <li>② 「生産一覧」で対象の生産計画を選び、「スキャン/更新」をクリックします。<br>
-        ┗ 製品番号・製品名・計画数量が「生産データ入力」に自動設定されます。
-      </li>
-      <li>③ 「スキャン」画面で工程QRをスキャンします。<br>
-        ┗ 工程名・端末・ロケーションが自動でセットされます。
-      </li>
-      <li>④ ステータス・数量・作業人数を確認して「保存」ボタンで実績を登録します。</li>
-      <li>⑤ 「ダッシュボード」で最新の実績と生産計画の進捗をリアルタイムに確認できます。</li>
-      <li>⑥ 「ユーザー / QR」「工程一覧」でマスタとQRコードを管理できます。（adminのみ）</li>
-    </ol>
-
-    <h4 style="margin-top:8px;">ステータスの使い分け</h4>
-    <ul class="help-list">
-      <li><strong>工程開始</strong>：工程を始めるときに使用します。開始時刻だけを記録し、終了時に所要時間を計算します。</li>
-      <li><strong>工程終了</strong>：工程が完了したときに使用します。OK/不良数量と作業人数を入力して保存します。</li>
-      <li><strong>一時停止（保留）</strong>：段取り替え・別作業へ一時移動・材料待ちなど「一旦止めて後で再開する」場合に使用します。数量が確定していない場合は 0 のままでも構いません。</li>
-      <li><strong>検査保留</strong>：品質確認のため一時停止する場合に使用します。ダッシュボードで注意が必要な工程として強調表示されます。</li>
-    </ul>
-
-    <h4 style="margin-top:8px;">HOLDして別作業を行う場合の流れ</h4>
-    <ol class="help-list">
-      <li>1) 工程Aを開始：ステータス「工程開始」で保存。</li>
-      <li>2) 一時停止したいタイミングで、同じ生産計画＋工程Aを選び、<br>
-        ステータスを「一時停止」または「検査保留」にして保存。<br>
-        ┗ 開始〜一時停止までの時間が1つの区間としてログに記録されます。
-      </li>
-      <li>3) 別の作業Bを行うときは、生産計画B＋工程Bを選び、<br>
-        「工程開始」→ 作業完了時に「工程終了」で登録します。
-      </li>
-      <li>4) 工程Aに戻るときは、再度 生産計画A＋工程Aを選び、<br>
-        「工程開始」→ 最後に「工程終了」で登録します。<br>
-        ┗ 区間ごとにログは分かれますが、システム側で自動的に合計作業時間として集計されます。
-      </li>
-    </ol>
-
-    <h4 style="margin-top:8px;">複数人作業（作業人数）の入力</h4>
-    <ul class="help-list">
-      <li>通常は「作業人数 = 1」のままで構いません。</li>
-      <li>同じ工程を2人以上で同時に行った場合、<strong>終了登録のとき</strong>に実際の人数を入力してください。<br>
-        例：2人作業 → 作業人数「2」<br>
-        ┗ 合計工数（man-hour）は「作業時間 × 作業人数」で自動計算されます。
-      </li>
-    </ul>
-
-    <h4 style="margin-top:8px;">社内 / 外注 の扱い</h4>
-    <ul class="help-list">
-      <li>工程マスタのロケーションに「外注」や「subcon」などの文字を含めて登録すると、その工程は自動的に<strong>外注工程</strong>として扱われます。</li>
-      <li>特に指定がない工程は<strong>社内工程</strong>として扱われます。</li>
-      <li>ダッシュボード上部の「作業区分」フィルターで、「社内のみ」「外注のみ」を切り替えて表示できます。</li>
-    </ul>
-
-    <h4 style="margin-top:8px;">モニタ表示（デジタルサイネージ）</h4>
-    <ul class="help-list">
-      <li>右上の「モニタ表示」ボタンを押すと、サイドメニューなどが非表示になり、ライン全体の進捗を表示するモードになります。</li>
-      <li>テレビや大型ディスプレイにブラウザ画面を映すことで、現場全員がリアルタイムの進捗を共有できます。</li>
-      <li>通常表示に戻るには、ブラウザを再読み込み（F5）してください。</li>
-    </ul>
-
-    <p style="margin-top:8px;font-size:0.8rem;color:#666;">
-      ※ Bahasa Indonesia (ringkas):<br>
-      1) Login dengan QR/ID user, pilih rencana di 「生産一覧」 lalu klik 「スキャン/更新」.<br>
-      2) Di menu 「スキャン」 scan QR proses, pilih status (開始 / 終了 / 一時停止 / 検査保留) dan isi qty.<br>
-      3) Jika kerja lebih dari 1 orang, ubah 「作業人数」 saat input 終了. Sistem otomatis hitung man-hour dan membedakan 社内 vs 外注 dari lokasi di master工程.
-    </p>
-
-    <div class="button-row" style="margin-top:8px;">
-      <button id="btn-help-close" class="primary-button">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<!-- Loading badge -->
-<div id="global-loading" class="loading-badge hidden">
-  <div class="spinner"></div>
-  <span id="loading-text">通信中...</span>
-</div>
-
-<!-- Toast notification -->
-<div id="global-toast" class="toast hidden"></div>
-
-<!-- SVG Icon Sprite (UI consistent icons) -->
-<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
-  <symbol id="i-home" viewBox="0 0 24 24">
-    <path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/>
-  </symbol>
-  <symbol id="i-scan" viewBox="0 0 24 24">
-    <path d="M4 7V4h3V2H2v5h2zm13-5v2h3v3h2V2h-5zM4 17H2v5h5v-2H4v-3zm18 0h-2v3h-3v2h5v-5z"/>
-    <path d="M7 12h10v2H7z"/>
-  </symbol>
-  <symbol id="i-list" viewBox="0 0 24 24">
-    <path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/>
-  </symbol>
-  <symbol id="i-refresh" viewBox="0 0 24 24">
-    <path d="M17.65 6.35A7.95 7.95 0 0012 4V1L7 6l5 5V7a5 5 0 014.9 4H19a7 7 0 00-1.35-4.65z"/>
-    <path d="M6.35 17.65A7.95 7.95 0 0012 20v3l5-5-5-5v4a5 5 0 01-4.9-4H5a7 7 0 001.35 4.65z"/>
-  </symbol>
-  <symbol id="i-info" viewBox="0 0 24 24">
-    <path d="M11 17h2v-6h-2v6zm0-8h2V7h-2v2z"/>
-    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/>
-  </symbol>
-  <symbol id="i-download" viewBox="0 0 24 24">
-    <path d="M5 20h14v-2H5v2z"/>
-    <path d="M11 3h2v9h3l-4 4-4-4h3V3z"/>
-  </symbol>
-  <symbol id="i-trash" viewBox="0 0 24 24">
-    <path d="M6 7h12l-1 14H7L6 7zm3-3h6l1 2H8l1-2z"/>
-  </symbol>
-  <symbol id="i-edit" viewBox="0 0 24 24">
-    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/>
-    <path d="M20.71 7.04a1 1 0 000-1.41L18.37 3.29a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-  </symbol>
-  <symbol id="i-print" viewBox="0 0 24 24">
-    <path d="M6 9V3h12v6H6zm10-4H8v2h8V5z"/>
-    <path d="M6 19v2h12v-2H6z"/>
-    <path d="M19 10H5a3 3 0 00-3 3v4h4v-3h12v3h4v-4a3 3 0 00-3-3z"/>
-  </symbol>
-  <symbol id="i-csv" viewBox="0 0 24 24">
-    <path d="M6 2h9l5 5v15a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/>
-    <path d="M14 2v6h6"/>
-    <path d="M7 14h10v2H7v-2zm0 4h10v2H7v-2z"/>
-  </symbol>
-  <symbol id="i-search" viewBox="0 0 24 24">
-    <path d="M10 2a8 8 0 105.29 14l4.7 4.7 1.41-1.41-4.7-4.7A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z"/>
-  </symbol>
-
-  <symbol id="i-chevron-left" viewBox="0 0 24 24">
-    <path d="M15 18l-6-6 6-6 1.4 1.4L11.8 12l4.6 4.6L15 18z"/>
-  </symbol>
-
-  <symbol id="i-chevron-right" viewBox="0 0 24 24">
-    <path d="M9 6l6 6-6 6-1.4-1.4 4.6-4.6L7.6 7.4 9 6z"/>
-  </symbol>
-
-  <symbol id="i-close" viewBox="0 0 24 24">
-    <path d="M18.3 5.7L12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3 1.4 1.4z"/>
-  </symbol>
-</svg>
-
-<script src="app.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('service-worker.js').catch(function (err) {
-        console.log('SW registration failed:', err);
+// =====================================
+// 生産進捗トラッキング フロントエンド
+// =====================================
+
+// ★Apps Script Web App URL（/exec）をセット
+const API_URL = 'https://script.google.com/macros/s/AKfycby_U7mv3AavS2AFgRE3mm-1ZKbT9cJodZwq_xayPy_twJQK74wp3nrO-Fgi5-0eO9v1/exec';
+
+// 状態
+let currentUser = null;
+let currentTerminal = null;
+let masterUsers = [];
+let masterTerminals = [];
+let dashboardLogs = [];
+let plans = [];
+let html5Qrcode = null;
+let currentScanMode = null;
+let currentPlanForScan = null; // ★ 生産計画から選択中のplan
+let processChart = null;
+
+// localStorage keys
+const ACTIVE_SESSION_KEY = 'active_sessions_v1';
+const OFFLINE_QUEUE_KEY = 'offline_log_queue_v1';
+const LAST_USER_KEY = 'last_user_v1';   // ★ Quick Login: user terakhir
+
+// Feature flags (環境ごとに切り替え可能)
+const FEATURE_FLAGS = {
+  // 管理者向け「Create User」メニューを有効にするかどうか
+  enableCreateUser: true,
+};
+
+/* ================================
+   共通UIユーティリティ
+   ================================ */
+
+function setGlobalLoading(isLoading, text) {
+  const el = document.getElementById('global-loading');
+  const t = document.getElementById('loading-text');
+  if (!el) return;
+  if (isLoading) {
+    if (t && text) t.textContent = text;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+let toastTimer = null;
+function showToast(message, type = 'info') {
+  const el = document.getElementById('global-toast');
+  if (!el) return;
+
+  el.textContent = message;
+  el.className = 'toast';
+  if (type === 'success') el.classList.add('toast-success');
+  else if (type === 'error') el.classList.add('toast-error');
+  else el.classList.add('toast-info');
+
+  el.classList.remove('hidden');
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.add('hidden');
+  }, 3000);
+}
+
+let dashboardAutoTimer = null;
+
+function startDashboardAutoRefresh() {
+  if (dashboardAutoTimer) clearInterval(dashboardAutoTimer);
+
+  dashboardAutoTimer = setInterval(() => {
+    const dashSection = document.getElementById('dashboard-section');
+    if (dashSection && dashSection.classList.contains('active')) {
+      loadDashboard();
+      loadAnalytics();
+    }
+  }, 60000);
+}
+
+function escapeHtml(text) {
+  if (text == null) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getRoleLabel(role) {
+  if (role === 'admin') return '管理者';
+  if (role === 'qc') return 'QC';
+  if (role === 'operator') return 'オペレーター';
+  return role || '';
+}
+
+function iconMarkup(symbolId, extraClass = '') {
+  const cls = ['icon', extraClass].filter(Boolean).join(' ');
+  return `<svg class="${cls}" aria-hidden="true"><use href="#${symbolId}"></use></svg>`;
+
+/* ================================
+   Monitor Carousel (Digital Signage)
+   ================================ */
+
+const monitorCarousel = {
+  active: false,
+  index: 0,
+  timer: null,
+  autoMs: 12000,
+  restoreMap: new Map(),
+  root: null,
+  track: null,
+  slides: [],
+  dotsEl: null,
+  viewport: null,
+  bound: false,
+  clockTimer: null
+};
+
+function setupMonitorCarouselUI() {
+  const root = document.getElementById('monitor-carousel');
+  const track = document.getElementById('monitor-track');
+  const dotsEl = document.getElementById('monitor-dots');
+  const viewport = root ? root.querySelector('.monitor-viewport') : null;
+
+  if (!root || !track || !dotsEl || !viewport) return;
+
+  monitorCarousel.root = root;
+  monitorCarousel.track = track;
+  monitorCarousel.dotsEl = dotsEl;
+  monitorCarousel.viewport = viewport;
+  monitorCarousel.slides = Array.from(root.querySelectorAll('.monitor-slide'));
+
+  // Build dots once
+  if (!dotsEl.dataset.built) {
+    dotsEl.dataset.built = '1';
+    dotsEl.innerHTML = '';
+    monitorCarousel.slides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'monitor-dot';
+      dot.title = `スライド ${i + 1}`;
+      dot.setAttribute('aria-label', `スライド ${i + 1}`);
+      dot.addEventListener('click', () => {
+        setMonitorIndex(i);
+        restartMonitorAuto();
       });
+      dotsEl.appendChild(dot);
     });
   }
-</script>
 
-  <!-- Monitor Carousel (Digital Signage) -->
-  <div id="monitor-carousel" class="monitor-carousel" aria-hidden="true">
-    <div class="monitor-topbar">
-      <div class="monitor-brand">
-        <img src="tsh.png" alt="TSH" class="monitor-logo">
-        <div class="monitor-title">
-          <div class="monitor-title-main">生産進捗 モニタ</div>
-          <div class="monitor-title-sub" id="monitor-clock">--:--</div>
+  const prevBtn = document.getElementById('monitor-prev');
+  const nextBtn = document.getElementById('monitor-next');
+  const exitBtn = document.getElementById('btn-exit-monitor');
+
+  if (prevBtn && !prevBtn.dataset.bound) {
+    prevBtn.dataset.bound = '1';
+    prevBtn.addEventListener('click', () => {
+      setMonitorIndex(monitorCarousel.index - 1);
+      restartMonitorAuto();
+    });
+  }
+  if (nextBtn && !nextBtn.dataset.bound) {
+    nextBtn.dataset.bound = '1';
+    nextBtn.addEventListener('click', () => {
+      setMonitorIndex(monitorCarousel.index + 1);
+      restartMonitorAuto();
+    });
+  }
+  if (exitBtn && !exitBtn.dataset.bound) {
+    exitBtn.dataset.bound = '1';
+    exitBtn.addEventListener('click', () => {
+      document.body.classList.remove('monitor-mode');
+      exitMonitorModeCarousel();
+      showToast('通常表示に戻りました。', 'info');
+    });
+  }
+
+  // Swipe gesture
+  if (!monitorCarousel.bound) {
+    monitorCarousel.bound = true;
+    let startX = 0;
+    let startY = 0;
+    let isTouching = false;
+
+    viewport.addEventListener('touchstart', (e) => {
+      if (!e.touches || !e.touches[0]) return;
+      isTouching = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', (e) => {
+      if (!isTouching || !e.touches || !e.touches[0]) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      // If vertical scroll is dominant, ignore (allow scrolling inside slide)
+      if (Math.abs(dy) > Math.abs(dx)) return;
+      // prevent page bounce while swiping horizontally
+      e.preventDefault();
+    }, { passive: false });
+
+    viewport.addEventListener('touchend', (e) => {
+      if (!isTouching) return;
+      isTouching = false;
+      const touch = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      if (!touch) return;
+      const dx = touch.clientX - startX;
+      const threshold = 50;
+      if (dx > threshold) {
+        setMonitorIndex(monitorCarousel.index - 1);
+        restartMonitorAuto();
+      } else if (dx < -threshold) {
+        setMonitorIndex(monitorCarousel.index + 1);
+        restartMonitorAuto();
+      }
+    });
+
+    // Keyboard (useful on TV/PC)
+    document.addEventListener('keydown', (e) => {
+      if (!document.body.classList.contains('monitor-mode')) return;
+      if (e.key === 'ArrowLeft') {
+        setMonitorIndex(monitorCarousel.index - 1);
+        restartMonitorAuto();
+      } else if (e.key === 'ArrowRight') {
+        setMonitorIndex(monitorCarousel.index + 1);
+        restartMonitorAuto();
+      } else if (e.key === 'Escape') {
+        document.body.classList.remove('monitor-mode');
+        exitMonitorModeCarousel();
+        showToast('通常表示に戻りました。', 'info');
+      }
+    });
+  }
+
+  startMonitorClock();
+  setMonitorIndex(monitorCarousel.index, true);
+}
+
+function setMonitorIndex(i, instant = false) {
+  const root = monitorCarousel.root;
+  const track = monitorCarousel.track;
+  const dotsEl = monitorCarousel.dotsEl;
+  if (!root || !track || !dotsEl) return;
+
+  const count = monitorCarousel.slides.length || 1;
+  monitorCarousel.index = (i % count + count) % count;
+
+  if (instant) {
+    track.style.transition = 'none';
+  } else {
+    track.style.transition = 'transform .55s ease';
+  }
+  track.style.transform = `translateX(${-monitorCarousel.index * 100}%)`;
+
+  const dots = Array.from(dotsEl.querySelectorAll('.monitor-dot'));
+  dots.forEach((d, idx) => d.classList.toggle('active', idx === monitorCarousel.index));
+}
+
+function startMonitorAuto() {
+  stopMonitorAuto();
+  monitorCarousel.timer = setInterval(() => {
+    setMonitorIndex(monitorCarousel.index + 1);
+  }, monitorCarousel.autoMs);
+}
+
+function stopMonitorAuto() {
+  if (monitorCarousel.timer) {
+    clearInterval(monitorCarousel.timer);
+    monitorCarousel.timer = null;
+  }
+}
+
+function restartMonitorAuto() {
+  startMonitorAuto();
+}
+
+function startMonitorClock() {
+  const clockEl = document.getElementById('monitor-clock');
+  if (!clockEl) return;
+
+  const update = () => {
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    clockEl.textContent = `${hh}:${mm}:${ss}`;
+  };
+  update();
+
+  if (monitorCarousel.clockTimer) clearInterval(monitorCarousel.clockTimer);
+  monitorCarousel.clockTimer = setInterval(update, 1000);
+}
+
+function enterMonitorModeCarousel() {
+  setupMonitorCarouselUI();
+  const root = monitorCarousel.root;
+  const slides = monitorCarousel.slides;
+  if (!root || slides.length === 0) return;
+
+  const sources = [
+    { id: 'dash-summary-block', title: '概要' },
+    { id: 'dash-chart-block', title: 'グラフ' },
+    { id: 'plan-list-block', title: '計画一覧' },
+    { id: 'dash-latest-block', title: '最新実績' },
+    { id: 'dash-overdue-block', title: '遅れ計画' },
+    { id: 'dash-topng-block', title: 'Top NG' },
+    { id: 'dash-bottleneck-block', title: 'ボトルネック' },
+    { id: 'dash-topitems-block', title: '頻出品目' }
+  ];
+
+  // Fill each slide by moving existing DOM blocks (keeps live updates)
+  sources.forEach((s, idx) => {
+    const slide = slides[idx];
+    if (!slide) return;
+    slide.innerHTML = '';
+
+    const el = document.getElementById(s.id);
+    if (!el) {
+      slide.innerHTML = `
+        <div class="card">
+          <h2 class="card-title">${s.title}</h2>
+          <p>表示対象が見つかりませんでした。</p>
         </div>
-      </div>
-      <div class="monitor-controls">
-        <button class="ghost-button ghost-small" id="monitor-prev" title="前へ" aria-label="前へ">
-          <svg class="icon"><use href="#i-chevron-left"></use></svg>
-        </button>
-        <div class="monitor-dots" id="monitor-dots" aria-label="スライド選択"></div>
-        <button class="ghost-button ghost-small" id="monitor-next" title="次へ" aria-label="次へ">
-          <svg class="icon"><use href="#i-chevron-right"></use></svg>
-        </button>
-        <button class="ghost-button ghost-small" id="btn-exit-monitor" title="通常表示へ" aria-label="通常表示へ">
-          <svg class="icon"><use href="#i-close"></use></svg>
-          戻る
-        </button>
-      </div>
-    </div>
-    <div class="monitor-viewport">
-      <div class="monitor-track" id="monitor-track">
-        
-        <div class="monitor-slide" data-slide="0"></div>
-        <div class="monitor-slide" data-slide="1"></div>
-        <div class="monitor-slide" data-slide="2"></div>
-        <div class="monitor-slide" data-slide="3"></div>
-        <div class="monitor-slide" data-slide="4"></div>
-        <div class="monitor-slide" data-slide="5"></div>
-        <div class="monitor-slide" data-slide="6"></div>
-        <div class="monitor-slide" data-slide="7"></div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
+      `;
+      return;
+    }
+
+    if (!monitorCarousel.restoreMap.has(el)) {
+      monitorCarousel.restoreMap.set(el, { parent: el.parentNode, next: el.nextSibling });
+    }
+    slide.appendChild(el);
+  });
+
+  root.classList.add('active');
+  root.setAttribute('aria-hidden', 'false');
+  setMonitorIndex(0, true);
+  startMonitorAuto();
+}
+
+function exitMonitorModeCarousel() {
+  stopMonitorAuto();
+  const root = monitorCarousel.root;
+  const restoreMap = monitorCarousel.restoreMap;
+
+  // Restore moved blocks to original parents
+  restoreMap.forEach((info, el) => {
+    if (!info || !info.parent) return;
+    try {
+      if (info.next && info.parent.contains(info.next)) {
+        info.parent.insertBefore(el, info.next);
+      } else {
+        info.parent.appendChild(el);
+      }
+    } catch (e) {
+      // If restoration fails, append to dashboard as safe fallback
+      const fallback = document.getElementById('dash-summary-block');
+      if (fallback) fallback.appendChild(el);
+    }
+  });
+  restoreMap.clear();
+
+  if (root) {
+    root.classList.remove('active');
+    root.setAttribute('aria-hidden', 'true');
+  }
+}
+}
+
+
+/* ================================
+   QRラベル 共通
+   ================================ */
+
+function getQrImageData(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return null;
+  const img = container.querySelector('img');
+  const canvas = container.querySelector('canvas');
+  if (img && img.src) return img.src;
+  if (canvas && canvas.toDataURL) return canvas.toDataURL('image/png');
+  return null;
+}
+
+function downloadQrLabel(containerId, filename) {
+  const dataUrl = getQrImageData(containerId);
+  if (!dataUrl) {
+    showToast('QRコードが見つかりません。', 'error');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename || 'qr.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function printQrLabel(containerId, titleText, subtitleText) {
+  const dataUrl = getQrImageData(containerId);
+  if (!dataUrl) {
+    showToast('QRコードが見つかりません。', 'error');
+    return;
+  }
+  const win = window.open('', '_blank', 'width=400,height=400');
+  if (!win) {
+    showToast('ポップアップがブロックされています。', 'error');
+    return;
+  }
+  win.document.write(`
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>QRラベル</title>
+        <style>
+          body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 16px; }
+          .label-wrap { text-align: center; }
+          img { width: 140px; height: 140px; }
+          .title { margin-top: 8px; font-size: 14px; font-weight: 600; }
+          .sub { font-size: 12px; color: #4b5563; }
+        </style>
+      </head>
+      <body>
+        <div class="label-wrap">
+          <img src="${dataUrl}">
+          <div class="title">${titleText || ''}</div>
+          <div class="sub">${subtitleText || ''}</div>
+        </div>
+        <script>window.print();<\/script>
+      </body>
+    </html>
+  `);
+  win.document.close();
+}
+
+/* ================================
+   Admin User List
+   ================================ */
+
+function renderAdminUserList() {
+  const tbody = document.getElementById('admin-user-list-tbody');
+  if (!tbody || !masterUsers || !currentUser || currentUser.role !== 'admin') return;
+
+  tbody.innerHTML = '';
+
+  masterUsers.forEach(user => {
+    const tr = document.createElement('tr');
+    const qrId = `admin-user-qr-${user.user_id}`;
+
+        tr.innerHTML = `
+      <td data-label="QR"><div class="qr-mini" id="${qrId}"></div></td>
+      <td data-label="ユーザーID"><strong>${escapeHtml(user.user_id)}</strong></td>
+      <td data-label="氏名">${escapeHtml(user.name_ja || user.name || '')}</td>
+      <td data-label="権限">${escapeHtml(getRoleLabel(user.role))}</td>
+      <td data-label="操作">
+        <div class="list-action-buttons">
+          <button type="button" class="mini-btn icon-btn mini-btn-edit" data-id="${user.user_id}" title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-print" data-id="${user.user_id}" title="印刷" aria-label="印刷">${iconMarkup('i-print')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-dl" data-id="${user.user_id}" title="DL" aria-label="DL">${iconMarkup('i-download')}</button>
+          <button type="button" class="mini-btn icon-btn danger mini-btn-del" data-id="${user.user_id}" title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+
+    const container = document.getElementById(qrId);
+    if (container) {
+      container.innerHTML = '';
+      new QRCode(container, { text: user.user_id, width: 64, height: 64 });
+    }
+  });
+
+  // 編集
+  tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const user = masterUsers.find(u => u.user_id === id);
+      if (!user) return;
+
+      const idInput    = document.getElementById('admin-user-id');
+      const nameInput  = document.getElementById('admin-user-name');
+      const roleSelect = document.getElementById('admin-user-role');
+
+      if (idInput)  idInput.value  = user.user_id;
+      if (nameInput) nameInput.value = user.name_ja || user.name || '';
+      if (roleSelect && user.role) roleSelect.value = user.role;
+
+      [idInput, nameInput, roleSelect].forEach(el => {
+        if (!el) return;
+        el.classList.add('highlight-once');
+        setTimeout(() => el.classList.remove('highlight-once'), 1200);
+      });
+
+      const adminUserCard = document.querySelector('#admin-section .admin-section');
+      if (adminUserCard) {
+        adminUserCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      showToast('ユーザー情報を編集フォームに読み込みました。上のフォームを修正して「ユーザー登録」を押してください。', 'info');
+    });
+  });
+
+  // 印刷
+  tbody.querySelectorAll('.mini-btn-print').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const user = masterUsers.find(u => u.user_id === id);
+      if (!user) return;
+      const qrId = `admin-user-qr-${id}`;
+      const title = `ID: ${user.user_id}`;
+      const sub = `${user.name_ja || user.name || ''} / ${getRoleLabel(user.role)}`;
+      printQrLabel(qrId, title, sub);
+    });
+  });
+
+  // ダウンロード
+  tbody.querySelectorAll('.mini-btn-dl').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const qrId = `admin-user-qr-${id}`;
+      downloadQrLabel(qrId, `USER_${id}.png`);
+    });
+  });
+
+  // 削除
+  tbody.querySelectorAll('.mini-btn-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const user = masterUsers.find(u => u.user_id === id);
+      if (!user) return;
+
+      if (!confirm(`ユーザー「${user.name_ja || user.name || id}」を削除しますか？`)) return;
+
+      try {
+        await callApi('deleteUser', { userId: id });
+        showToast('ユーザーを削除しました。', 'success');
+        loadMasterData();
+      } catch (err) {
+        console.error(err);
+        showToast('ユーザー削除に失敗しました: ' + err.message, 'error');
+      }
+    });
+  });
+}
+
+/* ================================
+   Admin Terminal List
+   ================================ */
+
+function renderAdminTerminalList() {
+  const tbody = document.getElementById('admin-terminal-list-tbody');
+  if (!tbody || !masterTerminals || !currentUser || currentUser.role !== 'admin') return;
+
+  tbody.innerHTML = '';
+
+  masterTerminals.forEach(t => {
+    const tr = document.createElement('tr');
+    const qrId = `admin-terminal-qr-${t.terminal_id}`;
+
+        tr.innerHTML = `
+      <td data-label="QR"><div class="qr-mini" id="${qrId}"></div></td>
+      <td data-label="工程ID"><strong>${escapeHtml(t.terminal_id)}</strong></td>
+      <td data-label="工程名称">${escapeHtml(t.name_ja || t.name || '')}</td>
+      <td data-label="工程">${escapeHtml(t.process_name || '')}</td>
+      <td data-label="ロケーション">${escapeHtml(t.location || '')}</td>
+      <td data-label="操作">
+        <div class="list-action-buttons">
+          <button type="button" class="mini-btn icon-btn mini-btn-edit" data-id="${t.terminal_id}" title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-print" data-id="${t.terminal_id}" title="印刷" aria-label="印刷">${iconMarkup('i-print')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-dl" data-id="${t.terminal_id}" title="DL" aria-label="DL">${iconMarkup('i-download')}</button>
+          <button type="button" class="mini-btn icon-btn danger mini-btn-del" data-id="${t.terminal_id}" title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
+        </div>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+
+    const container = document.getElementById(qrId);
+    if (container) {
+      container.innerHTML = '';
+      new QRCode(container, { text: t.terminal_id, width: 64, height: 64 });
+    }
+  });
+
+  // 編集
+  tbody.querySelectorAll('.mini-btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const t = masterTerminals.find(x => x.terminal_id === id);
+      if (!t) return;
+
+      const idInput = document.getElementById('admin-terminal-id');
+      const nameInput = document.getElementById('admin-terminal-name');
+      const processSelect = document.getElementById('admin-terminal-process');
+      const locInput = document.getElementById('admin-terminal-location');
+
+      if (idInput) idInput.value = t.terminal_id;
+      if (nameInput) nameInput.value = t.name_ja || t.name || '';
+      if (processSelect && t.process_name) processSelect.value = t.process_name;
+      if (locInput) locInput.value = t.location || '';
+
+      const targetSectionId = 'admin-section';
+      const links = document.querySelectorAll('.sidebar-link');
+      const sections = document.querySelectorAll('.section');
+
+      links.forEach(l => {
+        l.classList.toggle('active', l.dataset.section === targetSectionId);
+      });
+      sections.forEach(sec => {
+        sec.classList.toggle('active', sec.id === targetSectionId);
+      });
+
+      const adminSection = document.getElementById('admin-section');
+      if (adminSection) {
+        adminSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      showToast('工程情報を編集フォームに読み込みました。', 'info');
+    });
+  });
+
+  // 印刷
+  tbody.querySelectorAll('.mini-btn-print').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const t = masterTerminals.find(x => x.terminal_id === id);
+      if (!t) return;
+      const qrId = `admin-terminal-qr-${id}`;
+      const title = t.process_name || '';
+      const sub = `ID: ${t.terminal_id} / ${t.name_ja || t.name || ''}`;
+      printQrLabel(qrId, title, sub);
+    });
+  });
+
+  // ダウンロード
+  tbody.querySelectorAll('.mini-btn-dl').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const qrId = `admin-terminal-qr-${id}`;
+      downloadQrLabel(qrId, `PROC_${id}.png`);
+    });
+  });
+
+  // 削除
+  tbody.querySelectorAll('.mini-btn-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const t = masterTerminals.find(x => x.terminal_id === id);
+      if (!t) return;
+
+      if (!confirm(`工程「${t.name_ja || id}」を削除しますか？`)) return;
+
+      try {
+        await callApi('deleteTerminal', { terminalId: id });
+        showToast('工程を削除しました。', 'success');
+        loadMasterData();
+      } catch (err) {
+        console.error(err);
+        showToast('工程削除に失敗しました: ' + err.message, 'error');
+      }
+    });
+  });
+}
+
+/* ================================
+   初期化
+   ================================ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupSidebar();
+  setupButtons();
+  setupOnlineOfflineHandlers();
+  setWelcomeDate();
+  setSafetyMessage();           // ★ Safety message di dashboard
+  renderLastUserQuickLogin();   // ★ quick login
+
+  loadMasterData();
+  loadDashboard();
+  loadAnalytics();
+  startDashboardAutoRefresh();
+  loadPlans();
+});
+
+
+/* ================================
+   Sidebar navigation
+   ================================ */
+
+function setupSidebar() {
+  // Sidebar + mobile bottom nav + mobile overlay
+  const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
+  const sections = document.querySelectorAll('.section');
+  const sidebar = document.querySelector('.sidebar');
+  const burger = document.getElementById('btn-menu-toggle');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+  const openSidebarMobile = () => {
+    if (!sidebar) return;
+    sidebar.classList.remove('sidebar-hidden');
+    if (sidebarOverlay) {
+      sidebarOverlay.classList.add('visible');
+    }
+  };
+
+  const closeSidebarMobile = () => {
+    if (!sidebar) return;
+    sidebar.classList.add('sidebar-hidden');
+    if (sidebarOverlay) {
+      sidebarOverlay.classList.remove('visible');
+    }
+  };
+
+  links.forEach(link => {
+    link.addEventListener('click', () => {
+      const target = link.dataset.section;
+
+      // Sinkronkan state aktif di sidebar & bottom nav
+      links.forEach(l => {
+        const isActive = l.dataset.section === target;
+        l.classList.toggle('active', isActive);
+      });
+
+      sections.forEach(sec => {
+        sec.classList.toggle('active', sec.id === target);
+      });
+
+      // Di mobile, setelah memilih menu, sidebar ditutup supaya tidak menutupi konten
+      if (window.innerWidth <= 800 && sidebar) {
+        closeSidebarMobile();
+      }
+    });
+  });
+
+  if (burger && sidebar) {
+    burger.addEventListener('click', () => {
+      // Toggle khusus mobile
+      if (window.innerWidth <= 800) {
+        if (sidebar.classList.contains('sidebar-hidden')) {
+          openSidebarMobile();
+        } else {
+          closeSidebarMobile();
+        }
+      } else {
+        // Desktop: tetap bisa collapse/expand jika diperlukan
+        sidebar.classList.toggle('sidebar-hidden');
+      }
+    });
+
+    // Initial state untuk mobile
+    if (window.innerWidth <= 800) {
+      sidebar.classList.add('sidebar-hidden');
+    }
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 800) {
+        sidebar.classList.remove('sidebar-hidden');
+        if (sidebarOverlay) {
+          sidebarOverlay.classList.remove('visible');
+        }
+      } else {
+        sidebar.classList.add('sidebar-hidden');
+        if (sidebarOverlay) {
+          sidebarOverlay.classList.remove('visible');
+        }
+      }
+    });
+  }
+
+  // Klik di area gelap (overlay) juga menutup sidebar
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', closeSidebarMobile);
+  }
+}
+
+
+
+/* ================================
+   ボタンイベント
+   ================================ */
+
+function setupButtons() {
+  // ユーザーQRスキャン
+  const btnUserScan = document.getElementById('btn-start-user-scan');
+  if (btnUserScan) {
+    btnUserScan.addEventListener('click', () => startQrScan('user'));
+  }
+
+  // 工程QRスキャン
+  const btnTerminalScan = document.getElementById('btn-start-terminal-scan');
+  if (btnTerminalScan) {
+    btnTerminalScan.addEventListener('click', () => startQrScan('terminal'));
+  }
+
+  // 手動ログイン（ボタン）
+  const manualBtn = document.getElementById('btn-manual-login');
+  const manualInput = document.getElementById('manual-user-id');
+  if (manualBtn) {
+    manualBtn.addEventListener('click', handleManualLogin);
+  }
+  // 手動ログイン（Enter）
+  if (manualInput) {
+    manualInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleManualLogin();
+      }
+    });
+  }
+
+  const logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
+  }
+
+  // ユーザーメニュー開閉
+  const userMenuToggle = document.getElementById('user-menu-toggle');
+  const userMenuPanel = document.getElementById('user-menu-panel');
+  if (userMenuToggle && userMenuPanel) {
+    userMenuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userMenuPanel.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+      if (!userMenuPanel.contains(e.target) && !userMenuToggle.contains(e.target)) {
+        userMenuPanel.classList.add('hidden');
+      }
+    });
+  }
+
+  // ヘルプモーダル
+  const helpBtn = document.getElementById('btn-help');
+  const helpClose = document.getElementById('btn-help-close');
+  if (helpBtn && helpClose) {
+    helpBtn.addEventListener('click', openHelpModal);
+    helpClose.addEventListener('click', closeHelpModal);
+  }
+
+  // Monitor mode (digital signage + carousel)
+  const monitorBtn = document.getElementById('btn-monitor-mode');
+  if (monitorBtn) {
+    monitorBtn.addEventListener('click', () => {
+      const body = document.body;
+      const isMonitor = !body.classList.contains('monitor-mode');
+      body.classList.toggle('monitor-mode', isMonitor);
+
+      if (isMonitor) {
+        // Always keep monitor content consistent by starting from dashboard
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.section');
+        sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
+        links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
+
+        if (typeof enterMonitorModeCarousel === 'function') {
+          enterMonitorModeCarousel();
+        } else if (typeof window.enterMonitorModeCarousel === 'function') {
+          window.enterMonitorModeCarousel();
+        } else {
+          console.error('enterMonitorModeCarousel is missing');
+        }
+        showToast('モニタ表示モードをONにしました。', 'info');
+      } else {
+        if (typeof exitMonitorModeCarousel === 'function') {
+          exitMonitorModeCarousel();
+        } else if (typeof window.exitMonitorModeCarousel === 'function') {
+          window.exitMonitorModeCarousel();
+        } else {
+          console.error('exitMonitorModeCarousel is missing');
+        }
+        showToast('モニタ表示モードをOFFにしました。', 'info');
+      }
+    });
+  }
+
+// ヘッダー製品検索
+  const headerSearchBtn = document.getElementById('btn-header-search');
+  const headerSearchInput = document.getElementById('header-product-search');
+  if (headerSearchBtn && headerSearchInput) {
+    headerSearchBtn.addEventListener('click', handleHeaderSearch);
+    headerSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleHeaderSearch();
+      }
+    });
+  }
+
+  // スキャン画面 保存 / クリア
+  const btnSaveLog = document.getElementById('btn-save-log');
+  if (btnSaveLog) btnSaveLog.addEventListener('click', handleSaveLog);
+
+  const btnClearForm = document.getElementById('btn-clear-form');
+  if (btnClearForm) btnClearForm.addEventListener('click', clearForm);
+
+  // OK/NG → 総数量自動計算
+  const qtyOkInput = document.getElementById('log-qty-ok');
+  const qtyNgInput = document.getElementById('log-qty-ng');
+  if (qtyOkInput && qtyNgInput) {
+    const updateTotal = () => {
+      const ok = Number(qtyOkInput.value || 0);
+      const ng = Number(qtyNgInput.value || 0);
+      const totalEl = document.getElementById('log-qty-total');
+      if (totalEl) totalEl.value = ok + ng;
+    };
+    qtyOkInput.addEventListener('input', updateTotal);
+    qtyNgInput.addEventListener('input', updateTotal);
+  }
+
+  // ダッシュボード更新 / エクスポート
+  const btnRefreshDashboard = document.getElementById('btn-refresh-dashboard');
+  if (btnRefreshDashboard) {
+    btnRefreshDashboard.addEventListener('click', () => {
+      loadDashboard();
+      loadAnalytics();
+    });
+  }
+
+  const btnExportProduct = document.getElementById('btn-export-product');
+  if (btnExportProduct) btnExportProduct.addEventListener('click', handleExportProduct);
+
+  // ログ編集モーダル
+  const btnEditSave = document.getElementById('btn-edit-save');
+  if (btnEditSave) btnEditSave.addEventListener('click', handleEditSave);
+
+  const btnEditCancel = document.getElementById('btn-edit-cancel');
+  if (btnEditCancel) btnEditCancel.addEventListener('click', closeEditModal);
+
+  // Admin: ユーザー / 工程登録
+  const btnCreateUser = document.getElementById('btn-admin-create-user');
+  if (btnCreateUser) btnCreateUser.addEventListener('click', handleCreateUser);
+
+  const btnCreateTerminal = document.getElementById('btn-admin-create-terminal');
+  if (btnCreateTerminal) btnCreateTerminal.addEventListener('click', handleCreateTerminal);
+
+  // 生産計画
+  const btnSavePlan = document.getElementById('btn-save-plan');
+  if (btnSavePlan) btnSavePlan.addEventListener('click', handleSavePlan);
+
+  const btnClearPlan = document.getElementById('btn-clear-plan');
+  if (btnClearPlan) btnClearPlan.addEventListener('click', clearPlanForm);
+
+  const btnRefreshPlans = document.getElementById('btn-refresh-plans');
+  if (btnRefreshPlans) btnRefreshPlans.addEventListener('click', loadPlans);
+
+  const btnImportPlans = document.getElementById('btn-import-plans');
+  if (btnImportPlans) btnImportPlans.addEventListener('click', handleImportPlans);
+
+  // モバイル用フローティングSCANボタン
+  const fabScan = document.getElementById('fab-scan');
+  if (fabScan) {
+    fabScan.addEventListener('click', () => {
+      const target = 'scan-section';
+      const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
+      const sections = document.querySelectorAll('.section');
+
+      sections.forEach(sec => {
+        sec.classList.toggle('active', sec.id === target);
+      });
+      links.forEach(l => {
+        const isActive = l.dataset.section === target;
+        l.classList.toggle('active', isActive);
+      });
+
+      if (window.innerWidth <= 800) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.classList.add('sidebar-hidden');
+      }
+    });
+  }
+}
+
+
+
+/* ================================
+   Online / Offline Indicator
+   ================================ */
+
+function setupOnlineOfflineHandlers() {
+  const offlineIndicator = document.getElementById('offline-indicator');
+
+  function updateState() {
+    if (!offlineIndicator) return;
+    if (navigator.onLine) {
+      offlineIndicator.classList.add('hidden');
+      flushOfflineQueue();
+    } else {
+      offlineIndicator.classList.remove('hidden');
+    }
+  }
+  window.addEventListener('online', updateState);
+  window.addEventListener('offline', updateState);
+  updateState();
+}
+
+/* ================================
+   Utils: API
+   ================================ */
+
+async function callApi(action, body) {
+  const payload = Object.assign({}, body || {}, { action });
+  const formBody = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+    body: formBody
+  });
+
+  let json;
+  try {
+    json = await res.json();
+  } catch (e) {
+    throw new Error('サーバー応答の解析に失敗しました');
+  }
+  if (!json.ok) {
+    throw new Error(json.error || 'API エラー');
+  }
+  return json.data;
+}
+
+/* ================================
+   Master data
+   ================================ */
+
+async function loadMasterData() {
+  try {
+    const data = await callApi('getMasterData', {});
+    masterUsers = data.users || [];
+    masterTerminals = data.terminals || [];
+    renderTerminalQrListIfAdmin();
+    renderAdminUserList();
+    renderAdminTerminalList();
+  } catch (err) {
+    console.error(err);
+    alert('マスターデータ取得に失敗しました: ' + err.message);
+  }
+}
+
+/* ================================
+   QR Scan
+   ================================ */
+
+function startQrScan(mode) {
+  currentScanMode = mode;
+  const readerElemId = mode === 'user' ? 'qr-reader' : 'qr-reader-terminal';
+
+  if (html5Qrcode) {
+    try { html5Qrcode.stop().catch(() => {}); } catch (e) {}
+  }
+
+  html5Qrcode = new Html5Qrcode(readerElemId);
+  const config = { fps: 10, qrbox: 250 };
+
+  const onScanSuccess = async (decodedText) => {
+    try { await html5Qrcode.stop(); } catch (e) {}
+    try { await handleDecodedText(decodedText, mode); } catch (err) {
+      alert('QR処理中にエラーが発生しました: ' + err.message);
+    }
+  };
+
+  html5Qrcode.start({ facingMode: 'environment' }, config, onScanSuccess)
+    .catch(err => alert('カメラの起動に失敗しました: ' + err));
+}
+
+async function handleDecodedText(decodedText, mode) {
+  let payload;
+  try {
+    payload = JSON.parse(decodedText);
+  } catch {
+    payload = { type: mode, id: decodedText };
+  }
+
+  if (mode === 'user') {
+    if (payload.type !== 'user') {
+      alert('ユーザーQRではありません。');
+      return;
+    }
+    await loginWithUserId(payload.id);
+  } else {
+    if (payload.type !== 'terminal') {
+      alert('端末QRではありません。');
+      return;
+    }
+    selectTerminalById(payload.id);
+  }
+}
+/* ================================
+   Last login user (Quick Login)
+   ================================ */
+
+function saveLastUser(user) {
+  try {
+    const data = {
+      user_id: user.user_id,
+      name_ja: user.name_ja || '',
+      role: user.role || ''
+    };
+    localStorage.setItem(LAST_USER_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Failed to save last user', e);
+  }
+}
+
+function loadLastUser() {
+  try {
+    const raw = localStorage.getItem(LAST_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function renderLastUserQuickLogin() {
+  const container = document.getElementById('last-user-quick-login');
+  const labelEl = document.getElementById('last-user-label');
+  const btn = document.getElementById('btn-last-user-login');
+
+  if (!container || !labelEl || !btn) return;
+
+  const data = loadLastUser();
+  if (!data || !data.user_id) {
+    container.classList.add('hidden');
+    return;
+  }
+
+  labelEl.textContent = `${data.user_id} / ${data.name_ja || ''} (${getRoleLabel(data.role)})`;
+  container.classList.remove('hidden');
+
+  btn.onclick = async () => {
+    const ok = confirm(`「${data.name_ja || data.user_id}」としてログインしますか？`);
+    if (!ok) return;
+    await loginWithUserId(data.user_id);
+  };
+}
+
+/* ================================
+   Login
+   ================================ */
+
+async function loginWithUserId(userId) {
+  try {
+    setGlobalLoading(true, 'ユーザー認証中...');
+    const user = await callApi('getUser', { userId });
+    currentUser = user;
+
+    const nameEl = document.getElementById('current-user-name');
+    const idEl = document.getElementById('current-user-id');
+    const roleEl = document.getElementById('current-user-role');
+
+    if (nameEl) nameEl.textContent = user.name_ja;
+    if (idEl) idEl.textContent = user.user_id;
+    if (roleEl) roleEl.textContent = user.role;
+
+    document.getElementById('top-username').textContent = user.name_ja;
+    document.getElementById('top-userrole').textContent = getRoleLabel(user.role);
+    document.getElementById('welcome-name').textContent = user.name_ja;
+
+    saveLastUser(user);
+    renderLastUserQuickLogin();
+
+    updateAdminVisibility();
+    renderDashboardTable();
+    renderTerminalQrListIfAdmin();
+    renderPlanTable();
+
+    if (user.role === 'operator' && window.innerWidth <= 768) {
+      const target = 'plans-section'; // id mungkin tidak ada → fallback di bawah
+      const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
+      const sections = document.querySelectorAll('.section');
+
+      let hasTarget = false;
+      sections.forEach(sec => {
+        const active = sec.id === target;
+        if (active) hasTarget = true;
+        sec.classList.toggle('active', active);
+      });
+
+      if (!hasTarget) {
+        const fallback = 'dashboard-section';
+        sections.forEach(sec => {
+          sec.classList.toggle('active', sec.id === fallback);
+        });
+      }
+
+      links.forEach(l => {
+        const isActive = l.dataset.section === target;
+        const isFallback = l.dataset.section === 'dashboard-section';
+        l.classList.toggle('active', isActive || (!hasTarget && isFallback));
+      });
+
+      if (window.innerWidth <= 800) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.classList.add('sidebar-hidden');
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    const userMenuPanel = document.getElementById('user-menu-panel');
+    if (userMenuPanel) userMenuPanel.classList.add('hidden');
+
+    showToast('ログインしました: ' + user.name_ja, 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('ユーザー認証に失敗しました: ' + err.message, 'error');
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+
+async function handleManualLogin() {
+  const input = document.getElementById('manual-user-id');
+  if (!input) return;
+  const userId = input.value.trim();
+  if (!userId) {
+    alert('ユーザーIDを入力してください。');
+    return;
+  }
+  await loginWithUserId(userId);
+}
+
+function handleLogout() {
+  currentUser = null;
+
+  const nameEl = document.getElementById('current-user-name');
+  const idEl = document.getElementById('current-user-id');
+  const roleEl = document.getElementById('current-user-role');
+  const topNameEl = document.getElementById('top-username');
+  const topRoleEl = document.getElementById('top-userrole');
+  const welcomeNameEl = document.getElementById('welcome-name');
+
+  if (nameEl) nameEl.textContent = '未ログイン';
+  if (idEl) idEl.textContent = '-';
+  if (roleEl) roleEl.textContent = '-';
+  if (topNameEl) topNameEl.textContent = 'ゲスト';
+  if (topRoleEl) topRoleEl.textContent = '未ログイン';
+  if (welcomeNameEl) welcomeNameEl.textContent = 'ゲスト';
+
+  currentPlanForScan = null;
+
+  updateAdminVisibility();
+  renderTerminalQrListIfAdmin();
+  renderPlanTable();
+
+  const userMenuPanel = document.getElementById('user-menu-panel');
+  if (userMenuPanel) userMenuPanel.classList.add('hidden');
+
+  showToast('ログアウトしました。', 'info');
+}
+
+function handleHeaderSearch() {
+  const input = document.getElementById('header-product-search');
+  if (!input) return;
+  const value = input.value.trim();
+  if (!value) {
+    alert('製品番号を入力してください。');
+    return;
+  }
+
+  const productFilter = document.getElementById('filter-product');
+  if (productFilter) {
+    productFilter.value = value;
+  }
+
+  const links = document.querySelectorAll('.sidebar-link');
+  const sections = document.querySelectorAll('.section');
+  sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
+  links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
+
+  if (!dashboardLogs || dashboardLogs.length === 0) {
+    loadDashboard().then(() => renderDashboardTable());
+  } else {
+    renderDashboardTable();
+  }
+}
+
+/* ================================
+   Terminal select
+   ================================ */
+
+function selectTerminalById(terminalId) {
+  const t = masterTerminals.find(x => x.terminal_id === terminalId);
+  if (t) {
+    currentTerminal = t;
+  } else {
+    currentTerminal = {
+      terminal_id: terminalId,
+      name_ja: '端末 ' + terminalId,
+      process_name: '不明工程',
+      location: '不明ロケーション'
+    };
+  }
+
+  const nameEl = document.getElementById('current-terminal-name');
+  const idEl = document.getElementById('current-terminal-id');
+  const processEl = document.getElementById('current-process-name');
+  const locEl = document.getElementById('current-location');
+
+  if (nameEl) nameEl.textContent = currentTerminal.name_ja;
+  if (idEl) idEl.textContent = currentTerminal.terminal_id;
+  if (processEl) processEl.textContent = currentTerminal.process_name;
+  if (locEl) locEl.textContent = currentTerminal.location;
+
+  showToast('端末を選択しました: ' + currentTerminal.terminal_id, 'info');
+}
+
+/* ================================
+   Save Log (Plan + Terminal + User)
+   ================================ */
+
+async function handleSaveLog() {
+  if (!currentUser) {
+    alert('まず右上メニューからユーザー認証を行ってください。');
+    return;
+  }
+  if (!currentTerminal) {
+    alert('工程QRをスキャンして工程を選択してください。');
+    return;
+  }
+  if (!currentPlanForScan) {
+    alert('「生産一覧」から対象の生産計画を選び、「スキャン/更新」を押してください。');
+    return;
+  }
+
+  const status = document.getElementById('log-status').value;
+  const okInput = document.getElementById('log-qty-ok');
+  const ngInput = document.getElementById('log-qty-ng');
+  const totalInput = document.getElementById('log-qty-total');
+  const lotInput = document.getElementById('log-lot-number');
+  const noteInput = document.getElementById('log-note');
+
+  const qtyOk = Number(okInput.value || 0);
+  const qtyNg = Number(ngInput.value || 0);
+  const qtyTotal = qtyOk + qtyNg;
+  if (totalInput) totalInput.value = qtyTotal;
+
+  const crewInput = document.getElementById('log-crew-size');
+  let crewSize = 1;
+  if (crewInput) {
+    const rawCrew = Number(crewInput.value || 1);
+    crewSize = Number.isFinite(rawCrew) && rawCrew > 0 ? Math.round(rawCrew) : 1;
+    crewInput.value = String(crewSize);
+  }
+
+  [okInput, ngInput, totalInput].forEach(el => el && el.classList.remove('required-missing'));
+
+  const missing = [];
+  if (status === '工程終了' && qtyTotal <= 0) {
+    missing.push(totalInput);
+  }
+
+  if (missing.length > 0) {
+    missing.forEach(el => el && el.classList.add('required-missing'));
+    showToast('必須項目を入力してください。', 'error');
+    return;
+  }
+
+  const productCode = currentPlanForScan.product_code || '';
+  const productName = currentPlanForScan.product_name || '';
+  const planProcessName = currentPlanForScan.process_name || '';
+
+  const now = new Date();
+  const sessionKey = buildSessionKey(currentUser.user_id, currentTerminal.terminal_id, productCode);
+  let sessions = loadActiveSessions();
+
+  if (status === '工程開始') {
+    sessions[sessionKey] = now.toISOString();
+    saveActiveSessions(sessions);
+    showToast('工程開始を記録しました。終了時に同じ計画と工程で保存してください。', 'info');
+    return;
+  }
+
+  const startIso = sessions[sessionKey];
+  if (!startIso && !confirm('開始時刻が見つかりません。現在時刻を開始として保存しますか？')) {
+    return;
+  }
+
+  const start = startIso ? new Date(startIso) : now;
+  const end = now;
+  const durationSec = Math.round((end - start) / 1000);
+
+  const location = currentTerminal.location || '';
+  const isExternal = /外注|subcon|vendor/i.test(String(location).toLowerCase());
+  const workType = isExternal ? '外注' : '社内';
+
+  const log = {
+    product_code: productCode,
+    product_name: productName,
+    lot_number: lotInput ? lotInput.value.trim() : '',
+    plan_process_name: planProcessName,
+    process_name: currentTerminal.process_name,
+    terminal_id: currentTerminal.terminal_id,
+    terminal_name: currentTerminal.name_ja,
+    user_id: currentUser.user_id,
+    user_name: currentUser.name_ja,
+    role: currentUser.role,
+    status: status,
+    qty_total: qtyTotal,
+    qty_ok: qtyOk,
+    qty_ng: qtyNg,
+    crew_size: crewSize,
+    note: noteInput ? noteInput.value.trim() : '',
+    timestamp_start: formatDateTime(start),
+    timestamp_end: formatDateTime(end),
+    duration_sec: durationSec,
+    location,
+    work_type: workType
+  };
+
+  try {
+    setGlobalLoading(true, '実績を保存中...');
+    await callApi('logEvent', { log });
+
+    delete sessions[sessionKey];
+    saveActiveSessions(sessions);
+
+    showToast('ログを保存しました。', 'success');
+    clearForm();
+    loadDashboard();
+    loadAnalytics();
+  } catch (err) {
+    console.error(err);
+    if (!navigator.onLine) {
+      enqueueOfflineLog(log);
+      showToast('オフラインのためキューに保存しました。オンライン復帰後に自動送信します。', 'info');
+    } else {
+      showToast('ログ保存に失敗しました: ' + err.message, 'error');
+    }
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+
+/* ================================
+   Active session (durasi)
+   ================================ */
+
+function buildSessionKey(userId, terminalId, productCode) {
+  return `${userId}__${terminalId}__${productCode || ''}`;
+}
+
+function loadActiveSessions() {
+  try {
+    const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveActiveSessions(obj) {
+  localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(obj || {}));
+}
+
+/* ================================
+   Offline queue
+   ================================ */
+
+function enqueueOfflineLog(log) {
+  const q = loadOfflineQueue();
+  q.push(log);
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q));
+}
+
+function loadOfflineQueue() {
+  try {
+    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function flushOfflineQueue() {
+  const q = loadOfflineQueue();
+  if (q.length === 0) return;
+  const remain = [];
+  for (const log of q) {
+    try {
+      await callApi('logEvent', { log });
+    } catch (err) {
+      console.error('オフラインキュー送信失敗', err);
+      remain.push(log);
+    }
+  }
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remain));
+  if (q.length !== remain.length) {
+    loadDashboard();
+    loadAnalytics();
+  }
+}
+
+/* ================================
+   Form utils
+   ================================ */
+
+function clearForm() {
+  const okInput = document.getElementById('log-qty-ok');
+  const ngInput = document.getElementById('log-qty-ng');
+  const totalInput = document.getElementById('log-qty-total');
+  const noteInput = document.getElementById('log-note');
+  const lotInput = document.getElementById('log-lot-number');
+  const crewInput = document.getElementById('log-crew-size');
+
+  if (okInput) okInput.value = 0;
+  if (ngInput) ngInput.value = 0;
+  if (totalInput) totalInput.value = 0;
+  if (noteInput) noteInput.value = '';
+  if (lotInput) lotInput.value = '';
+  if (crewInput) crewInput.value = 1;
+}
+
+
+/* ================================
+   Dashboard: load & render
+   ================================ */
+
+async function loadDashboard() {
+  try {
+    const data = await callApi('getDashboard', { limit: 200 });
+    dashboardLogs = data || [];
+    renderDashboardTable();
+    updateAlertBanner();
+    renderPlanTable();
+      updateSpecialMonitorBlocks();
+} catch (err) {
+    console.error(err);
+    alert('ダッシュボード取得に失敗しました: ' + err.message);
+  }
+}
+
+function renderDashboardTable() {
+  const tbody = document.getElementById('logs-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const processFilter = document.getElementById('filter-process').value;
+  const terminalFilter = document.getElementById('filter-terminal').value.trim().toLowerCase();
+  const productFilter = document.getElementById('filter-product').value.trim().toLowerCase();
+  const workTypeFilterEl = document.getElementById('filter-work-type');
+  const workTypeFilter = workTypeFilterEl ? workTypeFilterEl.value : '';
+  const dateFrom = document.getElementById('filter-date-from').value;
+  const dateTo = document.getElementById('filter-date-to').value;
+
+  const rows = (dashboardLogs || []).map(l => Object.assign({ is_plan_only: false }, l));
+
+  if (Array.isArray(plans) && plans.length > 0) {
+    plans.forEach(plan => {
+      const related = (dashboardLogs || []).filter(l =>
+        l.product_code === plan.product_code &&
+        (!plan.process_name || l.process_name === plan.process_name)
+      );
+      const actualTotal = related.reduce((sum, l) => sum + (l.qty_total || 0), 0);
+      const planQty = plan.planned_qty || 0;
+      const rate = planQty > 0 ? Math.round((actualTotal * 100) / planQty) : 0;
+
+      const isCompleted =
+        plan.status === '完了' ||
+        plan.status === '中止' ||
+        rate >= 100;
+
+      if (isCompleted) return;
+
+      if (related.length === 0) {
+        rows.push({
+          is_plan_only: true,
+          plan_id: plan.plan_id,
+          product_code: plan.product_code,
+          product_name: plan.product_name,
+          process_name: plan.process_name,
+          planned_start: plan.planned_start,
+          planned_end: plan.planned_end,
+          plan_qty: planQty,
+          status: plan.status || '計画中',
+          terminal_id: '',
+          terminal_name: '',
+          user_id: '',
+          user_name: '',
+          role: '',
+          qty_total: 0,
+          qty_ok: 0,
+          qty_ng: 0,
+          timestamp_start: plan.planned_start || '',
+          timestamp_end: '',
+          duration_sec: null,
+          location: '',
+          created_at: plan.created_at || ''
+        });
+      }
+    });
+  }
+
+  function getBaseDate(log) {
+    const s = log.timestamp_start || log.timestamp_end || log.planned_start || log.created_at || '';
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const filtered = rows.filter(log => {
+    if (processFilter && log.process_name !== processFilter) return false;
+
+    if (terminalFilter) {
+      const t = ((log.terminal_name || '') + ' ' + (log.terminal_id || '')).toLowerCase();
+      if (!t.includes(terminalFilter)) return false;
+    }
+
+    if (productFilter) {
+      const pc = String(log.product_code || '').toLowerCase();
+      if (!pc.includes(productFilter)) return false;
+    }
+
+    if (workTypeFilter && !log.is_plan_only) {
+      let wt = log.work_type || '';
+      if (!wt) {
+        const loc = String(log.location || '');
+        if (/外注|subcon|vendor/i.test(loc.toLowerCase())) {
+          wt = '外注';
+        } else if (loc) {
+          wt = '社内';
+        }
+      }
+      if (wt && wt !== workTypeFilter) return false;
+    }
+
+    if (dateFrom) {
+      const d = getBaseDate(log);
+      if (d && d < new Date(dateFrom)) return false;
+    }
+    if (dateTo) {
+      const d = getBaseDate(log);
+      if (d) {
+        const to = new Date(dateTo);
+        to.setDate(to.getDate() + 1);
+        if (d >= to) return false;
+      }
+    }
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    const da = getBaseDate(a);
+    const db = getBaseDate(b);
+    const ta = da ? da.getTime() : 0;
+    const tb = db ? db.getTime() : 0;
+    return tb - ta;
+  });
+
+    filtered.forEach(log => {
+    const tr = document.createElement('tr');
+    const isPlan = !!log.is_plan_only;
+
+    const durationMin = (!isPlan && log.duration_sec)
+      ? (log.duration_sec / 60).toFixed(1)
+      : '';
+
+    const startText = formatDateTime(
+      log.timestamp_start || log.timestamp_end || log.planned_start || ''
+    );
+
+    const crewSize = Number(log.crew_size || 1);
+    const userText = isPlan
+      ? '-'
+      : `${log.user_name || ''}${crewSize > 1 ? `（${crewSize}名）` : ''}`;
+
+    const qtyText = isPlan
+      ? `- / ${log.plan_qty || 0}`
+      : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
+
+    const tdStart = document.createElement('td');
+    tdStart.dataset.label = '工程開始';
+    tdStart.textContent = startText;
+
+    const tdCode = document.createElement('td');
+    tdCode.dataset.label = '図番';
+    tdCode.textContent = log.product_code || '';
+
+    const tdName = document.createElement('td');
+    tdName.dataset.label = '品名';
+    tdName.textContent = log.product_name || '';
+
+    const tdProc = document.createElement('td');
+    tdProc.dataset.label = '工程';
+    tdProc.textContent = log.process_name || '';
+
+    const tdUser = document.createElement('td');
+    tdUser.dataset.label = 'ユーザー';
+    tdUser.textContent = userText;
+
+    const tdQty = document.createElement('td');
+    tdQty.dataset.label = '数量(OK/不良)';
+    tdQty.textContent = qtyText;
+
+    const tdStatus = document.createElement('td');
+    tdStatus.dataset.label = 'ステータス';
+
+    const badge = document.createElement('span');
+    badge.classList.add('badge');
+    if (isPlan) {
+      badge.classList.add('badge-plan');
+    } else if (log.status === '検査保留' || log.status === '一時停止') {
+      badge.classList.add('badge-hold');
+    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
+      badge.classList.add('badge-normal');
+    } else {
+      badge.classList.add('badge-error');
+    }
+    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
+    tdStatus.appendChild(badge);
+
+    const tdDuration = document.createElement('td');
+    tdDuration.dataset.label = '所要時間(分)';
+    tdDuration.textContent = durationMin || '';
+
+    const tdLoc = document.createElement('td');
+    tdLoc.dataset.label = 'ロケーション';
+
+    const locWrapper = document.createElement('div');
+    locWrapper.className = 'location-cell';
+
+    const locationText = log.location || '';
+    const isExternal = /外注|subcon|vendor/i.test(String(locationText).toLowerCase()) ||
+      (log.work_type && /外注|external/i.test(String(log.work_type)));
+
+    const locBadge = document.createElement('span');
+    locBadge.className = 'badge ' + (isExternal ? 'badge-external' : 'badge-internal');
+    locBadge.textContent = isExternal ? '外注' : '社内';
+    locWrapper.appendChild(locBadge);
+
+    if (locationText) {
+      const locTextSpan = document.createElement('span');
+      locTextSpan.className = 'location-text';
+      locTextSpan.textContent = locationText;
+      locWrapper.appendChild(locTextSpan);
+    }
+
+    tdLoc.appendChild(locWrapper);
+
+    if (!isPlan && ((log.qty_ng || 0) > 0 || log.status === '検査保留')) {
+      tr.classList.add('row-alert');
+    }
+
+    const tdActions = document.createElement('td');
+    tdActions.dataset.label = '操作';
+
+    if (isPlan) {
+      tdActions.classList.add('plans-actions');
+
+      const planLike = {
+        plan_id: log.plan_id,
+        product_code: log.product_code,
+        product_name: log.product_name,
+        process_name: log.process_name,
+        planned_qty: log.plan_qty,
+        planned_start: log.planned_start,
+        planned_end: log.planned_end,
+        status: log.status
+      };
+
+      const scanBtn = document.createElement('button');
+      scanBtn.type = 'button';
+      scanBtn.className = 'icon-btn primary btn-scan-primary';
+      scanBtn.title = 'スキャン/更新';
+      scanBtn.setAttribute('aria-label', 'スキャン/更新');
+      scanBtn.innerHTML = iconMarkup('i-scan');
+      scanBtn.addEventListener('click', () => startScanForPlan(planLike));
+
+      const detailBtn = document.createElement('button');
+      detailBtn.type = 'button';
+      detailBtn.className = 'icon-btn';
+      detailBtn.title = '詳細';
+      detailBtn.setAttribute('aria-label', '詳細');
+      detailBtn.innerHTML = iconMarkup('i-info');
+      detailBtn.addEventListener('click', () => showPlanDetail(planLike));
+
+      const exportBtn = document.createElement('button');
+      exportBtn.type = 'button';
+      exportBtn.className = 'icon-btn';
+      exportBtn.title = '実績CSV';
+      exportBtn.setAttribute('aria-label', '実績CSV');
+      exportBtn.innerHTML = iconMarkup('i-csv');
+      exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
+
+      tdActions.appendChild(scanBtn);
+      tdActions.appendChild(detailBtn);
+      tdActions.appendChild(exportBtn);
+    } else if (currentUser && currentUser.role === 'admin') {
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'icon-btn';
+      editBtn.title = '編集';
+      editBtn.setAttribute('aria-label', '編集');
+      editBtn.innerHTML = iconMarkup('i-edit');
+      editBtn.addEventListener('click', () => openEditModal(log));
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'icon-btn danger';
+      delBtn.title = '削除';
+      delBtn.setAttribute('aria-label', '削除');
+      delBtn.innerHTML = iconMarkup('i-trash');
+      delBtn.addEventListener('click', () => handleDeleteLog(log));
+
+      tdActions.appendChild(editBtn);
+      tdActions.appendChild(delBtn);
+    } else {
+      tdActions.textContent = '-';
+    }
+
+    tr.appendChild(tdStart);
+    tr.appendChild(tdCode);
+    tr.appendChild(tdName);
+    tr.appendChild(tdProc);
+    tr.appendChild(tdUser);
+    tr.appendChild(tdQty);
+    tr.appendChild(tdStatus);
+    tr.appendChild(tdDuration);
+    tr.appendChild(tdLoc);
+    tr.appendChild(tdActions);
+
+    tbody.appendChild(tr);
+  });
+}
+
+/* ================================
+   アラートバナー
+   ================================ */
+
+function updateAlertBanner() {
+  const banner = document.getElementById('alert-banner');
+  if (!banner) return;
+  const hasProblem = dashboardLogs.slice(0, 50).some(l => (l.qty_ng || 0) > 0 || l.status === '検査保留');
+  if (hasProblem) banner.classList.remove('hidden');
+  else banner.classList.add('hidden');
+}
+
+/* ================================
+   Log edit / delete
+   ================================ */
+
+function openEditModal(log) {
+  document.getElementById('edit-log-id').value = log.log_id;
+  document.getElementById('edit-qty-total').value = log.qty_total || 0;
+  document.getElementById('edit-qty-ok').value = log.qty_ok || 0;
+  document.getElementById('edit-qty-ng').value = log.qty_ng || 0;
+  document.getElementById('edit-status').value = log.status || '通常';
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.add('hidden');
+}
+
+async function handleEditSave() {
+  const logId = document.getElementById('edit-log-id').value;
+  const qtyTotal = Number(document.getElementById('edit-qty-total').value || 0);
+  const qtyOk = Number(document.getElementById('edit-qty-ok').value || 0);
+  const qtyNg = Number(document.getElementById('edit-qty-ng').value || 0);
+  const status = document.getElementById('edit-status').value;
+
+  try {
+    await callApi('updateLog', {
+      log: { log_id: logId, qty_total: qtyTotal, qty_ok: qtyOk, qty_ng: qtyNg, status }
+    });
+    alert('ログを更新しました。');
+    closeEditModal();
+    loadDashboard();
+    loadAnalytics();
+  } catch (err) {
+    console.error(err);
+    alert('ログ更新に失敗しました: ' + err.message);
+  }
+}
+
+function openHelpModal() {
+  const modal = document.getElementById('help-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeHelpModal() {
+  const modal = document.getElementById('help-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleDeleteLog(log) {
+  if (!confirm('このログを削除しますか？')) return;
+  try {
+    await callApi('deleteLog', { logId: log.log_id });
+    alert('ログを削除しました。');
+    loadDashboard();
+    loadAnalytics();
+  } catch (err) {
+    console.error(err);
+    alert('ログ削除に失敗しました: ' + err.message);
+  }
+}
+
+async function handleDeletePlan(plan) {
+  if (!plan.plan_id) {
+    alert('この生産計画にはIDがありません。');
+    return;
+  }
+  if (!confirm('この生産計画を削除しますか？')) return;
+
+  try {
+    await callApi('deletePlan', { planId: plan.plan_id });
+    alert('生産計画を削除しました。');
+    await loadPlans();
+    await loadAnalytics();
+    await loadDashboard();
+  } catch (err) {
+    console.error(err);
+    alert('生産計画の削除に失敗しました: ' + err.message);
+  }
+}
+
+/* ================================
+   日付フォーマット
+   ================================ */
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hour = String(d.getHours()).padStart(2, '0');
+  const minute = String(d.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day} ${hour}:${minute}`;
+}
+
+/* ================================
+   Export logs CSV (per product)
+   ================================ */
+
+async function handleExportProduct() {
+  const productCode = prompt('エクスポートする製品番号を入力してください:');
+  if (!productCode) return;
+
+  await handleExportProductForCode(productCode);
+}
+
+async function handleExportProductForCode(productCode) {
+  try {
+    const data = await callApi('exportLogsByProduct', { productCode });
+    const csv = data.csv || '';
+    if (!csv) {
+      alert('対象データがありません。');
+      return;
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    a.href = url;
+    a.download = `logs_${productCode}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert('エクスポートに失敗しました: ' + err.message);
+  }
+}
+
+/* ================================
+   Admin visibility & QR
+   ================================ */
+
+function updateAdminVisibility() {
+  const adminContent = document.getElementById('admin-content');
+  const guard = document.getElementById('admin-guard-message');
+  const userListCard = document.getElementById('admin-user-list-card');
+  const terminalListCard = document.getElementById('admin-terminal-list-card');
+  const userManagementCard = document.getElementById('admin-user-management-card');
+
+  const adminLinks = document.querySelectorAll('.sidebar-link.admin-only');
+
+  const isAdmin = !!(currentUser && currentUser.role === 'admin');
+  const canUseCreateUser = !!(isAdmin && FEATURE_FLAGS.enableCreateUser);
+
+  if (isAdmin) {
+    if (adminContent) adminContent.classList.remove('hidden');
+    if (guard) guard.classList.add('hidden');
+    if (userListCard) userListCard.classList.remove('hidden');
+    if (terminalListCard) terminalListCard.classList.remove('hidden');
+
+    adminLinks.forEach(link => link.classList.add('visible'));
+
+    if (userManagementCard) {
+      if (canUseCreateUser) {
+        userManagementCard.classList.remove('hidden');
+
+        if (!userManagementCard.dataset.loaded) {
+          userManagementCard.dataset.loaded = 'true';
+          loadUserList().catch(err =>
+            console.error('loadUserList error:', err)
+          );
+        }
+      } else {
+        userManagementCard.classList.add('hidden');
+      }
+    }
+
+    renderAdminUserList();
+    renderAdminTerminalList();
+  } else {
+    if (adminContent) adminContent.classList.add('hidden');
+    if (guard) guard.classList.remove('hidden');
+    if (userListCard) userListCard.classList.add('hidden');
+    if (terminalListCard) terminalListCard.classList.add('hidden');
+
+    if (userManagementCard) {
+      userManagementCard.classList.add('hidden');
+      userManagementCard.dataset.loaded = '';
+    }
+
+    adminLinks.forEach(link => link.classList.remove('visible'));
+  }
+}
+
+
+async function handleCreateUser() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('管理者権限が必要です。');
+    return;
+  }
+
+  const userId = document.getElementById('admin-user-id').value.trim();
+  const nameJa = document.getElementById('admin-user-name').value.trim();
+  const role = document.getElementById('admin-user-role').value;
+
+  if (!userId || !nameJa) {
+    alert('ユーザーIDと氏名を入力してください。');
+    return;
+  }
+
+  try {
+    await callApi('createUser', { user: { user_id: userId, name_ja: nameJa, role } });
+    alert('ユーザーを登録しました。');
+
+    const qrData = JSON.stringify({ type: 'user', id: userId });
+    const container = document.getElementById('user-qr-container');
+    container.innerHTML = '';
+    new QRCode(container, { text: qrData, width: 160, height: 160 });
+
+    loadMasterData();
+  } catch (err) {
+    console.error(err);
+    alert('ユーザー登録に失敗しました: ' + err.message);
+  }
+}
+
+async function handleCreateTerminal() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('管理者権限が必要です。');
+    return;
+  }
+
+  const terminalId = document.getElementById('admin-terminal-id').value.trim();
+  const nameJa = document.getElementById('admin-terminal-name').value.trim();
+  const processName = document.getElementById('admin-terminal-process').value;
+  const location = document.getElementById('admin-terminal-location').value.trim();
+
+  if (!terminalId || !nameJa) {
+    alert('端末IDと端末名称を入力してください。');
+    return;
+  }
+
+  const qrValue = JSON.stringify({ type: 'terminal', id: terminalId });
+
+  try {
+    await callApi('createTerminal', {
+      terminal: { terminal_id: terminalId, name_ja: nameJa, process_name: processName, location, qr_value: qrValue }
+    });
+    alert('端末を登録しました。');
+
+    const container = document.getElementById('terminal-qr-container');
+    container.innerHTML = '';
+    new QRCode(container, { text: qrValue, width: 160, height: 160 });
+
+    loadMasterData();
+  } catch (err) {
+    console.error(err);
+    alert('端末登録に失敗しました: ' + err.message);
+  }
+}
+
+/* 端末QR 一覧（印刷用） */
+
+function renderTerminalQrListIfAdmin() {
+  const listEl = document.getElementById('terminal-qr-list');
+  const guardEl = document.getElementById('terminalqr-guard');
+  if (!listEl || !guardEl) return;
+
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  if (!isAdmin) {
+    listEl.classList.add('hidden');
+    guardEl.classList.remove('hidden');
+    return;
+  }
+
+  guardEl.classList.add('hidden');
+  listEl.classList.remove('hidden');
+  listEl.innerHTML = '';
+
+  masterTerminals.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'terminalqr-card';
+    const qrDiv = document.createElement('div');
+    const qrData = t.qr_value || JSON.stringify({ type: 'terminal', id: t.terminal_id });
+
+    new QRCode(qrDiv, { text: qrData, width: 120, height: 120 });
+
+    card.innerHTML = `
+      <h4>${t.name_ja || ''}</h4>
+      <div style="font-size:0.75rem;color:#6b7280;">工程: ${t.process_name || ''}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">ID: ${t.terminal_id || ''}</div>
+    `;
+    card.appendChild(qrDiv);
+    listEl.appendChild(card);
+  });
+}
+
+/* ================================
+   Analytics (Chart + summary)
+   ================================ */
+
+async function loadAnalytics() {
+  try {
+    const data = await callApi('getAnalytics', {});
+    const today = data.today || { total: 0, ng: 0 };
+    const byProcess = data.byProcess || [];
+    const counts = data.counts || { terminals: 0, plans: 0 };
+    const planVsActual = data.planVsActual || { plan_total: 0, actual_total: 0 };
+    const manhourByProduct = data.manhourByProduct || [];
+    const manhourByProcess = data.manhourByProcess || [];
+
+    document.getElementById('today-total').textContent = today.total;
+    document.getElementById('today-ng').textContent = today.ng;
+    document.getElementById('summary-terminals').textContent = counts.terminals;
+    document.getElementById('summary-plans').textContent = counts.plans;
+
+    const planTotalEl     = document.getElementById('plan-total');
+    const actualTotalEl   = document.getElementById('actual-total');
+    const planRateEl      = document.getElementById('plan-rate');
+    const planProgressEl  = document.getElementById('plan-progress');
+    const planStatusBadgeEl = document.getElementById('plan-status-badge');
+
+    if (planTotalEl && actualTotalEl && planRateEl && planProgressEl) {
+      const planTotal   = planVsActual.plan_total  || 0;
+      const actualTotal = planVsActual.actual_total || 0;
+      const rate        = planTotal > 0 ? Math.round((actualTotal * 100) / planTotal) : 0;
+
+      planTotalEl.textContent   = planTotal;
+      actualTotalEl.textContent = actualTotal;
+      planRateEl.textContent    = planTotal > 0 ? Math.min(rate, 200) : 0;
+
+      const width = planTotal > 0 ? Math.min(100, (actualTotal * 100) / planTotal) : 0;
+      planProgressEl.style.width = width + '%';
+
+      if (planStatusBadgeEl) {
+        planStatusBadgeEl.classList.remove('ok', 'warning', 'danger');
+
+        if (planTotal === 0) {
+          planStatusBadgeEl.textContent = '計画データなし';
+        } else if (rate >= 120) {
+          planStatusBadgeEl.textContent = '計画超過 (要注意)';
+          planStatusBadgeEl.classList.add('warning');
+        } else if (rate >= 90) {
+          planStatusBadgeEl.textContent = 'ほぼ計画通り';
+          planStatusBadgeEl.classList.add('ok');
+        } else if (rate >= 60) {
+          planStatusBadgeEl.textContent = '計画進行中';
+        } else {
+          planStatusBadgeEl.textContent = '計画遅れ気味 (要確認)';
+          planStatusBadgeEl.classList.add('danger');
+        }
+      }
+    }
+
+    const tickerEl = document.getElementById('ticker-text');
+    if (tickerEl) {
+      let msg;
+      if (today.ng > 0) {
+        msg = `本日、不良が ${today.ng} 個発生しています。原因と対策を確認してください。`;
+      } else if (today.total > 0) {
+        msg = `本日の生産数量は ${today.total} 個です。安全第一で作業を続けましょう。`;
+      } else {
+        msg = '生産データはまだありません。スキャン画面から実績を登録してください。';
+      }
+      tickerEl.textContent = msg;
+    }
+
+    const safetyMsgEl = document.getElementById('safety-message');
+    if (safetyMsgEl) {
+      if (today.ng > 0) {
+        safetyMsgEl.textContent = '本日不良が発生しています。無理な増産より、原因の特定と再発防止を優先しましょう。';
+      } else if (today.total > 0) {
+        safetyMsgEl.textContent = '本日もゼロ災を目指しましょう。安全確認ヨシ！の声かけをお願いします。';
+      } else {
+        safetyMsgEl.textContent = '作業前点検と指差し呼称を徹底し、安全第一でスタートしましょう。';
+      }
+    }
+
+    const mhProdTbody = document.getElementById('manhour-product-tbody');
+    if (mhProdTbody) {
+      mhProdTbody.innerHTML = '';
+      manhourByProduct
+        .slice()
+        .sort((a, b) => (b.manhour_hours || 0) - (a.manhour_hours || 0))
+        .slice(0, 20)
+        .forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(row.product_code || '')}</td>
+            <td class="align-right">${(row.manhour_hours || 0).toFixed(2)}</td>
+          `;
+          mhProdTbody.appendChild(tr);
+        });
+    }
+
+    const mhProcTbody = document.getElementById('manhour-process-tbody');
+    if (mhProcTbody) {
+      mhProcTbody.innerHTML = '';
+      manhourByProcess
+        .slice()
+        .sort((a, b) => (b.manhour_hours || 0) - (a.manhour_hours || 0))
+        .slice(0, 20)
+        .forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${escapeHtml(row.process_name || '')}</td>
+            <td class="align-right">${(row.manhour_hours || 0).toFixed(2)}</td>
+          `;
+          mhProcTbody.appendChild(tr);
+        });
+    }
+
+    const labels = byProcess.map(x => x.process_name || '不明');
+    const totals = byProcess.map(x => x.total || 0);
+    const ctx = document.getElementById('process-chart');
+    if (!ctx || typeof Chart === 'undefined') {
+      console.error('process-chart canvas or Chart.js is not available');
+      return;
+    }
+    if (processChart) processChart.destroy();
+
+    processChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: '総数量',
+          data: totals
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+        animation: false
+      }
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+  
+
+/* ================================
+   Special Slides (Overdue / Top NG / Bottleneck / Top Items)
+   UI only: uses existing dashboardLogs + plans
+   ================================ */
+
+function parseDateFlexible(value) {
+  if (!value) return null;
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+
+  // numeric timestamps
+  if (typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const s = String(value).trim();
+  if (!s) return null;
+
+  // ISO (contains T) or RFC can be parsed directly
+  if (s.includes('T') || s.includes('Z')) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // "YYYY-MM-DD HH:mm" -> "YYYY-MM-DDTHH:mm:00"
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (m) {
+    const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6] || '00'}`;
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // "YYYY-MM-DD"
+  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m2) {
+    const d = new Date(`${m2[1]}-${m2[2]}-${m2[3]}T00:00:00`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function getLogBaseDate(log) {
+  return parseDateFlexible(log.timestamp_end || log.timestamp_start || log.created_at || log.planned_start || '');
+}
+
+function isWithinDays(date, days) {
+  if (!date) return false;
+  const now = Date.now();
+  const diff = now - date.getTime();
+  return diff >= 0 && diff <= (days * 24 * 3600 * 1000);
+}
+
+function safeNumber(x, fallback = 0) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function setHiddenById(id, hidden) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('hidden', !!hidden);
+}
+
+function updateSpecialMonitorBlocks() {
+  renderOverduePlansBlock();
+  renderTopNgBlock();
+  renderBottleneckBlock();
+  renderTopItemsBlock();
+}
+
+function renderOverduePlansBlock() {
+  const tbody = document.getElementById('overdue-tbody');
+  if (!tbody) return;
+
+  const now = new Date();
+  const items = (plans || [])
+    .map(plan => {
+      const end = parseDateFlexible(plan.planned_end);
+      if (!end) return null;
+      const related = (dashboardLogs || []).filter(l =>
+        l.product_code === plan.product_code &&
+        (!plan.process_name || l.process_name === plan.process_name)
+      );
+      const actualTotal = related.reduce((sum, l) => sum + safeNumber(l.qty_total), 0);
+      const planQty = safeNumber(plan.planned_qty);
+      const isOverdue = end.getTime() < now.getTime() && actualTotal < planQty && (plan.status || '') !== '完了';
+      if (!isOverdue) return null;
+
+      const lateHours = Math.max(0, (now.getTime() - end.getTime()) / 3600000);
+      return {
+        product_code: plan.product_code || '',
+        process_name: plan.process_name || '',
+        plan_qty: planQty,
+        actual_qty: actualTotal,
+        late_h: lateHours
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.late_h - a.late_h)
+    .slice(0, 10);
+
+  tbody.innerHTML = '';
+  if (items.length === 0) {
+    setHiddenById('overdue-empty', false);
+    return;
+  }
+  setHiddenById('overdue-empty', true);
+
+  items.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="図番"><strong>${escapeHtml(row.product_code)}</strong></td>
+      <td data-label="工程">${escapeHtml(row.process_name)}</td>
+      <td data-label="計画" class="align-right">${row.plan_qty}</td>
+      <td data-label="実績" class="align-right">${row.actual_qty}</td>
+      <td data-label="遅れ(h)" class="align-right">${row.late_h.toFixed(1)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTopNgBlock() {
+  const prodTbody = document.getElementById('topng-product-tbody');
+  const procTbody = document.getElementById('topng-process-tbody');
+  if (!prodTbody || !procTbody) return;
+
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, 7));
+
+  prodTbody.innerHTML = '';
+  procTbody.innerHTML = '';
+
+  if (logs.length === 0) {
+    setHiddenById('topng-empty', false);
+    return;
+  }
+  setHiddenById('topng-empty', true);
+
+  const byProd = new Map();
+  const byProc = new Map();
+
+  logs.forEach(l => {
+    const code = String(l.product_code || '').trim() || '不明';
+    const proc = String(l.process_name || '').trim() || '不明工程';
+    const ng = safeNumber(l.qty_ng);
+    const total = safeNumber(l.qty_total);
+
+    const p = byProd.get(code) || { code, ng: 0, total: 0 };
+    p.ng += ng;
+    p.total += total;
+    byProd.set(code, p);
+
+    const pr = byProc.get(proc) || { proc, ng: 0 };
+    pr.ng += ng;
+    byProc.set(proc, pr);
+  });
+
+  const topProd = Array.from(byProd.values())
+    .filter(x => x.ng > 0)
+    .sort((a, b) => b.ng - a.ng)
+    .slice(0, 6);
+
+  const topProc = Array.from(byProc.values())
+    .filter(x => x.ng > 0)
+    .sort((a, b) => b.ng - a.ng)
+    .slice(0, 6);
+
+  if (topProd.length === 0 && topProc.length === 0) {
+    setHiddenById('topng-empty', false);
+    return;
+  }
+
+  topProd.forEach(r => {
+    const rate = r.total > 0 ? (r.ng * 100) / r.total : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.ng}</td>
+      <td class="align-right">${rate.toFixed(1)}%</td>
+    `;
+    prodTbody.appendChild(tr);
+  });
+
+  topProc.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.proc)}</strong></td>
+      <td class="align-right">${r.ng}</td>
+    `;
+    procTbody.appendChild(tr);
+  });
+}
+
+function renderBottleneckBlock() {
+  const tbody = document.getElementById('bottleneck-tbody');
+  if (!tbody) return;
+
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, 7));
+
+  const map = new Map();
+  logs.forEach(l => {
+    const proc = String(l.process_name || '').trim() || '不明工程';
+    const dur = safeNumber(l.duration_sec);
+    if (dur <= 0) return;
+
+    const crew = Math.max(1, Math.round(safeNumber(l.crew_size, 1)));
+    const mh = (dur * crew) / 3600;
+
+    const cur = map.get(proc) || { proc, mh: 0, durMinSum: 0, count: 0 };
+    cur.mh += mh;
+    cur.durMinSum += (dur / 60);
+    cur.count += 1;
+    map.set(proc, cur);
+  });
+
+  const items = Array.from(map.values())
+    .sort((a, b) => b.mh - a.mh)
+    .slice(0, 8);
+
+  tbody.innerHTML = '';
+  if (items.length === 0) {
+    setHiddenById('bottleneck-empty', false);
+    return;
+  }
+  setHiddenById('bottleneck-empty', true);
+
+  items.forEach(r => {
+    const avgMin = r.count > 0 ? (r.durMinSum / r.count) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="工程"><strong>${escapeHtml(r.proc)}</strong></td>
+      <td data-label="工数(h)" class="align-right">${r.mh.toFixed(2)}</td>
+      <td data-label="平均(分)" class="align-right">${avgMin.toFixed(1)}</td>
+      <td data-label="件数" class="align-right">${r.count}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function buildTopItems(days) {
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, days));
+
+  const map = new Map();
+  logs.forEach(l => {
+    const code = String(l.product_code || '').trim() || '不明';
+    const cur = map.get(code) || { code, count: 0, qty: 0 };
+    cur.count += 1;
+    cur.qty += safeNumber(l.qty_total);
+    map.set(code, cur);
+  });
+
+  return Array.from(map.values())
+    .sort((a, b) => (b.count - a.count) || (b.qty - a.qty))
+    .slice(0, 10);
+}
+
+function renderTopItemsBlock() {
+  const wTbody = document.getElementById('topitems-weekly-tbody');
+  const mTbody = document.getElementById('topitems-monthly-tbody');
+  if (!wTbody || !mTbody) return;
+
+  const weekly = buildTopItems(7);
+  const monthly = buildTopItems(30);
+
+  wTbody.innerHTML = '';
+  mTbody.innerHTML = '';
+
+  if (weekly.length === 0 && monthly.length === 0) {
+    setHiddenById('topitems-empty', false);
+    return;
+  }
+  setHiddenById('topitems-empty', true);
+
+  weekly.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.count}</td>
+      <td class="align-right">${r.qty}</td>
+    `;
+    wTbody.appendChild(tr);
+  });
+
+  monthly.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.count}</td>
+      <td class="align-right">${r.qty}</td>
+    `;
+    mTbody.appendChild(tr);
+  });
+}
+
+
+/* ================================
+   Plans (生産計画)
+   ================================ */
+
+async function loadPlans() {
+  try {
+    const data = await callApi('getPlans', {});
+    plans = data || [];
+    renderPlanTable();
+    renderDashboardTable();
+      updateSpecialMonitorBlocks();
+} catch (err) {
+    console.error(err);
+    alert('生産計画の取得に失敗しました: ' + err.message);
+  }
+}
+
+function renderPlanTable() {
+  const tbody = document.getElementById('plans-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const sorted = (plans || []).slice().sort((a, b) => {
+    const da = a.planned_start ? new Date(a.planned_start).getTime() : 0;
+    const db = b.planned_start ? new Date(b.planned_start).getTime() : 0;
+    return db - da;
+  });
+
+  sorted.forEach(plan => {
+    const tr = document.createElement('tr');
+
+    const related = dashboardLogs.filter(l =>
+      l.product_code === plan.product_code &&
+      (!plan.process_name || l.process_name === plan.process_name)
+    );
+    const actualTotal = related.reduce((sum, l) => sum + (l.qty_total || 0), 0);
+    const planQty = plan.planned_qty || 0;
+    const rate = planQty > 0 ? Math.round((actualTotal * 100) / planQty) : 0;
+
+    const tdCode = document.createElement('td');
+    tdCode.dataset.label = '図番';
+    tdCode.textContent = plan.product_code || '';
+
+    const tdName = document.createElement('td');
+    tdName.dataset.label = '品名';
+    tdName.textContent = plan.product_name || '';
+
+    const tdProc = document.createElement('td');
+    tdProc.dataset.label = '工程名';
+    tdProc.textContent = plan.process_name || '';
+
+    const tdQty = document.createElement('td');
+    tdQty.dataset.label = '計画数量';
+    tdQty.textContent = String(planQty || 0);
+
+    const tdStart = document.createElement('td');
+    tdStart.dataset.label = '計画開始';
+    tdStart.textContent = formatDateTime(plan.planned_start || '');
+
+    const tdEnd = document.createElement('td');
+    tdEnd.dataset.label = '計画終了';
+    tdEnd.textContent = formatDateTime(plan.planned_end || '');
+
+    const tdRatio = document.createElement('td');
+    tdRatio.dataset.label = '実績/計画';
+    tdRatio.textContent = `${actualTotal} / ${planQty} (${rate}%)`;
+
+    const tdStatus = document.createElement('td');
+    tdStatus.dataset.label = 'ステータス';
+    tdStatus.textContent = plan.status || '';
+
+    const tdActions = document.createElement('td');
+    tdActions.dataset.label = '操作';
+    tdActions.classList.add('plans-actions');
+
+    const scanBtn = document.createElement('button');
+    scanBtn.type = 'button';
+    scanBtn.className = 'icon-btn primary btn-scan-primary';
+    scanBtn.title = 'スキャン/更新';
+    scanBtn.setAttribute('aria-label', 'スキャン/更新');
+    scanBtn.innerHTML = iconMarkup('i-scan');
+    scanBtn.addEventListener('click', () => startScanForPlan(plan));
+
+    const detailBtn = document.createElement('button');
+    detailBtn.type = 'button';
+    detailBtn.className = 'icon-btn';
+    detailBtn.title = '詳細';
+    detailBtn.setAttribute('aria-label', '詳細');
+    detailBtn.innerHTML = iconMarkup('i-info');
+    detailBtn.addEventListener('click', () => showPlanDetail(plan));
+
+    const exportBtn = document.createElement('button');
+    exportBtn.type = 'button';
+    exportBtn.className = 'icon-btn';
+    exportBtn.title = '実績CSV';
+    exportBtn.setAttribute('aria-label', '実績CSV');
+    exportBtn.innerHTML = iconMarkup('i-csv');
+    exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
+
+    tdActions.appendChild(scanBtn);
+    tdActions.appendChild(detailBtn);
+    tdActions.appendChild(exportBtn);
+
+    if (currentUser && currentUser.role === 'admin') {
+      const delPlanBtn = document.createElement('button');
+      delPlanBtn.type = 'button';
+      delPlanBtn.className = 'icon-btn danger';
+      delPlanBtn.title = '計画削除';
+      delPlanBtn.setAttribute('aria-label', '計画削除');
+      delPlanBtn.innerHTML = iconMarkup('i-trash');
+      delPlanBtn.addEventListener('click', () => handleDeletePlan(plan));
+      tdActions.appendChild(delPlanBtn);
+    }
+
+    tr.appendChild(tdCode);
+    tr.appendChild(tdName);
+    tr.appendChild(tdProc);
+    tr.appendChild(tdQty);
+    tr.appendChild(tdStart);
+    tr.appendChild(tdEnd);
+    tr.appendChild(tdRatio);
+    tr.appendChild(tdStatus);
+    tr.appendChild(tdActions);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function startScanForPlan(plan) {
+  currentPlanForScan = plan;
+
+  const codeEl = document.getElementById('log-product-code');
+  const nameEl = document.getElementById('log-product-name');
+  const qtyEl = document.getElementById('log-plan-qty');
+
+  if (codeEl) codeEl.value = plan.product_code || '';
+  if (nameEl) nameEl.value = plan.product_name || '';
+  if (qtyEl) qtyEl.value = plan.planned_qty || 0;
+
+  const links = document.querySelectorAll('.sidebar-link');
+  const sections = document.querySelectorAll('.section');
+  const sidebar = document.querySelector('.sidebar');
+
+  sections.forEach(sec => sec.classList.toggle('active', sec.id === 'scan-section'));
+  links.forEach(l => l.classList.toggle('active', l.dataset.section === 'scan-section'));
+
+  if (window.innerWidth <= 800 && sidebar) {
+    sidebar.classList.add('sidebar-hidden');
+  }
+
+  showToast(`生産計画を選択しました: ${plan.product_code || ''} / ${plan.process_name || ''}`, 'info');
+}
+
+async function showPlanDetail(plan) {
+  const related = dashboardLogs.filter(l => l.product_code === plan.product_code);
+  let msg = `【計画情報】
+図番: ${plan.product_code}
+品名: ${plan.product_name}
+工程: ${plan.process_name}
+計画数量: ${plan.planned_qty}
+計画期間: ${plan.planned_start} ～ ${plan.planned_end}
+ステータス: ${plan.status}
+
+【実績一覧】
+`;
+  if (related.length === 0) {
+    msg += '実績はまだありません。';
+  } else {
+    related.slice(0, 20).forEach(l => {
+      msg += `- ${l.timestamp_end || l.timestamp_start} 端末:${l.terminal_name} 数量:${l.qty_total} (NG:${l.qty_ng})\n`;
+    });
+    if (related.length > 20) msg += `... ほか ${related.length - 20} 件\n`;
+  }
+  alert(msg);
+}
+
+async function exportLogsForProduct(productCode) {
+  if (!productCode) return;
+  await handleExportProductForCode(productCode);
+}
+
+async function handleSavePlan() {
+  const product_code = document.getElementById('plan-product-code').value.trim();
+  const product_name = document.getElementById('plan-product-name').value.trim();
+  const process_name = document.getElementById('plan-process').value;
+  const planned_qty = Number(document.getElementById('plan-qty').value || 0);
+  const planned_start = document.getElementById('plan-start').value;
+  const planned_end = document.getElementById('plan-end').value;
+  const status = document.getElementById('plan-status').value;
+
+  if (!product_code) {
+    alert('製品番号を入力してください。');
+    return;
+  }
+
+  const plan = { product_code, product_name, process_name, planned_qty, planned_start, planned_end, status };
+
+  try {
+    await callApi('upsertPlan', { plan });
+    alert('生産計画を保存しました。');
+    clearPlanForm();
+    await loadPlans();
+    await loadAnalytics();
+    await loadDashboard();
+  } catch (err) {
+    console.error(err);
+    alert('生産計画の保存に失敗しました: ' + err.message);
+  }
+}
+
+function clearPlanForm() {
+  document.getElementById('plan-product-code').value = '';
+  document.getElementById('plan-product-name').value = '';
+  document.getElementById('plan-process').value = '準備工程';
+  document.getElementById('plan-qty').value = 0;
+  document.getElementById('plan-start').value = '';
+  document.getElementById('plan-end').value = '';
+  document.getElementById('plan-status').value = '計画中';
+}
+
+async function handleImportPlans() {
+  const text = document.getElementById('plan-import-text').value.trim();
+  if (!text) {
+    alert('CSVテキストを貼り付けてください。');
+    return;
+  }
+  try {
+    const data = await callApi('importPlansCsv', { csvText: text });
+    alert(`インポートしました: ${data.imported} 件`);
+    document.getElementById('plan-import-text').value = '';
+    loadPlans();
+    loadAnalytics();
+  } catch (err) {
+    console.error(err);
+    alert('インポートに失敗しました: ' + err.message);
+  }
+}
+
+/* ================================
+   Welcome 日付
+   ================================ */
+
+function setWelcomeDate() {
+  const todayEl = document.getElementById('welcome-date');
+  if (!todayEl) return;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const date = String(now.getDate()).padStart(2, '0');
+  const weekdayNames = ['日', '月', '火', '水', '木', '金', '土'];
+  const weekday = weekdayNames[now.getDay()];
+
+  todayEl.textContent = `${year}-${month}-${date}（${weekday}）`;
+}
+
+/* ================================
+   Safety Message
+   ================================ */
+
+function setSafetyMessage() {
+  const el = document.getElementById('safety-message');
+  if (!el) return;
+
+  const messages = [
+    '安全第一：手袋・保護具を正しく着用してから作業を始めましょう。',
+    '指差呼称で「ヨシ！」を徹底し、うっかりミスを防ぎましょう。',
+    '足元・通路の整理整頓でつまずき・転倒を防止しましょう。',
+    'ムリ・ムダ・ムラのない作業で、焦らず、安全優先で進めましょう。',
+    '異常を感じたら、すぐに上長へ報告。無理に続けないことが大切です。',
+    '重い物は一人で持たず、台車や二人作業で腰を守りましょう。',
+    '設備停止前に必ず電源・ロックアウトを確認しましょう。',
+    'ヒヤリハットも立派な情報です。小さな気づきを仲間と共有しましょう。'
+  ];
+
+  const today = new Date();
+  const idx = today.getDate() % messages.length;
+
+  el.textContent = messages[idx];
+}
+
+
+/* =====================================
+   USER MANAGEMENT ENHANCEMENTS
+   ===================================== */
+
+let lastCreatedUser = null;
+
+async function handleCreateNewUser() {
+  const userIdInput = document.getElementById('new-user-id');
+  const userNameInput = document.getElementById('new-user-name');
+  const userRoleSelect = document.getElementById('new-user-role');
+
+  if (!userIdInput || !userNameInput || !userRoleSelect) {
+    console.error('Required input elements not found');
+    return;
+  }
+
+  const userId = userIdInput.value.trim();
+  const userName = userNameInput.value.trim();
+  const userRole = userRoleSelect.value;
+
+  if (!userId || !userName) {
+    showToast('ユーザーIDと氏名を入力してください。', 'error');
+    return;
+  }
+
+  try {
+    setGlobalLoading(true, 'ユーザー登録中...');
+
+    const result = await callApi('createUser', {
+      userId: userId,
+      userName: userName,
+      role: userRole
+    });
+
+    if (result && result.success) {
+      lastCreatedUser = {
+        user_id: userId,
+        name_ja: userName,
+        role: userRole,
+        created_at: new Date().toISOString()
+      };
+
+      generateUserQRCode(userId, userName, userRole);
+
+      const qrArea = document.getElementById('new-user-qr-area');
+      if (qrArea) {
+        qrArea.classList.remove('hidden');
+      }
+
+      const qrId = document.getElementById('new-user-qr-id');
+      const qrName = document.getElementById('new-user-qr-name');
+      const qrRole = document.getElementById('new-user-qr-role');
+
+      if (qrId) qrId.textContent = userId;
+      if (qrName) qrName.textContent = userName;
+      if (qrRole) qrRole.textContent = getRoleLabel(userRole);
+
+      userIdInput.value = '';
+      userNameInput.value = '';
+      userRoleSelect.value = 'operator';
+
+      await loadUserList();
+
+      showToast('✅ ユーザー登録が完了しました！', 'success');
+
+      if (qrArea) {
+        setTimeout(() => {
+          qrArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+    } else {
+      throw new Error(result && result.message ? result.message : 'ユーザー登録に失敗しました');
+    }
+  } catch (err) {
+    console.error('User creation error:', err);
+    showToast('ユーザー登録に失敗しました: ' + err.message, 'error');
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+function generateUserQRCode(userId, userName, userRole) {
+  const container = document.getElementById('new-user-qr-container');
+  if (!container) {
+    console.error('QR container not found');
+    return;
+  }
+
+  container.innerHTML = '';
+
+  const qrData = JSON.stringify({
+    type: 'user',
+    id: userId,
+    name: userName,
+    role: userRole
+  });
+
+  try {
+    new QRCode(container, {
+      text: qrData,
+      width: 200,
+      height: 200,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch (err) {
+    console.error('QR generation error:', err);
+    showToast('QRコード生成に失敗しました。', 'error');
+  }
+}
+
+function handleDownloadNewUserQR() {
+  if (!lastCreatedUser) {
+    showToast('QRコードがありません。', 'error');
+    return;
+  }
+
+  const dataUrl = getQrImageData('new-user-qr-container');
+  if (!dataUrl) {
+    showToast('QRコードの取得に失敗しました。', 'error');
+    return;
+  }
+
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = 'USER_QR_' + lastCreatedUser.user_id + '.png';
+  link.click();
+
+  showToast('📥 QRコードをダウンロードしました。', 'success');
+}
+
+let isLoadingUserList = false;
+
+async function loadUserList() {
+  if (isLoadingUserList) {
+    console.log('User list already loading, skipping...');
+    return;
+  }
+
+  try {
+    isLoadingUserList = true;
+    setGlobalLoading(true, 'ユーザー一覧読込中...');
+
+    const users = await callApi('getAllUsers', {});
+    if (Array.isArray(users)) {
+      renderUserListTable(users);
+    }
+  } catch (err) {
+    console.error('Failed to load user list:', err);
+    showToast('ユーザー一覧の読込に失敗しました。', 'error');
+  } finally {
+    setGlobalLoading(false);
+    isLoadingUserList = false;
+  }
+}
+
+function renderUserListTable(users) {
+  const tbody = document.getElementById('user-list-tbody');
+  if (!tbody) {
+    console.error('user-list-tbody not found');
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  if (!users || users.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="6" style="text-align:center; padding:20px; color:#7f8c8d;">登録されているユーザーがありません。</td></tr>';
+    return;
+  }
+
+  users.forEach((user, index) => {
+    const tr = document.createElement('tr');
+    const qrContainerId = `qr-mini-${user.user_id}-${index}`;
+
+        tr.innerHTML = `
+      <td data-label="QR">
+        <div id="${qrContainerId}" class="qr-mini"></div>
+      </td>
+      <td data-label="ユーザーID"><strong>${escapeHtml(user.user_id)}</strong></td>
+      <td data-label="氏名">${escapeHtml(user.name_ja || '')}</td>
+      <td data-label="権限"><span class="badge badge-plan">${getRoleLabel(user.role)}</span></td>
+      <td data-label="作成日時"><span class="hint">${formatDateTime(user.created_at || '')}</span></td>
+      <td data-label="操作">
+        <div class="user-actions">
+          <button type="button" class="icon-btn"
+                  onclick="editUser('${escapeHtml(user.user_id)}')"
+                  title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="icon-btn danger"
+                  onclick="confirmDeleteUser('${escapeHtml(user.user_id)}')"
+                  title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
+          <button type="button" class="icon-btn"
+                  onclick="downloadUserQR('${escapeHtml(user.user_id)}', '${escapeHtml(user.name_ja || '')}', '${user.role || ''}')"
+                  title="QRダウンロード" aria-label="QRダウンロード">${iconMarkup('i-download')}</button>
+        </div>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+
+    setTimeout(() => {
+      const miniContainer = document.getElementById(qrContainerId);
+      if (!miniContainer) return;
+
+      miniContainer.innerHTML = '';
+
+      let qrData = JSON.stringify({
+        type: 'user',
+        id: user.user_id
+      });
+
+      try {
+        new QRCode(miniContainer, {
+          text: qrData,
+          width: 50,
+          height: 50,
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch (err) {
+        console.error('Mini QR generation error (fallback to plain ID):', err);
+        try {
+          new QRCode(miniContainer, {
+            text: String(user.user_id || ''),
+            width: 50,
+            height: 50,
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (err2) {
+          console.error('Mini QR generation failed completely:', err2);
+        }
+      }
+    }, 100 * (index + 1));
+  });
+}
+
+
+async function editUser(userId) {
+  const newName = prompt('新しい氏名を入力してください:');
+  if (!newName || newName.trim() === '') {
+    return;
+  }
+
+  try {
+    setGlobalLoading(true, '更新中...');
+    const result = await callApi('updateUser', {
+      userId: userId,
+      userName: newName.trim()
+    });
+
+    if (result && result.success) {
+      await loadUserList();
+      showToast('✅ ユーザー情報を更新しました。', 'success');
+    } else {
+      throw new Error(result && result.message ? result.message : '更新に失敗しました');
+    }
+  } catch (err) {
+    console.error('Update user error:', err);
+    showToast('更新に失敗しました: ' + err.message, 'error');
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+function confirmDeleteUser(userId) {
+  if (!confirm('ユーザー「' + userId + '」を削除してもよろしいですか？\n\nこの操作は取り消せません。')) {
+    return;
+  }
+  deleteUser(userId);
+}
+
+async function deleteUser(userId) {
+  try {
+    setGlobalLoading(true, '削除中...');
+    const result = await callApi('deleteUser', { userId: userId });
+
+    if (result && result.success) {
+      await loadUserList();
+      showToast('🗑️ ユーザーを削除しました。', 'success');
+    } else {
+      throw new Error(result && result.message ? result.message : '削除に失敗しました');
+    }
+  } catch (err) {
+    console.error('Delete user error:', err);
+    showToast('削除に失敗しました: ' + err.message, 'error');
+  } finally {
+    setGlobalLoading(false);
+  }
+}
+
+function downloadUserQR(userId, userName, userRole) {
+  const tempContainer = document.createElement('div');
+  tempContainer.style.display = 'none';
+  document.body.appendChild(tempContainer);
+
+  const qrData = JSON.stringify({
+    type: 'user',
+    id: userId,
+    name: userName,
+    role: userRole
+  });
+
+  try {
+    new QRCode(tempContainer, {
+      text: qrData,
+      width: 300,
+      height: 300,
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    setTimeout(() => {
+      const img = tempContainer.querySelector('img');
+      const canvas = tempContainer.querySelector('canvas');
+      let dataUrl = null;
+
+      if (img && img.src) {
+        dataUrl = img.src;
+      } else if (canvas && canvas.toDataURL) {
+        dataUrl = canvas.toDataURL('image/png');
+      }
+
+      if (dataUrl) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'USER_QR_' + userId + '.png';
+        link.click();
+        showToast('📥 QRコードをダウンロードしました。', 'success');
+      } else {
+        throw new Error('QR data could not be extracted');
+      }
+
+      document.body.removeChild(tempContainer);
+    }, 500);
+  } catch (err) {
+    console.error('QR download error:', err);
+    showToast('QRダウンロードに失敗しました。', 'error');
+    document.body.removeChild(tempContainer);
+  }
+}
+
+/* ================================
+   REQUIRED FIELD VALIDATION
+   ================================ */
+
+function updateRequiredFieldStatus() {
+  const okInput = document.getElementById('log-qty-ok');
+  const ngInput = document.getElementById('log-qty-ng');
+  const totalInput = document.getElementById('log-qty-total');
+  const statusSelect = document.getElementById('log-status');
+
+  if (!okInput || !ngInput || !totalInput) {
+    return;
+  }
+
+  const ok = Number(okInput.value || 0);
+  const ng = Number(ngInput.value || 0);
+  const total = ok + ng;
+  totalInput.value = total;
+
+  const requiredFields = [okInput, ngInput, totalInput, statusSelect];
+
+  requiredFields.forEach(field => {
+    if (!field) return;
+
+    const value = field.value;
+    const isSelect = field.tagName === 'SELECT';
+
+    field.classList.remove('filled', 'required-missing');
+
+    if (isSelect) {
+      if (value && value !== '') {
+        field.classList.add('filled');
+      }
+    } else {
+      const numValue = Number(value);
+      if (!isNaN(numValue) && numValue > 0) {
+        field.classList.add('filled');
+      }
+    }
+  });
+}
+
+/* ================================
+   INITIALIZE USER MANAGEMENT
+   ================================ */
+
+function initUserManagement() {
+  const btnCreateUser = document.getElementById('btn-create-new-user');
+  if (btnCreateUser) {
+    btnCreateUser.addEventListener('click', handleCreateNewUser);
+  }
+
+  const btnDownloadUserQR = document.getElementById('btn-download-new-user-qr');
+  if (btnDownloadUserQR) {
+    btnDownloadUserQR.addEventListener('click', handleDownloadNewUserQR);
+  }
+
+  const qtyOkInput = document.getElementById('log-qty-ok');
+  const qtyNgInput = document.getElementById('log-qty-ng');
+  const statusSelect = document.getElementById('log-status');
+
+  if (qtyOkInput) qtyOkInput.addEventListener('input', updateRequiredFieldStatus);
+  if (qtyNgInput) qtyNgInput.addEventListener('input', updateRequiredFieldStatus);
+  if (statusSelect) statusSelect.addEventListener('change', updateRequiredFieldStatus);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initUserManagement);
+} else {
+  initUserManagement();
+}
