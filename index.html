@@ -388,6 +388,131 @@
             </table>
           </div>
         </div>
+            <!-- Monitor-only: Special Slides (Overdue / Top NG / Bottleneck / Top Items) -->
+            <div id="dash-overdue-block" class="monitor-source monitor-only">
+              <div class="card">
+                <div class="card-header-row">
+                  <div class="card-header-left">
+                    <h2 class="card-title">遅れ計画（Overdue）</h2>
+                    <div class="hint">計画終了を過ぎても未達の計画（上位10件）</div>
+                  </div>
+                </div>
+                <div class="table-wrapper compact">
+                  <table class="logs-table compact responsive-table">
+                    <thead>
+                      <tr>
+                        <th>図番</th><th>工程</th><th class="align-right">計画</th><th class="align-right">実績</th><th class="align-right">遅れ(h)</th>
+                      </tr>
+                    </thead>
+                    <tbody id="overdue-tbody"></tbody>
+                  </table>
+                  <div id="overdue-empty" class="empty-state hidden">遅れ計画はありません。</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="dash-topng-block" class="monitor-source monitor-only">
+              <div class="card">
+                <div class="card-header-row">
+                  <div class="card-header-left">
+                    <h2 class="card-title">Top NG（直近7日）</h2>
+                    <div class="hint">不良数量が多い製品・工程（上位）</div>
+                  </div>
+                </div>
+
+                <div class="two-col">
+                  <div>
+                    <h3 class="sub-title">製品別（NG数量）</h3>
+                    <div class="table-wrapper compact">
+                      <table class="logs-table compact">
+                        <thead>
+                          <tr><th>図番</th><th class="align-right">NG</th><th class="align-right">NG率</th></tr>
+                        </thead>
+                        <tbody id="topng-product-tbody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 class="sub-title">工程別（NG数量）</h3>
+                    <div class="table-wrapper compact">
+                      <table class="logs-table compact">
+                        <thead>
+                          <tr><th>工程</th><th class="align-right">NG</th></tr>
+                        </thead>
+                        <tbody id="topng-process-tbody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="topng-empty" class="empty-state hidden">対象データがありません。</div>
+              </div>
+            </div>
+
+            <div id="dash-bottleneck-block" class="monitor-source monitor-only">
+              <div class="card">
+                <div class="card-header-row">
+                  <div class="card-header-left">
+                    <h2 class="card-title">ボトルネック工程（直近7日）</h2>
+                    <div class="hint">工数（h）が大きい工程（上位）</div>
+                  </div>
+                </div>
+                <div class="table-wrapper compact">
+                  <table class="logs-table compact responsive-table">
+                    <thead>
+                      <tr>
+                        <th>工程</th>
+                        <th class="align-right">工数(h)</th>
+                        <th class="align-right">平均(分)</th>
+                        <th class="align-right">件数</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bottleneck-tbody"></tbody>
+                  </table>
+                  <div id="bottleneck-empty" class="empty-state hidden">対象データがありません。</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="dash-topitems-block" class="monitor-source monitor-only">
+              <div class="card">
+                <div class="card-header-row">
+                  <div class="card-header-left">
+                    <h2 class="card-title">頻出品目（直近7日 / 30日）</h2>
+                    <div class="hint">作業回数（ログ件数）が多い製品（上位）</div>
+                  </div>
+                </div>
+
+                <div class="two-col">
+                  <div>
+                    <h3 class="sub-title">直近7日</h3>
+                    <div class="table-wrapper compact">
+                      <table class="logs-table compact">
+                        <thead>
+                          <tr><th>図番</th><th class="align-right">回数</th><th class="align-right">数量</th></tr>
+                        </thead>
+                        <tbody id="topitems-weekly-tbody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 class="sub-title">直近30日</h3>
+                    <div class="table-wrapper compact">
+                      <table class="logs-table compact">
+                        <thead>
+                          <tr><th>図番</th><th class="align-right">回数</th><th class="align-right">数量</th></tr>
+                        </thead>
+                        <tbody id="topitems-monthly-tbody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="topitems-empty" class="empty-state hidden">対象データがありません。</div>
+              </div>
+            </div>
+
       
           </div>
         </div>
@@ -1123,10 +1248,15 @@
     </div>
     <div class="monitor-viewport">
       <div class="monitor-track" id="monitor-track">
+        
         <div class="monitor-slide" data-slide="0"></div>
         <div class="monitor-slide" data-slide="1"></div>
         <div class="monitor-slide" data-slide="2"></div>
         <div class="monitor-slide" data-slide="3"></div>
+        <div class="monitor-slide" data-slide="4"></div>
+        <div class="monitor-slide" data-slide="5"></div>
+        <div class="monitor-slide" data-slide="6"></div>
+        <div class="monitor-slide" data-slide="7"></div>
       </div>
     </div>
   </div>
