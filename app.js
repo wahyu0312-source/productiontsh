@@ -94,6 +94,12 @@ function getRoleLabel(role) {
   return role || '';
 }
 
+function iconMarkup(symbolId, extraClass = '') {
+  const cls = ['icon', extraClass].filter(Boolean).join(' ');
+  return `<svg class="${cls}" aria-hidden="true"><use href="#${symbolId}"></use></svg>`;
+}
+
+
 /* ================================
    QRラベル 共通
    ================================ */
@@ -173,17 +179,17 @@ function renderAdminUserList() {
     const tr = document.createElement('tr');
     const qrId = `admin-user-qr-${user.user_id}`;
 
-    tr.innerHTML = `
-      <td><div class="qr-mini" id="${qrId}"></div></td>
-      <td>${escapeHtml(user.user_id)}</td>
-      <td>${escapeHtml(user.name_ja || user.name || '')}</td>
-      <td>${escapeHtml(getRoleLabel(user.role))}</td>
-      <td>
+        tr.innerHTML = `
+      <td data-label="QR"><div class="qr-mini" id="${qrId}"></div></td>
+      <td data-label="ユーザーID"><strong>${escapeHtml(user.user_id)}</strong></td>
+      <td data-label="氏名">${escapeHtml(user.name_ja || user.name || '')}</td>
+      <td data-label="権限">${escapeHtml(getRoleLabel(user.role))}</td>
+      <td data-label="操作">
         <div class="list-action-buttons">
-          <button type="button" class="mini-btn mini-btn-edit" data-id="${user.user_id}">編集</button>
-          <button type="button" class="mini-btn mini-btn-print" data-id="${user.user_id}">印刷</button>
-          <button type="button" class="mini-btn mini-btn-dl" data-id="${user.user_id}">DL</button>
-          <button type="button" class="mini-btn mini-btn-del" data-id="${user.user_id}">削除</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-edit" data-id="${user.user_id}" title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-print" data-id="${user.user_id}" title="印刷" aria-label="印刷">${iconMarkup('i-print')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-dl" data-id="${user.user_id}" title="DL" aria-label="DL">${iconMarkup('i-download')}</button>
+          <button type="button" class="mini-btn icon-btn danger mini-btn-del" data-id="${user.user_id}" title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
         </div>
       </td>
     `;
@@ -283,18 +289,18 @@ function renderAdminTerminalList() {
     const tr = document.createElement('tr');
     const qrId = `admin-terminal-qr-${t.terminal_id}`;
 
-    tr.innerHTML = `
-      <td><div class="qr-mini" id="${qrId}"></div></td>
-      <td>${escapeHtml(t.terminal_id)}</td>
-      <td>${escapeHtml(t.name_ja || t.name || '')}</td>
-      <td>${escapeHtml(t.process_name || '')}</td>
-      <td>${escapeHtml(t.location || '')}</td>
-      <td>
+        tr.innerHTML = `
+      <td data-label="QR"><div class="qr-mini" id="${qrId}"></div></td>
+      <td data-label="工程ID"><strong>${escapeHtml(t.terminal_id)}</strong></td>
+      <td data-label="工程名称">${escapeHtml(t.name_ja || t.name || '')}</td>
+      <td data-label="工程">${escapeHtml(t.process_name || '')}</td>
+      <td data-label="ロケーション">${escapeHtml(t.location || '')}</td>
+      <td data-label="操作">
         <div class="list-action-buttons">
-          <button class="mini-btn mini-btn-edit" data-id="${t.terminal_id}">編集</button>
-          <button class="mini-btn mini-btn-print" data-id="${t.terminal_id}">印刷</button>
-          <button class="mini-btn mini-btn-dl" data-id="${t.terminal_id}">DL</button>
-          <button class="mini-btn mini-btn-del" data-id="${t.terminal_id}">削除</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-edit" data-id="${t.terminal_id}" title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-print" data-id="${t.terminal_id}" title="印刷" aria-label="印刷">${iconMarkup('i-print')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-dl" data-id="${t.terminal_id}" title="DL" aria-label="DL">${iconMarkup('i-download')}</button>
+          <button type="button" class="mini-btn icon-btn danger mini-btn-del" data-id="${t.terminal_id}" title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
         </div>
       </td>
     `;
@@ -400,8 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setSafetyMessage();           // ★ Safety message di dashboard
   renderLastUserQuickLogin();   // ★ quick login
 
-    updateSelectionSummary();
-loadMasterData();
+  loadMasterData();
   loadDashboard();
   loadAnalytics();
   startDashboardAutoRefresh();
@@ -604,14 +609,7 @@ function setupButtons() {
   const btnClearForm = document.getElementById('btn-clear-form');
   if (btnClearForm) btnClearForm.addEventListener('click', clearForm);
 
-  
-  // Mobile action bar (one-hand)
-  const btnSaveLogMobile = document.getElementById('btn-save-log-mobile');
-  if (btnSaveLogMobile) btnSaveLogMobile.addEventListener('click', handleSaveLog);
-
-  const btnClearFormMobile = document.getElementById('btn-clear-form-mobile');
-  if (btnClearFormMobile) btnClearFormMobile.addEventListener('click', clearForm);
-// OK/NG → 総数量自動計算
+  // OK/NG → 総数量自動計算
   const qtyOkInput = document.getElementById('log-qty-ok');
   const qtyNgInput = document.getElementById('log-qty-ng');
   if (qtyOkInput && qtyNgInput) {
@@ -870,9 +868,7 @@ async function loginWithUserId(userId) {
     if (idEl) idEl.textContent = user.user_id;
     if (roleEl) roleEl.textContent = user.role;
 
-    
-    updateSelectionSummary();
-document.getElementById('top-username').textContent = user.name_ja;
+    document.getElementById('top-username').textContent = user.name_ja;
     document.getElementById('top-userrole').textContent = getRoleLabel(user.role);
     document.getElementById('welcome-name').textContent = user.name_ja;
 
@@ -968,9 +964,7 @@ function handleLogout() {
   if (userMenuPanel) userMenuPanel.classList.add('hidden');
 
   showToast('ログアウトしました。', 'info');
-  updateSelectionSummary();
 }
-
 
 function handleHeaderSearch() {
   const input = document.getElementById('header-product-search');
@@ -1024,8 +1018,6 @@ function selectTerminalById(terminalId) {
   if (idEl) idEl.textContent = currentTerminal.terminal_id;
   if (processEl) processEl.textContent = currentTerminal.process_name;
   if (locEl) locEl.textContent = currentTerminal.location;
-
-  updateSelectionSummary();
 
   showToast('端末を選択しました: ' + currentTerminal.terminal_id, 'info');
 }
@@ -1249,8 +1241,7 @@ async function loadDashboard() {
     renderDashboardTable();
     updateAlertBanner();
     renderPlanTable();
-      updatePlanKpis();
-} catch (err) {
+  } catch (err) {
     console.error(err);
     alert('ダッシュボード取得に失敗しました: ' + err.message);
   }
@@ -1373,29 +1364,13 @@ function renderDashboardTable() {
     return tb - ta;
   });
 
-  filtered.forEach(log => {
+    filtered.forEach(log => {
     const tr = document.createElement('tr');
     const isPlan = !!log.is_plan_only;
+
     const durationMin = (!isPlan && log.duration_sec)
       ? (log.duration_sec / 60).toFixed(1)
       : '';
-
-    const statusCell = document.createElement('td');
-    statusCell.setAttribute('data-label', 'ステータス');
-    const badge = document.createElement('span');
-    badge.classList.add('badge');
-
-    if (isPlan) {
-      badge.classList.add('badge-plan');
-    } else if (log.status === '検査保留' || log.status === '一時停止') {
-      badge.classList.add('badge-hold');
-    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
-      badge.classList.add('badge-normal');
-    } else {
-      badge.classList.add('badge-error');
-    }
-    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
-    statusCell.appendChild(badge);
 
     const startText = formatDateTime(
       log.timestamp_start || log.timestamp_end || log.planned_start || ''
@@ -1410,23 +1385,54 @@ function renderDashboardTable() {
       ? `- / ${log.plan_qty || 0}`
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
-    tr.innerHTML = `
-      <td data-label="工程開始">${escapeHtml(startText)}</td>
-      <td data-label="図番">${escapeHtml(log.product_code || '')}</td>
-      <td data-label="品名">${escapeHtml(log.product_name || '')}</td>
-      <td data-label="工程">${escapeHtml(log.process_name || '')}</td>
-      <td data-label="ユーザー">${escapeHtml(userText)}</td>
-      <td data-label="数量(OK/不良)">${escapeHtml(qtyText)}</td>
-    `;
-    tr.appendChild(statusCell);
+    const tdStart = document.createElement('td');
+    tdStart.dataset.label = '工程開始';
+    tdStart.textContent = startText;
+
+    const tdCode = document.createElement('td');
+    tdCode.dataset.label = '図番';
+    tdCode.textContent = log.product_code || '';
+
+    const tdName = document.createElement('td');
+    tdName.dataset.label = '品名';
+    tdName.textContent = log.product_name || '';
+
+    const tdProc = document.createElement('td');
+    tdProc.dataset.label = '工程';
+    tdProc.textContent = log.process_name || '';
+
+    const tdUser = document.createElement('td');
+    tdUser.dataset.label = 'ユーザー';
+    tdUser.textContent = userText;
+
+    const tdQty = document.createElement('td');
+    tdQty.dataset.label = '数量(OK/不良)';
+    tdQty.textContent = qtyText;
+
+    const tdStatus = document.createElement('td');
+    tdStatus.dataset.label = 'ステータス';
+
+    const badge = document.createElement('span');
+    badge.classList.add('badge');
+    if (isPlan) {
+      badge.classList.add('badge-plan');
+    } else if (log.status === '検査保留' || log.status === '一時停止') {
+      badge.classList.add('badge-hold');
+    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
+      badge.classList.add('badge-normal');
+    } else {
+      badge.classList.add('badge-error');
+    }
+    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
+    tdStatus.appendChild(badge);
 
     const tdDuration = document.createElement('td');
-    tdDuration.setAttribute('data-label', '所要時間(分)');
+    tdDuration.dataset.label = '所要時間(分)';
     tdDuration.textContent = durationMin || '';
-    tr.appendChild(tdDuration);
 
     const tdLoc = document.createElement('td');
-    tdLoc.setAttribute('data-label', 'ロケーション');
+    tdLoc.dataset.label = 'ロケーション';
+
     const locWrapper = document.createElement('div');
     locWrapper.className = 'location-cell';
 
@@ -1447,14 +1453,13 @@ function renderDashboardTable() {
     }
 
     tdLoc.appendChild(locWrapper);
-    tr.appendChild(tdLoc);
 
     if (!isPlan && ((log.qty_ng || 0) > 0 || log.status === '検査保留')) {
       tr.classList.add('row-alert');
     }
 
     const tdActions = document.createElement('td');
-    tdActions.setAttribute('data-label', '操作');
+    tdActions.dataset.label = '操作';
 
     if (isPlan) {
       tdActions.classList.add('plans-actions');
@@ -1471,18 +1476,27 @@ function renderDashboardTable() {
       };
 
       const scanBtn = document.createElement('button');
-      scanBtn.textContent = 'スキャン/更新';
-      scanBtn.className = 'ghost-button btn-scan-primary';
+      scanBtn.type = 'button';
+      scanBtn.className = 'icon-btn primary btn-scan-primary';
+      scanBtn.title = 'スキャン/更新';
+      scanBtn.setAttribute('aria-label', 'スキャン/更新');
+      scanBtn.innerHTML = iconMarkup('i-scan');
       scanBtn.addEventListener('click', () => startScanForPlan(planLike));
 
       const detailBtn = document.createElement('button');
-      detailBtn.textContent = '詳細';
-      detailBtn.className = 'ghost-button';
+      detailBtn.type = 'button';
+      detailBtn.className = 'icon-btn';
+      detailBtn.title = '詳細';
+      detailBtn.setAttribute('aria-label', '詳細');
+      detailBtn.innerHTML = iconMarkup('i-info');
       detailBtn.addEventListener('click', () => showPlanDetail(planLike));
 
       const exportBtn = document.createElement('button');
-      exportBtn.textContent = '実績CSV';
-      exportBtn.className = 'ghost-button';
+      exportBtn.type = 'button';
+      exportBtn.className = 'icon-btn';
+      exportBtn.title = '実績CSV';
+      exportBtn.setAttribute('aria-label', '実績CSV');
+      exportBtn.innerHTML = iconMarkup('i-csv');
       exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
 
       tdActions.appendChild(scanBtn);
@@ -1490,16 +1504,19 @@ function renderDashboardTable() {
       tdActions.appendChild(exportBtn);
     } else if (currentUser && currentUser.role === 'admin') {
       const editBtn = document.createElement('button');
-      editBtn.textContent = '編集';
-      editBtn.className = 'ghost-button';
-      editBtn.style.fontSize = '0.7rem';
+      editBtn.type = 'button';
+      editBtn.className = 'icon-btn';
+      editBtn.title = '編集';
+      editBtn.setAttribute('aria-label', '編集');
+      editBtn.innerHTML = iconMarkup('i-edit');
       editBtn.addEventListener('click', () => openEditModal(log));
 
       const delBtn = document.createElement('button');
-      delBtn.textContent = '削除';
-      delBtn.className = 'ghost-button';
-      delBtn.style.fontSize = '0.7rem';
-      delBtn.style.marginLeft = '4px';
+      delBtn.type = 'button';
+      delBtn.className = 'icon-btn danger';
+      delBtn.title = '削除';
+      delBtn.setAttribute('aria-label', '削除');
+      delBtn.innerHTML = iconMarkup('i-trash');
       delBtn.addEventListener('click', () => handleDeleteLog(log));
 
       tdActions.appendChild(editBtn);
@@ -1508,7 +1525,17 @@ function renderDashboardTable() {
       tdActions.textContent = '-';
     }
 
+    tr.appendChild(tdStart);
+    tr.appendChild(tdCode);
+    tr.appendChild(tdName);
+    tr.appendChild(tdProc);
+    tr.appendChild(tdUser);
+    tr.appendChild(tdQty);
+    tr.appendChild(tdStatus);
+    tr.appendChild(tdDuration);
+    tr.appendChild(tdLoc);
     tr.appendChild(tdActions);
+
     tbody.appendChild(tr);
   });
 }
@@ -1622,110 +1649,6 @@ function formatDateTime(value) {
 
   return `${year}-${month}-${day} ${hour}:${minute}`;
 }
-
-/* ================================
-   KPI / Mobile helper
-   ================================ */
-
-function getDayKeyLocal(d) {
-  if (!(d instanceof Date) || isNaN(d.getTime())) return '';
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function getLogBaseDate(log) {
-  if (!log) return null;
-  const s = log.timestamp_start || log.timestamp_end || log.planned_start || log.created_at || '';
-  if (!s) return null;
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function isExternalLog(log) {
-  if (!log) return false;
-  const wt = String(log.work_type || '').trim();
-  if (wt) return wt === '外注';
-  const location = String(log.location || log.terminal_location || '').toLowerCase();
-  return /外注|subcon|vendor/i.test(location);
-}
-
-function updateSelectionSummary() {
-  const planCodeEl = document.getElementById('sel-plan-code');
-  const terminalNameEl = document.getElementById('sel-terminal-name');
-  const userNameEl = document.getElementById('sel-user-name');
-
-  if (planCodeEl) {
-    const v = document.getElementById('log-product-code')?.value || '';
-    planCodeEl.textContent = v ? v : '-';
-  }
-  if (terminalNameEl) {
-    terminalNameEl.textContent = currentTerminal?.name_ja || '未スキャン';
-  }
-  if (userNameEl) {
-    userNameEl.textContent = currentUser?.name_ja || '未ログイン';
-  }
-}
-
-function updatePlanKpis() {
-  const elAch = document.getElementById('kpi-plan-achievement');
-  const elDelay = document.getElementById('kpi-plan-delay');
-  const elSub = document.getElementById('kpi-plan-subcon');
-  if (!elAch && !elDelay && !elSub) return;
-
-  const now = new Date();
-
-  // 計画達成率 / 遅れ時間（未完了）
-  const activePlans = (plans || []).filter(p => !['完了', '中止'].includes(p?.status || ''));
-  let planSum = 0;
-  let actualSum = 0;
-  let delayHours = 0;
-
-  activePlans.forEach(p => {
-    const planQty = Number(p.planned_qty || 0);
-    planSum += planQty;
-
-    const related = (dashboardLogs || []).filter(l =>
-      !l?.is_plan_only &&
-      l.product_code === p.product_code &&
-      (!p.process_name || l.process_name === p.process_name)
-    );
-    const actualQty = related.reduce((s, l) => s + Number(l.qty_total || 0), 0);
-    actualSum += actualQty;
-
-    if (p.planned_end) {
-      const end = new Date(p.planned_end);
-      if (!isNaN(end.getTime()) && now > end && actualQty < planQty) {
-        delayHours += (now.getTime() - end.getTime()) / 36e5;
-      }
-    }
-  });
-
-  const ach = planSum > 0 ? Math.round((actualSum * 100) / planSum) : 0;
-  if (elAch) elAch.textContent = String(Math.min(ach, 200));
-  if (elDelay) elDelay.textContent = String(Math.max(0, delayHours).toFixed(1));
-
-  // 外注比率（本日の実績）
-  const todayKey = getDayKeyLocal(now);
-  let totalToday = 0;
-  let externalToday = 0;
-
-  (dashboardLogs || []).forEach(l => {
-    if (!l || l.is_plan_only) return;
-    const d = getLogBaseDate(l);
-    if (!d) return;
-    if (getDayKeyLocal(d) !== todayKey) return;
-
-    const qty = Number(l.qty_total || 0);
-    totalToday += qty;
-    if (isExternalLog(l)) externalToday += qty;
-  });
-
-  const subconRate = totalToday > 0 ? Math.round((externalToday * 100) / totalToday) : 0;
-  if (elSub) elSub.textContent = String(subconRate);
-}
-
 
 /* ================================
    Export logs CSV (per product)
@@ -1980,9 +1903,6 @@ async function loadAnalytics() {
       }
     }
 
-    // Update KPI cards (uses loaded plans/logs)
-    updatePlanKpis();
-
     const tickerEl = document.getElementById('ticker-text');
     if (tickerEl) {
       let msg;
@@ -1992,11 +1912,6 @@ async function loadAnalytics() {
         msg = `本日の生産数量は ${today.total} 個です。安全第一で作業を続けましょう。`;
       } else {
         msg = '生産データはまだありません。スキャン画面から実績を登録してください。';
-      }
-            const achEl = document.getElementById('kpi-plan-achievement');
-      const achText = achEl ? achEl.textContent : '';
-      if (achText) {
-        msg = msg + `（計画達成率: ${achText}%）`;
       }
       tickerEl.textContent = msg;
     }
@@ -2087,8 +2002,7 @@ async function loadPlans() {
     plans = data || [];
     renderPlanTable();
     renderDashboardTable();
-      updatePlanKpis();
-} catch (err) {
+  } catch (err) {
     console.error(err);
     alert('生産計画の取得に失敗しました: ' + err.message);
   }
@@ -2116,34 +2030,64 @@ function renderPlanTable() {
     const planQty = plan.planned_qty || 0;
     const rate = planQty > 0 ? Math.round((actualTotal * 100) / planQty) : 0;
 
-    tr.innerHTML = `
-      <td data-label="図番">${escapeHtml(plan.product_code || '')}</td>
-      <td data-label="品名">${escapeHtml(plan.product_name || '')}</td>
-      <td data-label="工程名">${escapeHtml(plan.process_name || '')}</td>
-      <td data-label="計画数量">${escapeHtml(String(plan.planned_qty || 0))}</td>
-      <td data-label="計画開始">${escapeHtml(plan.planned_start || '')}</td>
-      <td data-label="計画終了">${escapeHtml(plan.planned_end || '')}</td>
-      <td data-label="実績/計画">${escapeHtml(`${actualTotal} / ${planQty} (${rate}%)`)}</td>
-      <td data-label="ステータス">${escapeHtml(plan.status || '')}</td>
-    `;
+    const tdCode = document.createElement('td');
+    tdCode.dataset.label = '図番';
+    tdCode.textContent = plan.product_code || '';
+
+    const tdName = document.createElement('td');
+    tdName.dataset.label = '品名';
+    tdName.textContent = plan.product_name || '';
+
+    const tdProc = document.createElement('td');
+    tdProc.dataset.label = '工程名';
+    tdProc.textContent = plan.process_name || '';
+
+    const tdQty = document.createElement('td');
+    tdQty.dataset.label = '計画数量';
+    tdQty.textContent = String(planQty || 0);
+
+    const tdStart = document.createElement('td');
+    tdStart.dataset.label = '計画開始';
+    tdStart.textContent = formatDateTime(plan.planned_start || '');
+
+    const tdEnd = document.createElement('td');
+    tdEnd.dataset.label = '計画終了';
+    tdEnd.textContent = formatDateTime(plan.planned_end || '');
+
+    const tdRatio = document.createElement('td');
+    tdRatio.dataset.label = '実績/計画';
+    tdRatio.textContent = `${actualTotal} / ${planQty} (${rate}%)`;
+
+    const tdStatus = document.createElement('td');
+    tdStatus.dataset.label = 'ステータス';
+    tdStatus.textContent = plan.status || '';
 
     const tdActions = document.createElement('td');
-    tdActions.setAttribute('data-label', '操作');
+    tdActions.dataset.label = '操作';
     tdActions.classList.add('plans-actions');
 
     const scanBtn = document.createElement('button');
-    scanBtn.textContent = 'スキャン/更新';
-    scanBtn.className = 'ghost-button btn-scan-primary';
+    scanBtn.type = 'button';
+    scanBtn.className = 'icon-btn primary btn-scan-primary';
+    scanBtn.title = 'スキャン/更新';
+    scanBtn.setAttribute('aria-label', 'スキャン/更新');
+    scanBtn.innerHTML = iconMarkup('i-scan');
     scanBtn.addEventListener('click', () => startScanForPlan(plan));
 
     const detailBtn = document.createElement('button');
-    detailBtn.textContent = '詳細';
-    detailBtn.className = 'ghost-button';
+    detailBtn.type = 'button';
+    detailBtn.className = 'icon-btn';
+    detailBtn.title = '詳細';
+    detailBtn.setAttribute('aria-label', '詳細');
+    detailBtn.innerHTML = iconMarkup('i-info');
     detailBtn.addEventListener('click', () => showPlanDetail(plan));
 
     const exportBtn = document.createElement('button');
-    exportBtn.textContent = '実績CSV';
-    exportBtn.className = 'ghost-button';
+    exportBtn.type = 'button';
+    exportBtn.className = 'icon-btn';
+    exportBtn.title = '実績CSV';
+    exportBtn.setAttribute('aria-label', '実績CSV');
+    exportBtn.innerHTML = iconMarkup('i-csv');
     exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
 
     tdActions.appendChild(scanBtn);
@@ -2152,15 +2096,25 @@ function renderPlanTable() {
 
     if (currentUser && currentUser.role === 'admin') {
       const delPlanBtn = document.createElement('button');
-      delPlanBtn.textContent = '計画削除';
-      delPlanBtn.className = 'ghost-button';
-      delPlanBtn.style.fontSize = '0.7rem';
-      delPlanBtn.style.marginLeft = '4px';
+      delPlanBtn.type = 'button';
+      delPlanBtn.className = 'icon-btn danger';
+      delPlanBtn.title = '計画削除';
+      delPlanBtn.setAttribute('aria-label', '計画削除');
+      delPlanBtn.innerHTML = iconMarkup('i-trash');
       delPlanBtn.addEventListener('click', () => handleDeletePlan(plan));
       tdActions.appendChild(delPlanBtn);
     }
 
+    tr.appendChild(tdCode);
+    tr.appendChild(tdName);
+    tr.appendChild(tdProc);
+    tr.appendChild(tdQty);
+    tr.appendChild(tdStart);
+    tr.appendChild(tdEnd);
+    tr.appendChild(tdRatio);
+    tr.appendChild(tdStatus);
     tr.appendChild(tdActions);
+
     tbody.appendChild(tr);
   });
 }
@@ -2176,9 +2130,7 @@ function startScanForPlan(plan) {
   if (nameEl) nameEl.value = plan.product_name || '';
   if (qtyEl) qtyEl.value = plan.planned_qty || 0;
 
-  
-  updateSelectionSummary();
-const links = document.querySelectorAll('.sidebar-link');
+  const links = document.querySelectorAll('.sidebar-link');
   const sections = document.querySelectorAll('.section');
   const sidebar = document.querySelector('.sidebar');
 
@@ -2497,25 +2449,25 @@ function renderUserListTable(users) {
     const tr = document.createElement('tr');
     const qrContainerId = `qr-mini-${user.user_id}-${index}`;
 
-    tr.innerHTML = `
-      <td>
+        tr.innerHTML = `
+      <td data-label="QR">
         <div id="${qrContainerId}" class="qr-mini"></div>
       </td>
-      <td><strong>${escapeHtml(user.user_id)}</strong></td>
-      <td>${escapeHtml(user.name_ja || '')}</td>
-      <td><span class="log-badge">${getRoleLabel(user.role)}</span></td>
-      <td><span class="log-timestamp">${formatDateTime(user.created_at || '')}</span></td>
-      <td>
+      <td data-label="ユーザーID"><strong>${escapeHtml(user.user_id)}</strong></td>
+      <td data-label="氏名">${escapeHtml(user.name_ja || '')}</td>
+      <td data-label="権限"><span class="badge badge-plan">${getRoleLabel(user.role)}</span></td>
+      <td data-label="作成日時"><span class="hint">${formatDateTime(user.created_at || '')}</span></td>
+      <td data-label="操作">
         <div class="user-actions">
-          <button class="btn-icon btn-edit"
+          <button type="button" class="icon-btn"
                   onclick="editUser('${escapeHtml(user.user_id)}')"
-                  title="編集">✏️</button>
-          <button class="btn-icon btn-delete"
+                  title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="icon-btn danger"
                   onclick="confirmDeleteUser('${escapeHtml(user.user_id)}')"
-                  title="削除">🗑️</button>
-          <button class="btn-icon btn-download"
+                  title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
+          <button type="button" class="icon-btn"
                   onclick="downloadUserQR('${escapeHtml(user.user_id)}', '${escapeHtml(user.name_ja || '')}', '${user.role || ''}')"
-                  title="QRダウンロード">📥</button>
+                  title="QRダウンロード" aria-label="QRダウンロード">${iconMarkup('i-download')}</button>
         </div>
       </td>
     `;
