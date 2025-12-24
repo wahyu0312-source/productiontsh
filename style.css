@@ -850,17 +850,56 @@ body{
 .section{ display:none; }
 .section.active{ display:block; }
 
-/* Monitor mode */
-body.monitor-mode .sidebar{ display:none; }
-body.monitor-mode .mobile-bottom-nav,
-body.monitor-mode #fab-scan{ display:none !important; }
-body.monitor-mode .content{ padding: 10px 16px 24px; }
-body.monitor-mode .topbar{ background: #0f172a; }
-body.monitor-mode .quick-search,
-body.monitor-mode .user-menu-wrapper{ display:none; }
-body.monitor-mode .topbar-title{ font-size: 1.25rem; }
-body.monitor-mode .summary-value{ font-size: 1.4rem; }
-body.monitor-mode .logs-table{ font-size: .8rem; }
+/* Page layout (consistent per menu) */
+.page{ display:flex; flex-direction:column; gap: 12px; }
+.page-header{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 6px 2px 2px;
+}
+.page-title-group{ min-width: 0; }
+.page-title{
+  margin:0;
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.page-subtitle{
+  margin: 4px 0 0;
+  color: var(--c-muted);
+  font-size: .9rem;
+}
+.page-actions{ display:flex; gap: 10px; align-items:center; flex-wrap:wrap; }
+.page-content{ }
+
+@media (max-width: 768px){
+  .page-header{
+    position: sticky;
+    top: 52px; /* under topbar */
+    background: rgba(248,250,252,.92);
+    backdrop-filter: blur(10px);
+    z-index: 5;
+    padding: 8px 2px 10px;
+    border-bottom: 1px solid rgba(226,232,240,.8);
+  }
+}
+
+/* Ensure last card doesn't create extra whitespace */
+.page-content .card:last-child{ margin-bottom: 0; }
+
+
+
+/* Monitor mode + Carousel */
+body.monitor-mode{ overflow:hidden; }
+body.monitor-mode .app-shell{ opacity:0; pointer-events:none; }
+body.monitor-mode #monitor-carousel{ display:flex; }
+
+/* Keep charts/tables legible in monitor */
+body.monitor-mode #monitor-carousel .summary-value{ font-size: 1.6rem; }
+body.monitor-mode #monitor-carousel .card-title{ font-size: 1.05rem; }
+body.monitor-mode #monitor-carousel .logs-table{ font-size: .9rem; }
 
 /* ===========================================
    Responsive
@@ -899,4 +938,36 @@ body.monitor-mode .logs-table{ font-size: .8rem; }
   .form-grid{ grid-template-columns: 1fr; }
   .topbar-subtitle{ display:none; }
   .topbar{ padding: 10px 12px; }
+}
+/* Table readability + consistent action column */
+.table-wrapper table{ table-layout: fixed; }
+.table-wrapper th, .table-wrapper td{ vertical-align: middle; }
+.table-wrapper th{ white-space: nowrap; }
+.table-wrapper td{ overflow:hidden; text-overflow: ellipsis; }
+.table-wrapper td[data-label="操作"]{ text-align:center; }
+
+.plans-actions,
+.user-actions,
+.list-action-buttons{
+  justify-content: center;
+}
+
+.plans-actions .icon-btn,
+.user-actions .icon-btn,
+.list-action-buttons .icon-btn{
+  flex: 0 0 auto;
+}
+
+/* Keep 操作 buttons aligned even in narrow columns */
+.plans-actions, .user-actions, .list-action-buttons{
+  min-width: 120px;
+}
+
+/* Mobile: action row stretches full width inside card view */
+@media (max-width: 768px){
+  .responsive-table td[data-label="操作"]{ padding-top: 10px; }
+  .plans-actions, .user-actions, .list-action-buttons{
+    min-width: 0;
+    justify-content: flex-start;
+  }
 }
