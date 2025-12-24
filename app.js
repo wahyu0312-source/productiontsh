@@ -97,6 +97,8 @@ function getRoleLabel(role) {
 function iconMarkup(symbolId, extraClass = '') {
   const cls = ['icon', extraClass].filter(Boolean).join(' ');
   return `<svg class="${cls}" aria-hidden="true"><use href="#${symbolId}"></use></svg>`;
+} // FIX: close iconMarkup so monitor carousel code is not trapped / unreachable
+
 
 /* ================================
    Monitor Carousel (Digital Signage)
