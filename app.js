@@ -302,7 +302,11 @@ function enterMonitorModeCarousel() {
     { id: 'dash-summary-block', title: '概要' },
     { id: 'dash-chart-block', title: 'グラフ' },
     { id: 'plan-list-block', title: '計画一覧' },
-    { id: 'dash-latest-block', title: '最新実績' }
+    { id: 'dash-latest-block', title: '最新実績' },
+    { id: 'dash-overdue-block', title: '遅れ計画' },
+    { id: 'dash-topng-block', title: 'Top NG' },
+    { id: 'dash-bottleneck-block', title: 'ボトルネック' },
+    { id: 'dash-topitems-block', title: '頻出品目' }
   ];
 
   // Fill each slide by moving existing DOM blocks (keeps live updates)
@@ -846,10 +850,22 @@ function setupButtons() {
         sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
         links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
 
-        enterMonitorModeCarousel();
+        if (typeof enterMonitorModeCarousel === 'function') {
+          enterMonitorModeCarousel();
+        } else if (typeof window.enterMonitorModeCarousel === 'function') {
+          window.enterMonitorModeCarousel();
+        } else {
+          console.error('enterMonitorModeCarousel is missing');
+        }
         showToast('モニタ表示モードをONにしました。', 'info');
       } else {
-        exitMonitorModeCarousel();
+        if (typeof exitMonitorModeCarousel === 'function') {
+          exitMonitorModeCarousel();
+        } else if (typeof window.exitMonitorModeCarousel === 'function') {
+          window.exitMonitorModeCarousel();
+        } else {
+          console.error('exitMonitorModeCarousel is missing');
+        }
         showToast('モニタ表示モードをOFFにしました。', 'info');
       }
     });
@@ -1507,7 +1523,8 @@ async function loadDashboard() {
     renderDashboardTable();
     updateAlertBanner();
     renderPlanTable();
-  } catch (err) {
+      updateSpecialMonitorBlocks();
+} catch (err) {
     console.error(err);
     alert('ダッシュボード取得に失敗しました: ' + err.message);
   }
@@ -2258,6 +2275,309 @@ async function loadAnalytics() {
   }
 }
   
+
+/* ================================
+   Special Slides (Overdue / Top NG / Bottleneck / Top Items)
+   UI only: uses existing dashboardLogs + plans
+   ================================ */
+
+function parseDateFlexible(value) {
+  if (!value) return null;
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+
+  // numeric timestamps
+  if (typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const s = String(value).trim();
+  if (!s) return null;
+
+  // ISO (contains T) or RFC can be parsed directly
+  if (s.includes('T') || s.includes('Z')) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // "YYYY-MM-DD HH:mm" -> "YYYY-MM-DDTHH:mm:00"
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (m) {
+    const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6] || '00'}`;
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // "YYYY-MM-DD"
+  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m2) {
+    const d = new Date(`${m2[1]}-${m2[2]}-${m2[3]}T00:00:00`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function getLogBaseDate(log) {
+  return parseDateFlexible(log.timestamp_end || log.timestamp_start || log.created_at || log.planned_start || '');
+}
+
+function isWithinDays(date, days) {
+  if (!date) return false;
+  const now = Date.now();
+  const diff = now - date.getTime();
+  return diff >= 0 && diff <= (days * 24 * 3600 * 1000);
+}
+
+function safeNumber(x, fallback = 0) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function setHiddenById(id, hidden) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('hidden', !!hidden);
+}
+
+function updateSpecialMonitorBlocks() {
+  renderOverduePlansBlock();
+  renderTopNgBlock();
+  renderBottleneckBlock();
+  renderTopItemsBlock();
+}
+
+function renderOverduePlansBlock() {
+  const tbody = document.getElementById('overdue-tbody');
+  if (!tbody) return;
+
+  const now = new Date();
+  const items = (plans || [])
+    .map(plan => {
+      const end = parseDateFlexible(plan.planned_end);
+      if (!end) return null;
+      const related = (dashboardLogs || []).filter(l =>
+        l.product_code === plan.product_code &&
+        (!plan.process_name || l.process_name === plan.process_name)
+      );
+      const actualTotal = related.reduce((sum, l) => sum + safeNumber(l.qty_total), 0);
+      const planQty = safeNumber(plan.planned_qty);
+      const isOverdue = end.getTime() < now.getTime() && actualTotal < planQty && (plan.status || '') !== '完了';
+      if (!isOverdue) return null;
+
+      const lateHours = Math.max(0, (now.getTime() - end.getTime()) / 3600000);
+      return {
+        product_code: plan.product_code || '',
+        process_name: plan.process_name || '',
+        plan_qty: planQty,
+        actual_qty: actualTotal,
+        late_h: lateHours
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.late_h - a.late_h)
+    .slice(0, 10);
+
+  tbody.innerHTML = '';
+  if (items.length === 0) {
+    setHiddenById('overdue-empty', false);
+    return;
+  }
+  setHiddenById('overdue-empty', true);
+
+  items.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="図番"><strong>${escapeHtml(row.product_code)}</strong></td>
+      <td data-label="工程">${escapeHtml(row.process_name)}</td>
+      <td data-label="計画" class="align-right">${row.plan_qty}</td>
+      <td data-label="実績" class="align-right">${row.actual_qty}</td>
+      <td data-label="遅れ(h)" class="align-right">${row.late_h.toFixed(1)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTopNgBlock() {
+  const prodTbody = document.getElementById('topng-product-tbody');
+  const procTbody = document.getElementById('topng-process-tbody');
+  if (!prodTbody || !procTbody) return;
+
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, 7));
+
+  prodTbody.innerHTML = '';
+  procTbody.innerHTML = '';
+
+  if (logs.length === 0) {
+    setHiddenById('topng-empty', false);
+    return;
+  }
+  setHiddenById('topng-empty', true);
+
+  const byProd = new Map();
+  const byProc = new Map();
+
+  logs.forEach(l => {
+    const code = String(l.product_code || '').trim() || '不明';
+    const proc = String(l.process_name || '').trim() || '不明工程';
+    const ng = safeNumber(l.qty_ng);
+    const total = safeNumber(l.qty_total);
+
+    const p = byProd.get(code) || { code, ng: 0, total: 0 };
+    p.ng += ng;
+    p.total += total;
+    byProd.set(code, p);
+
+    const pr = byProc.get(proc) || { proc, ng: 0 };
+    pr.ng += ng;
+    byProc.set(proc, pr);
+  });
+
+  const topProd = Array.from(byProd.values())
+    .filter(x => x.ng > 0)
+    .sort((a, b) => b.ng - a.ng)
+    .slice(0, 6);
+
+  const topProc = Array.from(byProc.values())
+    .filter(x => x.ng > 0)
+    .sort((a, b) => b.ng - a.ng)
+    .slice(0, 6);
+
+  if (topProd.length === 0 && topProc.length === 0) {
+    setHiddenById('topng-empty', false);
+    return;
+  }
+
+  topProd.forEach(r => {
+    const rate = r.total > 0 ? (r.ng * 100) / r.total : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.ng}</td>
+      <td class="align-right">${rate.toFixed(1)}%</td>
+    `;
+    prodTbody.appendChild(tr);
+  });
+
+  topProc.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.proc)}</strong></td>
+      <td class="align-right">${r.ng}</td>
+    `;
+    procTbody.appendChild(tr);
+  });
+}
+
+function renderBottleneckBlock() {
+  const tbody = document.getElementById('bottleneck-tbody');
+  if (!tbody) return;
+
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, 7));
+
+  const map = new Map();
+  logs.forEach(l => {
+    const proc = String(l.process_name || '').trim() || '不明工程';
+    const dur = safeNumber(l.duration_sec);
+    if (dur <= 0) return;
+
+    const crew = Math.max(1, Math.round(safeNumber(l.crew_size, 1)));
+    const mh = (dur * crew) / 3600;
+
+    const cur = map.get(proc) || { proc, mh: 0, durMinSum: 0, count: 0 };
+    cur.mh += mh;
+    cur.durMinSum += (dur / 60);
+    cur.count += 1;
+    map.set(proc, cur);
+  });
+
+  const items = Array.from(map.values())
+    .sort((a, b) => b.mh - a.mh)
+    .slice(0, 8);
+
+  tbody.innerHTML = '';
+  if (items.length === 0) {
+    setHiddenById('bottleneck-empty', false);
+    return;
+  }
+  setHiddenById('bottleneck-empty', true);
+
+  items.forEach(r => {
+    const avgMin = r.count > 0 ? (r.durMinSum / r.count) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="工程"><strong>${escapeHtml(r.proc)}</strong></td>
+      <td data-label="工数(h)" class="align-right">${r.mh.toFixed(2)}</td>
+      <td data-label="平均(分)" class="align-right">${avgMin.toFixed(1)}</td>
+      <td data-label="件数" class="align-right">${r.count}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function buildTopItems(days) {
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, days));
+
+  const map = new Map();
+  logs.forEach(l => {
+    const code = String(l.product_code || '').trim() || '不明';
+    const cur = map.get(code) || { code, count: 0, qty: 0 };
+    cur.count += 1;
+    cur.qty += safeNumber(l.qty_total);
+    map.set(code, cur);
+  });
+
+  return Array.from(map.values())
+    .sort((a, b) => (b.count - a.count) || (b.qty - a.qty))
+    .slice(0, 10);
+}
+
+function renderTopItemsBlock() {
+  const wTbody = document.getElementById('topitems-weekly-tbody');
+  const mTbody = document.getElementById('topitems-monthly-tbody');
+  if (!wTbody || !mTbody) return;
+
+  const weekly = buildTopItems(7);
+  const monthly = buildTopItems(30);
+
+  wTbody.innerHTML = '';
+  mTbody.innerHTML = '';
+
+  if (weekly.length === 0 && monthly.length === 0) {
+    setHiddenById('topitems-empty', false);
+    return;
+  }
+  setHiddenById('topitems-empty', true);
+
+  weekly.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.count}</td>
+      <td class="align-right">${r.qty}</td>
+    `;
+    wTbody.appendChild(tr);
+  });
+
+  monthly.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.count}</td>
+      <td class="align-right">${r.qty}</td>
+    `;
+    mTbody.appendChild(tr);
+  });
+}
+
+
 /* ================================
    Plans (生産計画)
    ================================ */
@@ -2268,7 +2588,8 @@ async function loadPlans() {
     plans = data || [];
     renderPlanTable();
     renderDashboardTable();
-  } catch (err) {
+      updateSpecialMonitorBlocks();
+} catch (err) {
     console.error(err);
     alert('生産計画の取得に失敗しました: ' + err.message);
   }
