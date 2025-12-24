@@ -94,6 +94,280 @@ function getRoleLabel(role) {
   return role || '';
 }
 
+function iconMarkup(symbolId, extraClass = '') {
+  const cls = ['icon', extraClass].filter(Boolean).join(' ');
+  return `<svg class="${cls}" aria-hidden="true"><use href="#${symbolId}"></use></svg>`;
+
+/* ================================
+   Monitor Carousel (Digital Signage)
+   ================================ */
+
+const monitorCarousel = {
+  active: false,
+  index: 0,
+  timer: null,
+  autoMs: 12000,
+  restoreMap: new Map(),
+  root: null,
+  track: null,
+  slides: [],
+  dotsEl: null,
+  viewport: null,
+  bound: false,
+  clockTimer: null
+};
+
+function setupMonitorCarouselUI() {
+  const root = document.getElementById('monitor-carousel');
+  const track = document.getElementById('monitor-track');
+  const dotsEl = document.getElementById('monitor-dots');
+  const viewport = root ? root.querySelector('.monitor-viewport') : null;
+
+  if (!root || !track || !dotsEl || !viewport) return;
+
+  monitorCarousel.root = root;
+  monitorCarousel.track = track;
+  monitorCarousel.dotsEl = dotsEl;
+  monitorCarousel.viewport = viewport;
+  monitorCarousel.slides = Array.from(root.querySelectorAll('.monitor-slide'));
+
+  // Build dots once
+  if (!dotsEl.dataset.built) {
+    dotsEl.dataset.built = '1';
+    dotsEl.innerHTML = '';
+    monitorCarousel.slides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'monitor-dot';
+      dot.title = `スライド ${i + 1}`;
+      dot.setAttribute('aria-label', `スライド ${i + 1}`);
+      dot.addEventListener('click', () => {
+        setMonitorIndex(i);
+        restartMonitorAuto();
+      });
+      dotsEl.appendChild(dot);
+    });
+  }
+
+  const prevBtn = document.getElementById('monitor-prev');
+  const nextBtn = document.getElementById('monitor-next');
+  const exitBtn = document.getElementById('btn-exit-monitor');
+
+  if (prevBtn && !prevBtn.dataset.bound) {
+    prevBtn.dataset.bound = '1';
+    prevBtn.addEventListener('click', () => {
+      setMonitorIndex(monitorCarousel.index - 1);
+      restartMonitorAuto();
+    });
+  }
+  if (nextBtn && !nextBtn.dataset.bound) {
+    nextBtn.dataset.bound = '1';
+    nextBtn.addEventListener('click', () => {
+      setMonitorIndex(monitorCarousel.index + 1);
+      restartMonitorAuto();
+    });
+  }
+  if (exitBtn && !exitBtn.dataset.bound) {
+    exitBtn.dataset.bound = '1';
+    exitBtn.addEventListener('click', () => {
+      document.body.classList.remove('monitor-mode');
+      exitMonitorModeCarousel();
+      showToast('通常表示に戻りました。', 'info');
+    });
+  }
+
+  // Swipe gesture
+  if (!monitorCarousel.bound) {
+    monitorCarousel.bound = true;
+    let startX = 0;
+    let startY = 0;
+    let isTouching = false;
+
+    viewport.addEventListener('touchstart', (e) => {
+      if (!e.touches || !e.touches[0]) return;
+      isTouching = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', (e) => {
+      if (!isTouching || !e.touches || !e.touches[0]) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      // If vertical scroll is dominant, ignore (allow scrolling inside slide)
+      if (Math.abs(dy) > Math.abs(dx)) return;
+      // prevent page bounce while swiping horizontally
+      e.preventDefault();
+    }, { passive: false });
+
+    viewport.addEventListener('touchend', (e) => {
+      if (!isTouching) return;
+      isTouching = false;
+      const touch = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      if (!touch) return;
+      const dx = touch.clientX - startX;
+      const threshold = 50;
+      if (dx > threshold) {
+        setMonitorIndex(monitorCarousel.index - 1);
+        restartMonitorAuto();
+      } else if (dx < -threshold) {
+        setMonitorIndex(monitorCarousel.index + 1);
+        restartMonitorAuto();
+      }
+    });
+
+    // Keyboard (useful on TV/PC)
+    document.addEventListener('keydown', (e) => {
+      if (!document.body.classList.contains('monitor-mode')) return;
+      if (e.key === 'ArrowLeft') {
+        setMonitorIndex(monitorCarousel.index - 1);
+        restartMonitorAuto();
+      } else if (e.key === 'ArrowRight') {
+        setMonitorIndex(monitorCarousel.index + 1);
+        restartMonitorAuto();
+      } else if (e.key === 'Escape') {
+        document.body.classList.remove('monitor-mode');
+        exitMonitorModeCarousel();
+        showToast('通常表示に戻りました。', 'info');
+      }
+    });
+  }
+
+  startMonitorClock();
+  setMonitorIndex(monitorCarousel.index, true);
+}
+
+function setMonitorIndex(i, instant = false) {
+  const root = monitorCarousel.root;
+  const track = monitorCarousel.track;
+  const dotsEl = monitorCarousel.dotsEl;
+  if (!root || !track || !dotsEl) return;
+
+  const count = monitorCarousel.slides.length || 1;
+  monitorCarousel.index = (i % count + count) % count;
+
+  if (instant) {
+    track.style.transition = 'none';
+  } else {
+    track.style.transition = 'transform .55s ease';
+  }
+  track.style.transform = `translateX(${-monitorCarousel.index * 100}%)`;
+
+  const dots = Array.from(dotsEl.querySelectorAll('.monitor-dot'));
+  dots.forEach((d, idx) => d.classList.toggle('active', idx === monitorCarousel.index));
+}
+
+function startMonitorAuto() {
+  stopMonitorAuto();
+  monitorCarousel.timer = setInterval(() => {
+    setMonitorIndex(monitorCarousel.index + 1);
+  }, monitorCarousel.autoMs);
+}
+
+function stopMonitorAuto() {
+  if (monitorCarousel.timer) {
+    clearInterval(monitorCarousel.timer);
+    monitorCarousel.timer = null;
+  }
+}
+
+function restartMonitorAuto() {
+  startMonitorAuto();
+}
+
+function startMonitorClock() {
+  const clockEl = document.getElementById('monitor-clock');
+  if (!clockEl) return;
+
+  const update = () => {
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    clockEl.textContent = `${hh}:${mm}:${ss}`;
+  };
+  update();
+
+  if (monitorCarousel.clockTimer) clearInterval(monitorCarousel.clockTimer);
+  monitorCarousel.clockTimer = setInterval(update, 1000);
+}
+
+function enterMonitorModeCarousel() {
+  setupMonitorCarouselUI();
+  const root = monitorCarousel.root;
+  const slides = monitorCarousel.slides;
+  if (!root || slides.length === 0) return;
+
+  const sources = [
+    { id: 'dash-summary-block', title: '概要' },
+    { id: 'dash-chart-block', title: 'グラフ' },
+    { id: 'plan-list-block', title: '計画一覧' },
+    { id: 'dash-latest-block', title: '最新実績' },
+    { id: 'dash-overdue-block', title: '遅れ計画' },
+    { id: 'dash-topng-block', title: 'Top NG' },
+    { id: 'dash-bottleneck-block', title: 'ボトルネック' },
+    { id: 'dash-topitems-block', title: '頻出品目' }
+  ];
+
+  // Fill each slide by moving existing DOM blocks (keeps live updates)
+  sources.forEach((s, idx) => {
+    const slide = slides[idx];
+    if (!slide) return;
+    slide.innerHTML = '';
+
+    const el = document.getElementById(s.id);
+    if (!el) {
+      slide.innerHTML = `
+        <div class="card">
+          <h2 class="card-title">${s.title}</h2>
+          <p>表示対象が見つかりませんでした。</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (!monitorCarousel.restoreMap.has(el)) {
+      monitorCarousel.restoreMap.set(el, { parent: el.parentNode, next: el.nextSibling });
+    }
+    slide.appendChild(el);
+  });
+
+  root.classList.add('active');
+  root.setAttribute('aria-hidden', 'false');
+  setMonitorIndex(0, true);
+  startMonitorAuto();
+}
+
+function exitMonitorModeCarousel() {
+  stopMonitorAuto();
+  const root = monitorCarousel.root;
+  const restoreMap = monitorCarousel.restoreMap;
+
+  // Restore moved blocks to original parents
+  restoreMap.forEach((info, el) => {
+    if (!info || !info.parent) return;
+    try {
+      if (info.next && info.parent.contains(info.next)) {
+        info.parent.insertBefore(el, info.next);
+      } else {
+        info.parent.appendChild(el);
+      }
+    } catch (e) {
+      // If restoration fails, append to dashboard as safe fallback
+      const fallback = document.getElementById('dash-summary-block');
+      if (fallback) fallback.appendChild(el);
+    }
+  });
+  restoreMap.clear();
+
+  if (root) {
+    root.classList.remove('active');
+    root.setAttribute('aria-hidden', 'true');
+  }
+}
+}
+
+
 /* ================================
    QRラベル 共通
    ================================ */
@@ -173,17 +447,17 @@ function renderAdminUserList() {
     const tr = document.createElement('tr');
     const qrId = `admin-user-qr-${user.user_id}`;
 
-    tr.innerHTML = `
-      <td><div class="qr-mini" id="${qrId}"></div></td>
-      <td>${escapeHtml(user.user_id)}</td>
-      <td>${escapeHtml(user.name_ja || user.name || '')}</td>
-      <td>${escapeHtml(getRoleLabel(user.role))}</td>
-      <td>
+        tr.innerHTML = `
+      <td data-label="QR"><div class="qr-mini" id="${qrId}"></div></td>
+      <td data-label="ユーザーID"><strong>${escapeHtml(user.user_id)}</strong></td>
+      <td data-label="氏名">${escapeHtml(user.name_ja || user.name || '')}</td>
+      <td data-label="権限">${escapeHtml(getRoleLabel(user.role))}</td>
+      <td data-label="操作">
         <div class="list-action-buttons">
-          <button type="button" class="mini-btn mini-btn-edit" data-id="${user.user_id}">編集</button>
-          <button type="button" class="mini-btn mini-btn-print" data-id="${user.user_id}">印刷</button>
-          <button type="button" class="mini-btn mini-btn-dl" data-id="${user.user_id}">DL</button>
-          <button type="button" class="mini-btn mini-btn-del" data-id="${user.user_id}">削除</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-edit" data-id="${user.user_id}" title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-print" data-id="${user.user_id}" title="印刷" aria-label="印刷">${iconMarkup('i-print')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-dl" data-id="${user.user_id}" title="DL" aria-label="DL">${iconMarkup('i-download')}</button>
+          <button type="button" class="mini-btn icon-btn danger mini-btn-del" data-id="${user.user_id}" title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
         </div>
       </td>
     `;
@@ -283,18 +557,18 @@ function renderAdminTerminalList() {
     const tr = document.createElement('tr');
     const qrId = `admin-terminal-qr-${t.terminal_id}`;
 
-    tr.innerHTML = `
-      <td><div class="qr-mini" id="${qrId}"></div></td>
-      <td>${escapeHtml(t.terminal_id)}</td>
-      <td>${escapeHtml(t.name_ja || t.name || '')}</td>
-      <td>${escapeHtml(t.process_name || '')}</td>
-      <td>${escapeHtml(t.location || '')}</td>
-      <td>
+        tr.innerHTML = `
+      <td data-label="QR"><div class="qr-mini" id="${qrId}"></div></td>
+      <td data-label="工程ID"><strong>${escapeHtml(t.terminal_id)}</strong></td>
+      <td data-label="工程名称">${escapeHtml(t.name_ja || t.name || '')}</td>
+      <td data-label="工程">${escapeHtml(t.process_name || '')}</td>
+      <td data-label="ロケーション">${escapeHtml(t.location || '')}</td>
+      <td data-label="操作">
         <div class="list-action-buttons">
-          <button class="mini-btn mini-btn-edit" data-id="${t.terminal_id}">編集</button>
-          <button class="mini-btn mini-btn-print" data-id="${t.terminal_id}">印刷</button>
-          <button class="mini-btn mini-btn-dl" data-id="${t.terminal_id}">DL</button>
-          <button class="mini-btn mini-btn-del" data-id="${t.terminal_id}">削除</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-edit" data-id="${t.terminal_id}" title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-print" data-id="${t.terminal_id}" title="印刷" aria-label="印刷">${iconMarkup('i-print')}</button>
+          <button type="button" class="mini-btn icon-btn mini-btn-dl" data-id="${t.terminal_id}" title="DL" aria-label="DL">${iconMarkup('i-download')}</button>
+          <button type="button" class="mini-btn icon-btn danger mini-btn-del" data-id="${t.terminal_id}" title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
         </div>
       </td>
     `;
@@ -561,7 +835,7 @@ function setupButtons() {
     helpClose.addEventListener('click', closeHelpModal);
   }
 
-  // Monitor mode (digital signage)
+  // Monitor mode (digital signage + carousel)
   const monitorBtn = document.getElementById('btn-monitor-mode');
   if (monitorBtn) {
     monitorBtn.addEventListener('click', () => {
@@ -570,20 +844,34 @@ function setupButtons() {
       body.classList.toggle('monitor-mode', isMonitor);
 
       if (isMonitor) {
+        // Always keep monitor content consistent by starting from dashboard
         const links = document.querySelectorAll('.sidebar-link');
         const sections = document.querySelectorAll('.section');
-
         sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
         links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
 
+        if (typeof enterMonitorModeCarousel === 'function') {
+          enterMonitorModeCarousel();
+        } else if (typeof window.enterMonitorModeCarousel === 'function') {
+          window.enterMonitorModeCarousel();
+        } else {
+          console.error('enterMonitorModeCarousel is missing');
+        }
         showToast('モニタ表示モードをONにしました。', 'info');
       } else {
+        if (typeof exitMonitorModeCarousel === 'function') {
+          exitMonitorModeCarousel();
+        } else if (typeof window.exitMonitorModeCarousel === 'function') {
+          window.exitMonitorModeCarousel();
+        } else {
+          console.error('exitMonitorModeCarousel is missing');
+        }
         showToast('モニタ表示モードをOFFにしました。', 'info');
       }
     });
   }
 
-  // ヘッダー製品検索
+// ヘッダー製品検索
   const headerSearchBtn = document.getElementById('btn-header-search');
   const headerSearchInput = document.getElementById('header-product-search');
   if (headerSearchBtn && headerSearchInput) {
@@ -679,268 +967,6 @@ function setupButtons() {
     });
   }
 }
-
-/* =========================================================
-   UI PATCH: Digital signage（モニタ表示）を "空白" にならない安全なCarouselへ
-   - 既存のビジネスロジックは一切変更しない（表示のみ追加）
-   - 既存のモニタ表示イベントがあっても、captureで上書きして競合を防ぐ
-   ========================================================= */
-(function monitorCarouselSafePatch() {
-  if (window.__monitorCarouselSafePatch) return;
-  window.__monitorCarouselSafePatch = true;
-
-  const qs = (s, r = document) => r.querySelector(s);
-  const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
-
-  let state = { open: false, idx: 0, timer: null, overlay: null, slides: [] };
-
-  const pad = (n) => String(n).padStart(2, '0');
-  const nowText = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  };
-
-  function ensureOverlay() {
-    let overlay = qs('.monitor-overlay');
-    if (overlay) {
-      state.overlay = overlay;
-      return overlay;
-    }
-
-    overlay = document.createElement('div');
-    overlay.className = 'monitor-overlay';
-    overlay.innerHTML = `
-      <div class="monitor-bar">
-        <div>
-          <div class="monitor-title">生産進捗モニタ</div>
-          <div class="monitor-meta" id="monitor-time">${nowText()}</div>
-        </div>
-        <div class="monitor-controls">
-          <button class="monitor-btn" id="monitor-prev">◀</button>
-          <div class="monitor-meta" id="monitor-page">-/-</div>
-          <button class="monitor-btn" id="monitor-next">▶</button>
-          <button class="monitor-btn" id="monitor-close">✕</button>
-        </div>
-      </div>
-      <div class="monitor-stage" id="monitor-stage"></div>
-    `;
-    document.body.appendChild(overlay);
-
-    qs('#monitor-close', overlay).addEventListener('click', close);
-    qs('#monitor-prev', overlay).addEventListener('click', () => goto(state.idx - 1));
-    qs('#monitor-next', overlay).addEventListener('click', () => goto(state.idx + 1));
-
-    // keyboard
-    window.addEventListener('keydown', (e) => {
-      if (!state.open) return;
-      if (e.key === 'Escape') close();
-      if (e.key === 'ArrowLeft') goto(state.idx - 1);
-      if (e.key === 'ArrowRight') goto(state.idx + 1);
-    });
-
-    // swipe
-    let sx = 0, sy = 0;
-    overlay.addEventListener('touchstart', (e) => {
-      if (!state.open) return;
-      sx = e.touches[0].clientX;
-      sy = e.touches[0].clientY;
-    }, { passive: true });
-    overlay.addEventListener('touchend', (e) => {
-      if (!state.open) return;
-      const ex = e.changedTouches[0].clientX;
-      const ey = e.changedTouches[0].clientY;
-      const dx = ex - sx;
-      const dy = ey - sy;
-      if (Math.abs(dx) > 60 && Math.abs(dy) < 60) {
-        if (dx < 0) goto(state.idx + 1); else goto(state.idx - 1);
-      }
-    }, { passive: true });
-
-    state.overlay = overlay;
-    return overlay;
-  }
-
-  function stripActionColumn(root) {
-    const tables = qsa('table', root);
-    tables.forEach(t => {
-      const ths = qsa('thead th', t);
-      if (ths.length === 0) return;
-      const lastTh = ths[ths.length - 1];
-      if (!lastTh || (lastTh.textContent || '').trim() !== '操作') return;
-
-      // remove last TH
-      lastTh.remove();
-      // remove last TD in each row
-      qsa('tbody tr', t).forEach(tr => {
-        const tds = tr.querySelectorAll('td');
-        if (tds.length > 0) tds[tds.length - 1].remove();
-      });
-    });
-  }
-
-  function cloneForMonitor(node) {
-    const clone = node.cloneNode(true);
-
-    // section は通常 display:none なので monitor 用に無効化
-    if (clone.classList && clone.classList.contains('section')) {
-      clone.classList.remove('section');
-      clone.style.display = 'block';
-    }
-
-    // 不要な操作類（read-only表示）
-    qsa('button,input,select,textarea', clone).forEach(el => el.remove());
-    qsa('.button-row,.filter-grid,.date-range,.dashboard-update-info', clone).forEach(el => el.remove());
-
-    stripActionColumn(clone);
-    return clone;
-  }
-
-  function buildSlides() {
-    const overlay = ensureOverlay();
-    const stage = qs('#monitor-stage', overlay);
-    stage.innerHTML = '';
-    state.slides = [];
-
-    const defs = [
-      { title: 'ダッシュボード', pick: () => qs('#dashboard-section') },
-      { title: '生産計画一覧', pick: () => qs('#plan-list-section .card') },
-      { title: '最新の実績一覧', pick: () => {
-          const tb = qs('#logs-tbody');
-          return tb ? tb.closest('.card') : null;
-        }
-      },
-      { title: '工程別 生産量（直近7日）', pick: () => {
-          const cv = qs('#process-chart');
-          return cv ? cv.closest('.card') : null;
-        }
-      }
-    ];
-
-    defs.forEach(def => {
-      const slide = document.createElement('div');
-      slide.className = 'monitor-slide';
-
-      const canvas = document.createElement('div');
-      canvas.className = 'monitor-canvas';
-
-      const title = document.createElement('div');
-      title.style.fontWeight = '800';
-      title.style.fontSize = '1.1rem';
-      title.style.margin = '2px 0 10px';
-      title.textContent = def.title;
-      canvas.appendChild(title);
-
-      const src = def.pick();
-      if (src) {
-        // chart canvas は画像化して可読に
-        const c = src.querySelector?.('canvas') || (src.tagName === 'CANVAS' ? src : null);
-        if (c && c.toDataURL) {
-          try {
-            const img = document.createElement('img');
-            img.alt = def.title;
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            img.src = c.toDataURL('image/png');
-            canvas.appendChild(img);
-          } catch {
-            canvas.appendChild(document.createTextNode('チャートを生成できませんでした。'));
-          }
-        } else {
-          canvas.appendChild(cloneForMonitor(src));
-        }
-      } else {
-        const empty = document.createElement('div');
-        empty.style.padding = '14px';
-        empty.style.borderRadius = '12px';
-        empty.style.background = 'rgba(15,23,42,.06)';
-        empty.textContent = '表示するデータがありません。';
-        canvas.appendChild(empty);
-      }
-
-      slide.appendChild(canvas);
-      stage.appendChild(slide);
-      state.slides.push(slide);
-    });
-
-    const page = qs('#monitor-page', overlay);
-    if (page) page.textContent = `1/${state.slides.length || 1}`;
-  }
-
-  function goto(i) {
-    if (!state.open || state.slides.length === 0) return;
-    const n = state.slides.length;
-    state.idx = (i % n + n) % n;
-    state.slides.forEach((s, idx) => s.classList.toggle('active', idx === state.idx));
-    const page = qs('#monitor-page', state.overlay);
-    if (page) page.textContent = `${state.idx + 1}/${n}`;
-  }
-
-  function open() {
-    const overlay = ensureOverlay();
-    overlay.classList.add('active');
-    state.open = true;
-
-    // 最新データを軽く再取得（存在する場合のみ）
-    try {
-      if (typeof loadDashboard === 'function') loadDashboard();
-      if (typeof loadAnalytics === 'function') loadAnalytics();
-      if (typeof loadPlans === 'function') loadPlans();
-    } catch (_) {}
-
-    buildSlides();
-    goto(0);
-
-    // 描画が遅れる場合（tbody後描画）に備えて再ビルド
-    setTimeout(() => {
-      if (!state.open) return;
-      const t = qs('#monitor-time', overlay);
-      if (t) t.textContent = nowText();
-      buildSlides();
-      goto(state.idx);
-    }, 900);
-
-    clearInterval(state.timer);
-    state.timer = setInterval(() => {
-      const t = qs('#monitor-time', overlay);
-      if (t) t.textContent = nowText();
-      goto(state.idx + 1);
-    }, 12000);
-  }
-
-  function close() {
-    if (!state.overlay) return;
-    state.overlay.classList.remove('active');
-    state.open = false;
-    clearInterval(state.timer);
-    state.timer = null;
-  }
-
-  function toggle() {
-    if (state.open) close(); else open();
-  }
-
-  function bind() {
-    const btn = document.getElementById('btn-monitor-mode');
-    if (!btn) return;
-
-    // captureで既存のclick処理より先に実行し、競合を止める
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      toggle();
-    }, true);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bind);
-  } else {
-    bind();
-  }
-
-  // Debug API
-  window.toggleMonitorOverlay = toggle;
-})();
 
 
 
@@ -1497,7 +1523,8 @@ async function loadDashboard() {
     renderDashboardTable();
     updateAlertBanner();
     renderPlanTable();
-  } catch (err) {
+      updateSpecialMonitorBlocks();
+} catch (err) {
     console.error(err);
     alert('ダッシュボード取得に失敗しました: ' + err.message);
   }
@@ -1620,28 +1647,13 @@ function renderDashboardTable() {
     return tb - ta;
   });
 
-  filtered.forEach(log => {
+    filtered.forEach(log => {
     const tr = document.createElement('tr');
     const isPlan = !!log.is_plan_only;
+
     const durationMin = (!isPlan && log.duration_sec)
       ? (log.duration_sec / 60).toFixed(1)
       : '';
-
-    const statusCell = document.createElement('td');
-    const badge = document.createElement('span');
-    badge.classList.add('badge');
-
-    if (isPlan) {
-      badge.classList.add('badge-plan');
-    } else if (log.status === '検査保留' || log.status === '一時停止') {
-      badge.classList.add('badge-hold');
-    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
-      badge.classList.add('badge-normal');
-    } else {
-      badge.classList.add('badge-error');
-    }
-    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
-    statusCell.appendChild(badge);
 
     const startText = formatDateTime(
       log.timestamp_start || log.timestamp_end || log.planned_start || ''
@@ -1656,21 +1668,54 @@ function renderDashboardTable() {
       ? `- / ${log.plan_qty || 0}`
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
-    tr.innerHTML = `
-      <td>${startText}</td>
-      <td>${log.product_code || ''}</td>
-      <td>${log.product_name || ''}</td>
-      <td>${log.process_name || ''}</td>
-      <td>${userText}</td>
-      <td>${qtyText}</td>
-    `;
-    tr.appendChild(statusCell);
+    const tdStart = document.createElement('td');
+    tdStart.dataset.label = '工程開始';
+    tdStart.textContent = startText;
+
+    const tdCode = document.createElement('td');
+    tdCode.dataset.label = '図番';
+    tdCode.textContent = log.product_code || '';
+
+    const tdName = document.createElement('td');
+    tdName.dataset.label = '品名';
+    tdName.textContent = log.product_name || '';
+
+    const tdProc = document.createElement('td');
+    tdProc.dataset.label = '工程';
+    tdProc.textContent = log.process_name || '';
+
+    const tdUser = document.createElement('td');
+    tdUser.dataset.label = 'ユーザー';
+    tdUser.textContent = userText;
+
+    const tdQty = document.createElement('td');
+    tdQty.dataset.label = '数量(OK/不良)';
+    tdQty.textContent = qtyText;
+
+    const tdStatus = document.createElement('td');
+    tdStatus.dataset.label = 'ステータス';
+
+    const badge = document.createElement('span');
+    badge.classList.add('badge');
+    if (isPlan) {
+      badge.classList.add('badge-plan');
+    } else if (log.status === '検査保留' || log.status === '一時停止') {
+      badge.classList.add('badge-hold');
+    } else if (log.status === '終了' || log.status === '通常' || log.status === '工程終了') {
+      badge.classList.add('badge-normal');
+    } else {
+      badge.classList.add('badge-error');
+    }
+    badge.textContent = isPlan ? (log.status || '計画中') : (log.status || '-');
+    tdStatus.appendChild(badge);
 
     const tdDuration = document.createElement('td');
+    tdDuration.dataset.label = '所要時間(分)';
     tdDuration.textContent = durationMin || '';
-    tr.appendChild(tdDuration);
 
     const tdLoc = document.createElement('td');
+    tdLoc.dataset.label = 'ロケーション';
+
     const locWrapper = document.createElement('div');
     locWrapper.className = 'location-cell';
 
@@ -1691,13 +1736,13 @@ function renderDashboardTable() {
     }
 
     tdLoc.appendChild(locWrapper);
-    tr.appendChild(tdLoc);
 
     if (!isPlan && ((log.qty_ng || 0) > 0 || log.status === '検査保留')) {
       tr.classList.add('row-alert');
     }
 
     const tdActions = document.createElement('td');
+    tdActions.dataset.label = '操作';
 
     if (isPlan) {
       tdActions.classList.add('plans-actions');
@@ -1714,18 +1759,27 @@ function renderDashboardTable() {
       };
 
       const scanBtn = document.createElement('button');
-      scanBtn.textContent = 'スキャン/更新';
-      scanBtn.className = 'ghost-button btn-scan-primary';
+      scanBtn.type = 'button';
+      scanBtn.className = 'icon-btn primary btn-scan-primary';
+      scanBtn.title = 'スキャン/更新';
+      scanBtn.setAttribute('aria-label', 'スキャン/更新');
+      scanBtn.innerHTML = iconMarkup('i-scan');
       scanBtn.addEventListener('click', () => startScanForPlan(planLike));
 
       const detailBtn = document.createElement('button');
-      detailBtn.textContent = '詳細';
-      detailBtn.className = 'ghost-button';
+      detailBtn.type = 'button';
+      detailBtn.className = 'icon-btn';
+      detailBtn.title = '詳細';
+      detailBtn.setAttribute('aria-label', '詳細');
+      detailBtn.innerHTML = iconMarkup('i-info');
       detailBtn.addEventListener('click', () => showPlanDetail(planLike));
 
       const exportBtn = document.createElement('button');
-      exportBtn.textContent = '実績CSV';
-      exportBtn.className = 'ghost-button';
+      exportBtn.type = 'button';
+      exportBtn.className = 'icon-btn';
+      exportBtn.title = '実績CSV';
+      exportBtn.setAttribute('aria-label', '実績CSV');
+      exportBtn.innerHTML = iconMarkup('i-csv');
       exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
 
       tdActions.appendChild(scanBtn);
@@ -1733,16 +1787,19 @@ function renderDashboardTable() {
       tdActions.appendChild(exportBtn);
     } else if (currentUser && currentUser.role === 'admin') {
       const editBtn = document.createElement('button');
-      editBtn.textContent = '編集';
-      editBtn.className = 'ghost-button';
-      editBtn.style.fontSize = '0.7rem';
+      editBtn.type = 'button';
+      editBtn.className = 'icon-btn';
+      editBtn.title = '編集';
+      editBtn.setAttribute('aria-label', '編集');
+      editBtn.innerHTML = iconMarkup('i-edit');
       editBtn.addEventListener('click', () => openEditModal(log));
 
       const delBtn = document.createElement('button');
-      delBtn.textContent = '削除';
-      delBtn.className = 'ghost-button';
-      delBtn.style.fontSize = '0.7rem';
-      delBtn.style.marginLeft = '4px';
+      delBtn.type = 'button';
+      delBtn.className = 'icon-btn danger';
+      delBtn.title = '削除';
+      delBtn.setAttribute('aria-label', '削除');
+      delBtn.innerHTML = iconMarkup('i-trash');
       delBtn.addEventListener('click', () => handleDeleteLog(log));
 
       tdActions.appendChild(editBtn);
@@ -1751,7 +1808,17 @@ function renderDashboardTable() {
       tdActions.textContent = '-';
     }
 
+    tr.appendChild(tdStart);
+    tr.appendChild(tdCode);
+    tr.appendChild(tdName);
+    tr.appendChild(tdProc);
+    tr.appendChild(tdUser);
+    tr.appendChild(tdQty);
+    tr.appendChild(tdStatus);
+    tr.appendChild(tdDuration);
+    tr.appendChild(tdLoc);
     tr.appendChild(tdActions);
+
     tbody.appendChild(tr);
   });
 }
@@ -2208,6 +2275,309 @@ async function loadAnalytics() {
   }
 }
   
+
+/* ================================
+   Special Slides (Overdue / Top NG / Bottleneck / Top Items)
+   UI only: uses existing dashboardLogs + plans
+   ================================ */
+
+function parseDateFlexible(value) {
+  if (!value) return null;
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+
+  // numeric timestamps
+  if (typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const s = String(value).trim();
+  if (!s) return null;
+
+  // ISO (contains T) or RFC can be parsed directly
+  if (s.includes('T') || s.includes('Z')) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // "YYYY-MM-DD HH:mm" -> "YYYY-MM-DDTHH:mm:00"
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (m) {
+    const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6] || '00'}`;
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // "YYYY-MM-DD"
+  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m2) {
+    const d = new Date(`${m2[1]}-${m2[2]}-${m2[3]}T00:00:00`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function getLogBaseDate(log) {
+  return parseDateFlexible(log.timestamp_end || log.timestamp_start || log.created_at || log.planned_start || '');
+}
+
+function isWithinDays(date, days) {
+  if (!date) return false;
+  const now = Date.now();
+  const diff = now - date.getTime();
+  return diff >= 0 && diff <= (days * 24 * 3600 * 1000);
+}
+
+function safeNumber(x, fallback = 0) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function setHiddenById(id, hidden) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('hidden', !!hidden);
+}
+
+function updateSpecialMonitorBlocks() {
+  renderOverduePlansBlock();
+  renderTopNgBlock();
+  renderBottleneckBlock();
+  renderTopItemsBlock();
+}
+
+function renderOverduePlansBlock() {
+  const tbody = document.getElementById('overdue-tbody');
+  if (!tbody) return;
+
+  const now = new Date();
+  const items = (plans || [])
+    .map(plan => {
+      const end = parseDateFlexible(plan.planned_end);
+      if (!end) return null;
+      const related = (dashboardLogs || []).filter(l =>
+        l.product_code === plan.product_code &&
+        (!plan.process_name || l.process_name === plan.process_name)
+      );
+      const actualTotal = related.reduce((sum, l) => sum + safeNumber(l.qty_total), 0);
+      const planQty = safeNumber(plan.planned_qty);
+      const isOverdue = end.getTime() < now.getTime() && actualTotal < planQty && (plan.status || '') !== '完了';
+      if (!isOverdue) return null;
+
+      const lateHours = Math.max(0, (now.getTime() - end.getTime()) / 3600000);
+      return {
+        product_code: plan.product_code || '',
+        process_name: plan.process_name || '',
+        plan_qty: planQty,
+        actual_qty: actualTotal,
+        late_h: lateHours
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.late_h - a.late_h)
+    .slice(0, 10);
+
+  tbody.innerHTML = '';
+  if (items.length === 0) {
+    setHiddenById('overdue-empty', false);
+    return;
+  }
+  setHiddenById('overdue-empty', true);
+
+  items.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="図番"><strong>${escapeHtml(row.product_code)}</strong></td>
+      <td data-label="工程">${escapeHtml(row.process_name)}</td>
+      <td data-label="計画" class="align-right">${row.plan_qty}</td>
+      <td data-label="実績" class="align-right">${row.actual_qty}</td>
+      <td data-label="遅れ(h)" class="align-right">${row.late_h.toFixed(1)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTopNgBlock() {
+  const prodTbody = document.getElementById('topng-product-tbody');
+  const procTbody = document.getElementById('topng-process-tbody');
+  if (!prodTbody || !procTbody) return;
+
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, 7));
+
+  prodTbody.innerHTML = '';
+  procTbody.innerHTML = '';
+
+  if (logs.length === 0) {
+    setHiddenById('topng-empty', false);
+    return;
+  }
+  setHiddenById('topng-empty', true);
+
+  const byProd = new Map();
+  const byProc = new Map();
+
+  logs.forEach(l => {
+    const code = String(l.product_code || '').trim() || '不明';
+    const proc = String(l.process_name || '').trim() || '不明工程';
+    const ng = safeNumber(l.qty_ng);
+    const total = safeNumber(l.qty_total);
+
+    const p = byProd.get(code) || { code, ng: 0, total: 0 };
+    p.ng += ng;
+    p.total += total;
+    byProd.set(code, p);
+
+    const pr = byProc.get(proc) || { proc, ng: 0 };
+    pr.ng += ng;
+    byProc.set(proc, pr);
+  });
+
+  const topProd = Array.from(byProd.values())
+    .filter(x => x.ng > 0)
+    .sort((a, b) => b.ng - a.ng)
+    .slice(0, 6);
+
+  const topProc = Array.from(byProc.values())
+    .filter(x => x.ng > 0)
+    .sort((a, b) => b.ng - a.ng)
+    .slice(0, 6);
+
+  if (topProd.length === 0 && topProc.length === 0) {
+    setHiddenById('topng-empty', false);
+    return;
+  }
+
+  topProd.forEach(r => {
+    const rate = r.total > 0 ? (r.ng * 100) / r.total : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.ng}</td>
+      <td class="align-right">${rate.toFixed(1)}%</td>
+    `;
+    prodTbody.appendChild(tr);
+  });
+
+  topProc.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.proc)}</strong></td>
+      <td class="align-right">${r.ng}</td>
+    `;
+    procTbody.appendChild(tr);
+  });
+}
+
+function renderBottleneckBlock() {
+  const tbody = document.getElementById('bottleneck-tbody');
+  if (!tbody) return;
+
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, 7));
+
+  const map = new Map();
+  logs.forEach(l => {
+    const proc = String(l.process_name || '').trim() || '不明工程';
+    const dur = safeNumber(l.duration_sec);
+    if (dur <= 0) return;
+
+    const crew = Math.max(1, Math.round(safeNumber(l.crew_size, 1)));
+    const mh = (dur * crew) / 3600;
+
+    const cur = map.get(proc) || { proc, mh: 0, durMinSum: 0, count: 0 };
+    cur.mh += mh;
+    cur.durMinSum += (dur / 60);
+    cur.count += 1;
+    map.set(proc, cur);
+  });
+
+  const items = Array.from(map.values())
+    .sort((a, b) => b.mh - a.mh)
+    .slice(0, 8);
+
+  tbody.innerHTML = '';
+  if (items.length === 0) {
+    setHiddenById('bottleneck-empty', false);
+    return;
+  }
+  setHiddenById('bottleneck-empty', true);
+
+  items.forEach(r => {
+    const avgMin = r.count > 0 ? (r.durMinSum / r.count) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="工程"><strong>${escapeHtml(r.proc)}</strong></td>
+      <td data-label="工数(h)" class="align-right">${r.mh.toFixed(2)}</td>
+      <td data-label="平均(分)" class="align-right">${avgMin.toFixed(1)}</td>
+      <td data-label="件数" class="align-right">${r.count}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function buildTopItems(days) {
+  const logs = (dashboardLogs || [])
+    .map(l => Object.assign({}, l, { __d: getLogBaseDate(l) }))
+    .filter(l => l.__d && isWithinDays(l.__d, days));
+
+  const map = new Map();
+  logs.forEach(l => {
+    const code = String(l.product_code || '').trim() || '不明';
+    const cur = map.get(code) || { code, count: 0, qty: 0 };
+    cur.count += 1;
+    cur.qty += safeNumber(l.qty_total);
+    map.set(code, cur);
+  });
+
+  return Array.from(map.values())
+    .sort((a, b) => (b.count - a.count) || (b.qty - a.qty))
+    .slice(0, 10);
+}
+
+function renderTopItemsBlock() {
+  const wTbody = document.getElementById('topitems-weekly-tbody');
+  const mTbody = document.getElementById('topitems-monthly-tbody');
+  if (!wTbody || !mTbody) return;
+
+  const weekly = buildTopItems(7);
+  const monthly = buildTopItems(30);
+
+  wTbody.innerHTML = '';
+  mTbody.innerHTML = '';
+
+  if (weekly.length === 0 && monthly.length === 0) {
+    setHiddenById('topitems-empty', false);
+    return;
+  }
+  setHiddenById('topitems-empty', true);
+
+  weekly.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.count}</td>
+      <td class="align-right">${r.qty}</td>
+    `;
+    wTbody.appendChild(tr);
+  });
+
+  monthly.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(r.code)}</strong></td>
+      <td class="align-right">${r.count}</td>
+      <td class="align-right">${r.qty}</td>
+    `;
+    mTbody.appendChild(tr);
+  });
+}
+
+
 /* ================================
    Plans (生産計画)
    ================================ */
@@ -2218,7 +2588,8 @@ async function loadPlans() {
     plans = data || [];
     renderPlanTable();
     renderDashboardTable();
-  } catch (err) {
+      updateSpecialMonitorBlocks();
+} catch (err) {
     console.error(err);
     alert('生産計画の取得に失敗しました: ' + err.message);
   }
@@ -2246,33 +2617,64 @@ function renderPlanTable() {
     const planQty = plan.planned_qty || 0;
     const rate = planQty > 0 ? Math.round((actualTotal * 100) / planQty) : 0;
 
-    tr.innerHTML = `
-      <td>${plan.product_code || ''}</td>
-      <td>${plan.product_name || ''}</td>
-      <td>${plan.process_name || ''}</td>
-      <td>${plan.planned_qty || 0}</td>
-      <td>${plan.planned_start || ''}</td>
-      <td>${plan.planned_end || ''}</td>
-      <td>${actualTotal} / ${planQty} (${rate}%)</td>
-      <td>${plan.status || ''}</td>
-    `;
+    const tdCode = document.createElement('td');
+    tdCode.dataset.label = '図番';
+    tdCode.textContent = plan.product_code || '';
+
+    const tdName = document.createElement('td');
+    tdName.dataset.label = '品名';
+    tdName.textContent = plan.product_name || '';
+
+    const tdProc = document.createElement('td');
+    tdProc.dataset.label = '工程名';
+    tdProc.textContent = plan.process_name || '';
+
+    const tdQty = document.createElement('td');
+    tdQty.dataset.label = '計画数量';
+    tdQty.textContent = String(planQty || 0);
+
+    const tdStart = document.createElement('td');
+    tdStart.dataset.label = '計画開始';
+    tdStart.textContent = formatDateTime(plan.planned_start || '');
+
+    const tdEnd = document.createElement('td');
+    tdEnd.dataset.label = '計画終了';
+    tdEnd.textContent = formatDateTime(plan.planned_end || '');
+
+    const tdRatio = document.createElement('td');
+    tdRatio.dataset.label = '実績/計画';
+    tdRatio.textContent = `${actualTotal} / ${planQty} (${rate}%)`;
+
+    const tdStatus = document.createElement('td');
+    tdStatus.dataset.label = 'ステータス';
+    tdStatus.textContent = plan.status || '';
 
     const tdActions = document.createElement('td');
+    tdActions.dataset.label = '操作';
     tdActions.classList.add('plans-actions');
 
     const scanBtn = document.createElement('button');
-    scanBtn.textContent = 'スキャン/更新';
-    scanBtn.className = 'ghost-button btn-scan-primary';
+    scanBtn.type = 'button';
+    scanBtn.className = 'icon-btn primary btn-scan-primary';
+    scanBtn.title = 'スキャン/更新';
+    scanBtn.setAttribute('aria-label', 'スキャン/更新');
+    scanBtn.innerHTML = iconMarkup('i-scan');
     scanBtn.addEventListener('click', () => startScanForPlan(plan));
 
     const detailBtn = document.createElement('button');
-    detailBtn.textContent = '詳細';
-    detailBtn.className = 'ghost-button';
+    detailBtn.type = 'button';
+    detailBtn.className = 'icon-btn';
+    detailBtn.title = '詳細';
+    detailBtn.setAttribute('aria-label', '詳細');
+    detailBtn.innerHTML = iconMarkup('i-info');
     detailBtn.addEventListener('click', () => showPlanDetail(plan));
 
     const exportBtn = document.createElement('button');
-    exportBtn.textContent = '実績CSV';
-    exportBtn.className = 'ghost-button';
+    exportBtn.type = 'button';
+    exportBtn.className = 'icon-btn';
+    exportBtn.title = '実績CSV';
+    exportBtn.setAttribute('aria-label', '実績CSV');
+    exportBtn.innerHTML = iconMarkup('i-csv');
     exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
 
     tdActions.appendChild(scanBtn);
@@ -2281,15 +2683,25 @@ function renderPlanTable() {
 
     if (currentUser && currentUser.role === 'admin') {
       const delPlanBtn = document.createElement('button');
-      delPlanBtn.textContent = '計画削除';
-      delPlanBtn.className = 'ghost-button';
-      delPlanBtn.style.fontSize = '0.7rem';
-      delPlanBtn.style.marginLeft = '4px';
+      delPlanBtn.type = 'button';
+      delPlanBtn.className = 'icon-btn danger';
+      delPlanBtn.title = '計画削除';
+      delPlanBtn.setAttribute('aria-label', '計画削除');
+      delPlanBtn.innerHTML = iconMarkup('i-trash');
       delPlanBtn.addEventListener('click', () => handleDeletePlan(plan));
       tdActions.appendChild(delPlanBtn);
     }
 
+    tr.appendChild(tdCode);
+    tr.appendChild(tdName);
+    tr.appendChild(tdProc);
+    tr.appendChild(tdQty);
+    tr.appendChild(tdStart);
+    tr.appendChild(tdEnd);
+    tr.appendChild(tdRatio);
+    tr.appendChild(tdStatus);
     tr.appendChild(tdActions);
+
     tbody.appendChild(tr);
   });
 }
@@ -2624,25 +3036,25 @@ function renderUserListTable(users) {
     const tr = document.createElement('tr');
     const qrContainerId = `qr-mini-${user.user_id}-${index}`;
 
-    tr.innerHTML = `
-      <td>
+        tr.innerHTML = `
+      <td data-label="QR">
         <div id="${qrContainerId}" class="qr-mini"></div>
       </td>
-      <td><strong>${escapeHtml(user.user_id)}</strong></td>
-      <td>${escapeHtml(user.name_ja || '')}</td>
-      <td><span class="log-badge">${getRoleLabel(user.role)}</span></td>
-      <td><span class="log-timestamp">${formatDateTime(user.created_at || '')}</span></td>
-      <td>
+      <td data-label="ユーザーID"><strong>${escapeHtml(user.user_id)}</strong></td>
+      <td data-label="氏名">${escapeHtml(user.name_ja || '')}</td>
+      <td data-label="権限"><span class="badge badge-plan">${getRoleLabel(user.role)}</span></td>
+      <td data-label="作成日時"><span class="hint">${formatDateTime(user.created_at || '')}</span></td>
+      <td data-label="操作">
         <div class="user-actions">
-          <button class="btn-icon btn-edit"
+          <button type="button" class="icon-btn"
                   onclick="editUser('${escapeHtml(user.user_id)}')"
-                  title="編集">✏️</button>
-          <button class="btn-icon btn-delete"
+                  title="編集" aria-label="編集">${iconMarkup('i-edit')}</button>
+          <button type="button" class="icon-btn danger"
                   onclick="confirmDeleteUser('${escapeHtml(user.user_id)}')"
-                  title="削除">🗑️</button>
-          <button class="btn-icon btn-download"
+                  title="削除" aria-label="削除">${iconMarkup('i-trash')}</button>
+          <button type="button" class="icon-btn"
                   onclick="downloadUserQR('${escapeHtml(user.user_id)}', '${escapeHtml(user.name_ja || '')}', '${user.role || ''}')"
-                  title="QRダウンロード">📥</button>
+                  title="QRダウンロード" aria-label="QRダウンロード">${iconMarkup('i-download')}</button>
         </div>
       </td>
     `;
