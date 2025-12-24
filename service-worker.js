@@ -1,9 +1,9 @@
-const CACHE_NAME = 'productionsh-cache-v2-improved';
+const CACHE_NAME = 'productionsh-cache-v3-uiux';
 const OFFLINE_URLS = [
   './',
-  './index-improved.html',
-  './style-improved.css',
-  './app-improved.js',
+  './index.html',
+  './style.css',
+  './app.js',
   './manifest.json',
   './tsh.png'
 ];
