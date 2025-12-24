@@ -1152,3 +1152,109 @@ body.monitor-mode .logs-table {
     display: none;
   }
 }
+/* === Theme & mobile overrides (bright blue + orange) === */
+:root {
+  --color-accent: #ff8a00;
+  --color-bg: #f5f7ff;
+  --color-surface-alt: #fff7f0;
+}
+
+/* Gradient hero & primary accents in blue + orange */
+.welcome-card {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #ff9800 100%);
+  color: #ffffff;
+}
+
+.sidebar-logo-pill {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #ffb74d 100%);
+}
+
+.section-title-badge {
+  background: rgba(255, 152, 0, 0.15);
+  color: #fb8c00;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #ff9800 100%);
+  border-color: transparent;
+}
+
+.primary-button:hover {
+  filter: brightness(0.95);
+}
+
+/* Slightly softer mobile bottom nav */
+.mobile-nav-bar {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* App footer fixed to bottom (except monitor-mode) */
+.app-footer {
+  margin-top: auto;
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  display: block;
+}
+
+body.monitor-mode .app-footer {
+  display: none;
+}
+
+/* Overlay untuk mobile sidebar */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+}
+
+.sidebar-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Required field / 必須項目の視覚化 */
+.field-required::after {
+  content: " *";
+  color: var(--color-error);
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.required-field {
+  border-color: var(--color-warning);
+  background: #fffef7;
+}
+
+/* 生産一覧テーブルの見やすさ向上 */
+#plans-section table th,
+#plans-section table td {
+  white-space: nowrap;
+}
+
+#plans-section .table-wrapper {
+  overflow-x: auto;
+}
+
+/* スマホでのカード感アップ */
+#scan-section .form-grid {
+  row-gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: var(--space-md);
+  }
+  .card {
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  }
+  .topbar {
+    padding: 0 var(--space-md);
+  }
+}
