@@ -1,4 +1,5 @@
-const CACHE_NAME = 'productionsh-cache-v3-uiux';
+const CACHE_NAME = 'productionsh-cache-v3';
+
 const OFFLINE_URLS = [
   './',
   './index.html',
@@ -12,6 +13,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(OFFLINE_URLS))
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -19,28 +21,28 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+          if (key !== CACHE_NAME) return caches.delete(key);
         })
       )
     )
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
-  // API Apps Script dll (domain lain) tidak di-cache di sini
-  if (!request.url.startsWith(self.location.origin)) {
-    return;
-  }
+  // Only handle same-origin
+  if (!request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        // Cache GET requests only
+        if (request.method === 'GET' && response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
         return response;
       })
       .catch(() =>
