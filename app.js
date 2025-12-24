@@ -87,6 +87,23 @@ function escapeHtml(text) {
     .replace(/'/g, '&#39;');
 }
 
+
+/* UI helper: icon button (keeps existing business logic intact) */
+function setIconButton(btn, iconId, label, options = {}) {
+  const { variant = 'ghost', showText = true } = options;
+  const base = ['icon-btn'];
+  if (variant === 'primary') base.push('icon-btn--primary');
+  if (variant === 'danger') base.push('icon-btn--danger');
+  if (variant === 'ghost') base.push('icon-btn--ghost');
+  btn.className = (btn.className ? btn.className + ' ' : '') + base.join(' ');
+  btn.setAttribute('type', 'button');
+  btn.setAttribute('aria-label', label);
+  const textSpan = showText ? `<span class="btn-text">${label}</span>` : `<span class="sr-only">${label}</span>`;
+  btn.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#${iconId}"></use></svg>${textSpan}`;
+  return btn;
+}
+
+
 function getRoleLabel(role) {
   if (role === 'admin') return '管理者';
   if (role === 'qc') return 'QC';
@@ -174,20 +191,30 @@ function renderAdminUserList() {
     const qrId = `admin-user-qr-${user.user_id}`;
 
     tr.innerHTML = `
-      <td><div class="qr-mini" id="${qrId}"></div></td>
-      <td>${escapeHtml(user.user_id)}</td>
-      <td>${escapeHtml(user.name_ja || user.name || '')}</td>
-      <td>${escapeHtml(getRoleLabel(user.role))}</td>
-      <td>
+      <td data-label="QR"><div class="qr-mini" id="${qrId}"></div></td>
+      <td data-label="ユーザーID">${escapeHtml(user.user_id)}</td>
+      <td data-label="氏名">${escapeHtml(user.name_ja || user.name || '')}</td>
+      <td data-label="権限">${escapeHtml(getRoleLabel(user.role))}</td>
+      <td data-label="操作" class="cell-actions">
         <div class="list-action-buttons">
-          <button type="button" class="mini-btn mini-btn-edit" data-id="${user.user_id}">編集</button>
-          <button type="button" class="mini-btn mini-btn-print" data-id="${user.user_id}">印刷</button>
-          <button type="button" class="mini-btn mini-btn-dl" data-id="${user.user_id}">DL</button>
-          <button type="button" class="mini-btn mini-btn-del" data-id="${user.user_id}">削除</button>
+          <button type="button" class="mini-btn mini-btn-edit" data-id="${user.user_id}" title="編集"></button>
+          <button type="button" class="mini-btn mini-btn-print" data-id="${user.user_id}" title="印刷"></button>
+          <button type="button" class="mini-btn mini-btn-dl" data-id="${user.user_id}" title="DL"></button>
+          <button type="button" class="mini-btn mini-btn-del" data-id="${user.user_id}" title="削除"></button>
         </div>
       </td>
     `;
     tbody.appendChild(tr);
+
+    // iconize action buttons (UI only)
+    const bEdit = tr.querySelector('.mini-btn-edit');
+    const bPrint = tr.querySelector('.mini-btn-print');
+    const bDl = tr.querySelector('.mini-btn-dl');
+    const bDel = tr.querySelector('.mini-btn-del');
+    if (bEdit) setIconButton(bEdit, 'i-edit', '編集', { variant: 'ghost', showText: false });
+    if (bPrint) setIconButton(bPrint, 'i-print', '印刷', { variant: 'ghost', showText: false });
+    if (bDl) setIconButton(bDl, 'i-download', 'DL', { variant: 'ghost', showText: false });
+    if (bDel) setIconButton(bDel, 'i-trash', '削除', { variant: 'danger', showText: false });
 
     const container = document.getElementById(qrId);
     if (container) {
@@ -562,484 +589,12 @@ function setupButtons() {
   }
 
   // Monitor mode (digital signage)
-  // Robust implementation:
-  // - Prevents "blank white" by showing an overlay even if some CSS hides app shell
-  // - Adds a simple carousel (dashboard / chart / plans / latest logs + special slides)
   const monitorBtn = document.getElementById('btn-monitor-mode');
-
-  // Expose to window to avoid ReferenceError from inline handlers or cached HTML.
-  window.enterMonitorModeCarousel = enterMonitorModeCarousel;
-  window.exitMonitorModeCarousel = exitMonitorModeCarousel;
-
-  let __monitorState = {
-    active: false,
-    index: 0,
-    timer: null,
-    slides: [],
-    dots: [],
-    moved: [] // {node, placeholder}
-  };
-
-  function ensureMonitorOverlay() {
-    let overlay = document.getElementById('monitor-overlay');
-    if (overlay) return overlay;
-
-    overlay = document.createElement('div');
-    overlay.id = 'monitor-overlay';
-    overlay.innerHTML = `
-      <div class="monitor-topbar">
-        <h2 class="monitor-title">Digital Signage</h2>
-        <div class="monitor-actions">
-          <button type="button" class="ghost-button ghost-small" id="monitor-prev">Prev</button>
-          <button type="button" class="ghost-button ghost-small" id="monitor-next">Next</button>
-          <button type="button" class="ghost-button ghost-small" id="monitor-exit">戻る</button>
-        </div>
-      </div>
-      <div class="monitor-body">
-        <div class="monitor-carousel" id="monitor-carousel"></div>
-        <div class="monitor-footer">
-          <div class="monitor-dots" id="monitor-dots"></div>
-          <div class="monitor-nav">
-            <span class="badge badge-internal" id="monitor-autoplay">Auto</span>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-
-    overlay.querySelector('#monitor-exit').addEventListener('click', exitMonitorModeCarousel);
-    overlay.querySelector('#monitor-prev').addEventListener('click', () => monitorGo(-1));
-    overlay.querySelector('#monitor-next').addEventListener('click', () => monitorGo(1));
-
-    // Touch swipe
-    let x0 = null;
-    overlay.addEventListener('touchstart', (e) => { x0 = e.touches?.[0]?.clientX ?? null; }, { passive: true });
-    overlay.addEventListener('touchend', (e) => {
-      if (x0 === null) return;
-      const x1 = e.changedTouches?.[0]?.clientX ?? null;
-      if (x1 === null) { x0 = null; return; }
-      const dx = x1 - x0;
-      if (Math.abs(dx) > 50) monitorGo(dx < 0 ? 1 : -1);
-      x0 = null;
-    }, { passive: true });
-
-    return overlay;
-  }
-
-  function safeRemoveTimer() {
-    if (__monitorState.timer) {
-      clearInterval(__monitorState.timer);
-      __monitorState.timer = null;
-    }
-  }
-
-  function monitorGo(delta) {
-    if (!__monitorState.active || __monitorState.slides.length === 0) return;
-    const n = __monitorState.slides.length;
-    __monitorState.index = ( (__monitorState.index + delta) % n + n ) % n;
-    renderMonitorIndex();
-  }
-
-  function renderMonitorIndex() {
-    __monitorState.slides.forEach((el, i) => el.classList.toggle('active', i === __monitorState.index));
-    __monitorState.dots.forEach((el, i) => el.classList.toggle('active', i === __monitorState.index));
-  }
-
-  function moveIntoSlide(node, slideEl) {
-    if (!node || !slideEl) return;
-    const placeholder = document.createElement('div');
-    placeholder.setAttribute('data-monitor-placeholder', '1');
-    node.parentNode.insertBefore(placeholder, node);
-    slideEl.appendChild(node);
-    __monitorState.moved.push({ node, placeholder });
-  }
-
-  function restoreMovedNodes() {
-    __monitorState.moved.forEach(({ node, placeholder }) => {
-      try {
-        placeholder.parentNode.insertBefore(node, placeholder);
-        placeholder.remove();
-      } catch (_) {}
-    });
-    __monitorState.moved = [];
-  }
-
-  function buildMonitorSlides() {
-    const overlay = ensureMonitorOverlay();
-    const carousel = overlay.querySelector('#monitor-carousel');
-    const dots = overlay.querySelector('#monitor-dots');
-    carousel.innerHTML = '';
-    dots.innerHTML = '';
-    __monitorState.slides = [];
-    __monitorState.dots = [];
-    __monitorState.index = 0;
-
-    const slideDefs = [
-      { key: 'dash', title: 'Dashboard (Ringkas)' },
-      { key: 'chart', title: 'Grafik / Chart' },
-      { key: 'plans', title: '生産計画一覧' },
-      { key: 'logs', title: '最新の実績一覧' },
-      { key: 'overdue', title: '遅れ計画（Overdue）' },
-      { key: 'topng', title: 'Top NG（直近7日）' },
-      { key: 'bottleneck', title: 'ボトルネック工程（直近7日）' },
-      { key: 'topitems', title: '頻出品目（7日 / 30日）' }
-    ];
-
-    slideDefs.forEach((def, idx) => {
-      const s = document.createElement('div');
-      s.className = 'monitor-slide' + (idx === 0 ? ' active' : '');
-      s.dataset.key = def.key;
-      s.innerHTML = `<div class="card small-gap"><h2 class="card-title">${def.title}</h2><div class="monitor-slot" data-slot="${def.key}"></div></div>`;
-      carousel.appendChild(s);
-      __monitorState.slides.push(s);
-
-      const d = document.createElement('span');
-      d.className = 'monitor-dot' + (idx === 0 ? ' active' : '');
-      d.addEventListener('click', () => { __monitorState.index = idx; renderMonitorIndex(); });
-      dots.appendChild(d);
-      __monitorState.dots.push(d);
-    });
-
-    // Fill slots using existing DOM (move) + computed blocks (render)
-    fillMonitorSlots();
-  }
-
-  function parseDateFlexible(v) {
-    if (!v) return null;
-    if (v instanceof Date) return v;
-    const s = String(v).trim();
-    // ISO
-    const d1 = new Date(s);
-    if (!isNaN(d1.getTime())) return d1;
-    // "YYYY-MM-DD HH:mm" or "YYYY/MM/DD HH:mm"
-    const m = s.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
-    if (m) {
-      const [_, y, mo, da, hh, mm, ss] = m;
-      const d = new Date(Number(y), Number(mo)-1, Number(da), Number(hh), Number(mm), Number(ss||0));
-      return isNaN(d.getTime()) ? null : d;
-    }
-    return null;
-  }
-
-  function escapeHtmlLocal(str) {
-    return String(str ?? '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
-
-  function aggregateRecentLogs(days) {
-    const now = new Date();
-    const since = new Date(now.getTime() - days * 86400000);
-    const logs = (dashboardLogs || []).filter(l => {
-      const dt = parseDateFlexible(l.start_time || l.start || l.created_at || l.timestamp);
-      return dt && dt >= since && dt <= now;
-    });
-    return logs;
-  }
-
-  function fillMonitorSlots() {
-    // 1) Dashboard ringkas: move welcome + summary if exists, otherwise show fallback
-    const dashSlot = document.querySelector('.monitor-slide[data-key="dash"] .monitor-slot');
-    if (dashSlot) {
-      const dash = document.getElementById('dashboard-section');
-      if (dash) {
-        // Prefer the first "welcome-card" + summary grid + alert banner if exist
-        const pick = [];
-        const welcome = dash.querySelector('.welcome-card');
-        if (welcome) pick.push(welcome);
-        const summary = dash.querySelector('.summary-grid')?.closest('.card') || dash.querySelector('.summary-grid');
-        if (summary) pick.push(summary.closest('.card') || summary);
-        const banner = dash.querySelector('#alert-banner') || dash.querySelector('.alert-banner');
-        if (banner) pick.push(banner.closest('.card') || banner);
-
-        if (pick.length > 0) {
-          pick.forEach(node => moveIntoSlide(node, dashSlot));
-        } else {
-          dashSlot.innerHTML = `<div class="empty-state">Dashboard content tidak ditemukan.</div>`;
-        }
-      } else {
-        dashSlot.innerHTML = `<div class="empty-state">dashboard-section tidak ada.</div>`;
-      }
-    }
-
-    // 2) Chart: move card that contains #process-chart
-    const chartSlot = document.querySelector('.monitor-slide[data-key="chart"] .monitor-slot');
-    if (chartSlot) {
-      const canvas = document.getElementById('process-chart');
-      const card = canvas ? canvas.closest('.card') : null;
-      if (card) {
-        moveIntoSlide(card, chartSlot);
-      } else {
-        chartSlot.innerHTML = `<div class="empty-state">Chart (process-chart) tidak ditemukan.</div>`;
-      }
-    }
-
-    // 3) Plans: move plan list section main card/table wrapper if exists
-    const plansSlot = document.querySelector('.monitor-slide[data-key="plans"] .monitor-slot');
-    if (plansSlot) {
-      const sec = document.getElementById('plan-list-section') || document.getElementById('plan-input-section');
-      if (sec) {
-        const planCard = sec.querySelector('.card') || sec;
-        moveIntoSlide(planCard, plansSlot);
-      } else {
-        plansSlot.innerHTML = `<div class="empty-state">plan-list-section tidak ditemukan.</div>`;
-      }
-    }
-
-    // 4) Logs: move latest logs card/table wrapper from dashboard
-    const logsSlot = document.querySelector('.monitor-slide[data-key="logs"] .monitor-slot');
-    if (logsSlot) {
-      const tbody = document.getElementById('logs-tbody');
-      const logsCard = tbody ? tbody.closest('.card') : null;
-      if (logsCard) {
-        moveIntoSlide(logsCard, logsSlot);
-      } else {
-        logsSlot.innerHTML = `<div class="empty-state">Logs table tidak ditemukan.</div>`;
-      }
-    }
-
-    // Special slides: render computed tables
-    renderOverduePlans();
-    renderTopNg();
-    renderBottleneck();
-    renderTopItems();
-  }
-
-  function renderOverduePlans() {
-    const slot = document.querySelector('.monitor-slide[data-key="overdue"] .monitor-slot');
-    if (!slot) return;
-
-    const now = new Date();
-    const items = (plans || []).map(p => {
-      const planQty = Number(p.planned_qty || p.plan_qty || 0) || 0;
-      const actualQty = Number(p.actual_qty || 0) || 0;
-      const end = parseDateFlexible(p.planned_end);
-      if (!end) return null;
-      const isDone = /完了|中止/i.test(String(p.status || ''));
-      if (isDone) return null;
-      if (end >= now) return null;
-      if (actualQty >= planQty && planQty > 0) return null;
-      const lateMin = Math.floor((now - end) / 60000);
-      return { p, planQty, actualQty, end, lateMin };
-    }).filter(Boolean).sort((a,b) => b.lateMin - a.lateMin).slice(0, 10);
-
-    if (items.length === 0) {
-      slot.innerHTML = `<div class="empty-state">Overdue plan tidak ada (atau data plan belum tersedia).</div>`;
-      return;
-    }
-
-    const rows = items.map(x => `
-      <tr>
-        <td>${escapeHtmlLocal(x.p.product_code || '')}</td>
-        <td>${escapeHtmlLocal(x.p.product_name || '')}</td>
-        <td>${escapeHtmlLocal(x.p.process_name || '')}</td>
-        <td class="align-right">${x.actualQty} / ${x.planQty}</td>
-        <td class="align-right">${Math.floor(x.lateMin/60)}h ${x.lateMin%60}m</td>
-      </tr>
-    `).join('');
-
-    slot.innerHTML = `
-      <div class="table-wrapper compact">
-        <table class="logs-table compact">
-          <thead><tr><th>図番</th><th>品名</th><th>工程</th><th class="align-right">実績/計画</th><th class="align-right">遅れ</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function renderTopNg() {
-    const slot = document.querySelector('.monitor-slide[data-key="topng"] .monitor-slot');
-    if (!slot) return;
-
-    const logs = aggregateRecentLogs(7);
-    if (logs.length === 0) {
-      slot.innerHTML = `<div class="empty-state">直近7日のログがありません。</div>`;
-      return;
-    }
-
-    const byProduct = new Map();
-    const byProcess = new Map();
-
-    logs.forEach(l => {
-      const ng = Number(l.ng_qty ?? l.ng ?? l.bad_qty ?? 0) || 0;
-      if (!ng) return;
-      const prodKey = (l.product_code || '不明') + '|' + (l.product_name || '');
-      byProduct.set(prodKey, (byProduct.get(prodKey) || 0) + ng);
-
-      const procKey = (l.process_name || '不明');
-      byProcess.set(procKey, (byProcess.get(procKey) || 0) + ng);
-    });
-
-    const topProd = [...byProduct.entries()].map(([k,v]) => {
-      const [code,name] = k.split('|');
-      return { code, name, ng: v };
-    }).sort((a,b)=>b.ng-a.ng).slice(0,10);
-
-    const topProc = [...byProcess.entries()].map(([k,v]) => ({ process:k, ng:v }))
-      .sort((a,b)=>b.ng-a.ng).slice(0,10);
-
-    const prodRows = topProd.map(r=>`
-      <tr><td>${escapeHtmlLocal(r.code)}</td><td>${escapeHtmlLocal(r.name||'')}</td><td class="align-right">${r.ng}</td></tr>
-    `).join('');
-    const procRows = topProc.map(r=>`
-      <tr><td>${escapeHtmlLocal(r.process)}</td><td class="align-right">${r.ng}</td></tr>
-    `).join('');
-
-    slot.innerHTML = `
-      <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="table-wrapper compact">
-          <div class="muted" style="margin:0 0 6px;">製品別 NG Top</div>
-          <table class="logs-table compact"><thead><tr><th>図番</th><th>品名</th><th class="align-right">NG</th></tr></thead><tbody>${prodRows || '<tr><td colspan="3">-</td></tr>'}</tbody></table>
-        </div>
-        <div class="table-wrapper compact">
-          <div class="muted" style="margin:0 0 6px;">工程別 NG Top</div>
-          <table class="logs-table compact"><thead><tr><th>工程</th><th class="align-right">NG</th></tr></thead><tbody>${procRows || '<tr><td colspan="2">-</td></tr>'}</tbody></table>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderBottleneck() {
-    const slot = document.querySelector('.monitor-slide[data-key="bottleneck"] .monitor-slot');
-    if (!slot) return;
-
-    const logs = aggregateRecentLogs(7);
-    if (logs.length === 0) {
-      slot.innerHTML = `<div class="empty-state">直近7日のログがありません。</div>`;
-      return;
-    }
-
-    const map = new Map();
-    logs.forEach(l => {
-      const proc = l.process_name || '不明';
-      const dur = Number(l.duration_sec ?? l.duration ?? 0) || 0;
-      const crew = Number(l.crew_size ?? l.worker_count ?? l.workers ?? 1) || 1;
-      const mansec = dur * crew;
-      map.set(proc, (map.get(proc) || 0) + mansec);
-    });
-
-    const rows = [...map.entries()]
-      .map(([process, mansec]) => ({ process, hours: mansec/3600 }))
-      .sort((a,b)=>b.hours-a.hours)
-      .slice(0, 12)
-      .map(r=>`<tr><td>${escapeHtmlLocal(r.process)}</td><td class="align-right">${r.hours.toFixed(1)}</td></tr>`)
-      .join('');
-
-    slot.innerHTML = `
-      <div class="table-wrapper compact">
-        <table class="logs-table compact">
-          <thead><tr><th>工程</th><th class="align-right">Manhour [h]</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="2">-</td></tr>'}</tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function renderTopItems() {
-    const slot = document.querySelector('.monitor-slide[data-key="topitems"] .monitor-slot');
-    if (!slot) return;
-
-    const logs7 = aggregateRecentLogs(7);
-    const logs30 = aggregateRecentLogs(30);
-
-    function rank(logs) {
-      const m = new Map();
-      logs.forEach(l => {
-        const key = (l.product_code || '不明') + '|' + (l.product_name || '');
-        const qty = Number(l.ok_qty ?? l.ok ?? l.qty_ok ?? 0) || 0;
-        const ng = Number(l.ng_qty ?? l.ng ?? l.bad_qty ?? 0) || 0;
-        const total = qty + ng;
-        const cur = m.get(key) || { count:0, total:0 };
-        cur.count += 1;
-        cur.total += total;
-        m.set(key, cur);
-      });
-      return [...m.entries()].map(([k,v]) => {
-        const [code,name]=k.split('|');
-        return { code, name, count:v.count, total:v.total };
-      }).sort((a,b)=>b.count-a.count).slice(0,10);
-    }
-
-    const top7 = rank(logs7);
-    const top30 = rank(logs30);
-
-    const makeRows = (arr) => arr.map(r=>`
-      <tr><td>${escapeHtmlLocal(r.code)}</td><td>${escapeHtmlLocal(r.name||'')}</td><td class="align-right">${r.count}</td><td class="align-right">${r.total}</td></tr>
-    `).join('');
-
-    slot.innerHTML = `
-      <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="table-wrapper compact">
-          <div class="muted" style="margin:0 0 6px;">直近7日（回数/数量）</div>
-          <table class="logs-table compact">
-            <thead><tr><th>図番</th><th>品名</th><th class="align-right">回数</th><th class="align-right">数量</th></tr></thead>
-            <tbody>${makeRows(top7) || '<tr><td colspan="4">-</td></tr>'}</tbody>
-          </table>
-        </div>
-        <div class="table-wrapper compact">
-          <div class="muted" style="margin:0 0 6px;">直近30日（回数/数量）</div>
-          <table class="logs-table compact">
-            <thead><tr><th>図番</th><th>品名</th><th class="align-right">回数</th><th class="align-right">数量</th></tr></thead>
-            <tbody>${makeRows(top30) || '<tr><td colspan="4">-</td></tr>'}</tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }
-
-  function enterMonitorModeCarousel() {
-    const overlay = ensureMonitorOverlay();
-    // If already active, do nothing
-    if (__monitorState.active) return;
-
-    __monitorState.active = true;
-    document.body.classList.add('monitor-mode');
-    overlay.classList.add('active');
-
-    // Always show dashboard to avoid blank even if overlay fails
-    try {
-      const links = document.querySelectorAll('.sidebar-link');
-      const sections = document.querySelectorAll('.section');
-      sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
-      links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
-    } catch (_) {}
-
-    // Build slides safely
-    try {
-      buildMonitorSlides();
-      safeRemoveTimer();
-      __monitorState.timer = setInterval(() => monitorGo(1), 12000);
-      showToast('モニタ表示モードをONにしました。', 'info');
-    } catch (e) {
-      console.error(e);
-      // Fallback: keep normal dashboard view, disable overlay
-      overlay.classList.remove('active');
-      __monitorState.active = false;
-      document.body.classList.remove('monitor-mode');
-      restoreMovedNodes();
-      showToast('モニタ表示の初期化に失敗しました。通常表示に戻しました。', 'error');
-    }
-  }
-
-  function exitMonitorModeCarousel() {
-    const overlay = document.getElementById('monitor-overlay');
-    safeRemoveTimer();
-    __monitorState.active = false;
-    document.body.classList.remove('monitor-mode');
-    if (overlay) overlay.classList.remove('active');
-    restoreMovedNodes();
-    showToast('モニタ表示モードをOFFにしました。', 'info');
-  }
-
   if (monitorBtn) {
-    monitorBtn.addEventListener('click', () => {
-      // toggle
-      if (__monitorState.active) exitMonitorModeCarousel();
-      else enterMonitorModeCarousel();
-    });
+    monitorBtn.addEventListener('click', toggleMonitorCarousel);
   }
 
   // ヘッダー製品検索
-
   const headerSearchBtn = document.getElementById('btn-header-search');
   const headerSearchInput = document.getElementById('header-product-search');
   if (headerSearchBtn && headerSearchInput) {
@@ -1822,6 +1377,7 @@ function renderDashboardTable() {
       : '';
 
     const statusCell = document.createElement('td');
+    statusCell.setAttribute('data-label','ステータス');
     const badge = document.createElement('span');
     badge.classList.add('badge');
 
@@ -1851,20 +1407,22 @@ function renderDashboardTable() {
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
     tr.innerHTML = `
-      <td>${startText}</td>
-      <td>${log.product_code || ''}</td>
-      <td>${log.product_name || ''}</td>
-      <td>${log.process_name || ''}</td>
-      <td>${userText}</td>
-      <td>${qtyText}</td>
+      <td data-label="工程開始">${startText}</td>
+      <td data-label="図番">${log.product_code || ''}</td>
+      <td data-label="品名">${log.product_name || ''}</td>
+      <td data-label="工程">${log.process_name || ''}</td>
+      <td data-label="ユーザー">${userText}</td>
+      <td data-label="数量(OK/不良)">${qtyText}</td>
     `;
     tr.appendChild(statusCell);
 
     const tdDuration = document.createElement('td');
+    tdDuration.setAttribute('data-label','所要時間(分)');
     tdDuration.textContent = durationMin || '';
     tr.appendChild(tdDuration);
 
     const tdLoc = document.createElement('td');
+    tdLoc.setAttribute('data-label','ロケーション');
     const locWrapper = document.createElement('div');
     locWrapper.className = 'location-cell';
 
@@ -1892,6 +1450,8 @@ function renderDashboardTable() {
     }
 
     const tdActions = document.createElement('td');
+    tdActions.setAttribute('data-label','操作');
+    tdActions.classList.add('cell-actions','row-actions');
 
     if (isPlan) {
       tdActions.classList.add('plans-actions');
@@ -1908,34 +1468,29 @@ function renderDashboardTable() {
       };
 
       const scanBtn = document.createElement('button');
-      scanBtn.textContent = 'スキャン/更新';
-      scanBtn.className = 'ghost-button btn-scan-primary';
-      scanBtn.addEventListener('click', () => startScanForPlan(planLike));
+      setIconButton(scanBtn, 'i-scan', 'スキャン/更新', { variant: 'primary', showText: true });
+            scanBtn.addEventListener('click', () => startScanForPlan(planLike));
 
       const detailBtn = document.createElement('button');
-      detailBtn.textContent = '詳細';
-      detailBtn.className = 'ghost-button';
-      detailBtn.addEventListener('click', () => showPlanDetail(planLike));
+      setIconButton(detailBtn, 'i-detail', '詳細', { variant: 'ghost', showText: true });
+            detailBtn.addEventListener('click', () => showPlanDetail(planLike));
 
       const exportBtn = document.createElement('button');
-      exportBtn.textContent = '実績CSV';
-      exportBtn.className = 'ghost-button';
-      exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
+      setIconButton(exportBtn, 'i-csv', '実績CSV', { variant: 'ghost', showText: true });
+            exportBtn.addEventListener('click', () => exportLogsForProduct(planLike.product_code));
 
       tdActions.appendChild(scanBtn);
       tdActions.appendChild(detailBtn);
       tdActions.appendChild(exportBtn);
     } else if (currentUser && currentUser.role === 'admin') {
       const editBtn = document.createElement('button');
-      editBtn.textContent = '編集';
-      editBtn.className = 'ghost-button';
-      editBtn.style.fontSize = '0.7rem';
+      setIconButton(editBtn, 'i-edit', '編集', { variant: 'ghost', showText: true });
+            editBtn.style.fontSize = '0.7rem';
       editBtn.addEventListener('click', () => openEditModal(log));
 
       const delBtn = document.createElement('button');
-      delBtn.textContent = '削除';
-      delBtn.className = 'ghost-button';
-      delBtn.style.fontSize = '0.7rem';
+      setIconButton(delBtn, 'i-trash', '削除', { variant: 'danger', showText: true });
+            delBtn.style.fontSize = '0.7rem';
       delBtn.style.marginLeft = '4px';
       delBtn.addEventListener('click', () => handleDeleteLog(log));
 
@@ -2441,33 +1996,31 @@ function renderPlanTable() {
     const rate = planQty > 0 ? Math.round((actualTotal * 100) / planQty) : 0;
 
     tr.innerHTML = `
-      <td>${plan.product_code || ''}</td>
-      <td>${plan.product_name || ''}</td>
-      <td>${plan.process_name || ''}</td>
-      <td>${plan.planned_qty || 0}</td>
-      <td>${plan.planned_start || ''}</td>
-      <td>${plan.planned_end || ''}</td>
-      <td>${actualTotal} / ${planQty} (${rate}%)</td>
-      <td>${plan.status || ''}</td>
+      <td data-label="図番">${plan.product_code || ''}</td>
+      <td data-label="品名">${plan.product_name || ''}</td>
+      <td data-label="工程名">${plan.process_name || ''}</td>
+      <td data-label="計画数量">${plan.planned_qty || 0}</td>
+      <td data-label="計画開始">${formatDateTime(plan.planned_start || '')}</td>
+      <td data-label="計画終了">${formatDateTime(plan.planned_end || '')}</td>
+      <td data-label="実績/計画">${actualTotal} / ${planQty} (${rate}%)</td>
+      <td data-label="ステータス">${plan.status || ''}</td>
     `;
 
     const tdActions = document.createElement('td');
+    tdActions.classList.add('cell-actions','plans-actions');
     tdActions.classList.add('plans-actions');
 
     const scanBtn = document.createElement('button');
-    scanBtn.textContent = 'スキャン/更新';
-    scanBtn.className = 'ghost-button btn-scan-primary';
-    scanBtn.addEventListener('click', () => startScanForPlan(plan));
+    setIconButton(scanBtn, 'i-scan', 'スキャン/更新', { variant: 'primary', showText: true });
+        scanBtn.addEventListener('click', () => startScanForPlan(plan));
 
     const detailBtn = document.createElement('button');
-    detailBtn.textContent = '詳細';
-    detailBtn.className = 'ghost-button';
-    detailBtn.addEventListener('click', () => showPlanDetail(plan));
+    setIconButton(detailBtn, 'i-detail', '詳細', { variant: 'ghost', showText: true });
+        detailBtn.addEventListener('click', () => showPlanDetail(plan));
 
     const exportBtn = document.createElement('button');
-    exportBtn.textContent = '実績CSV';
-    exportBtn.className = 'ghost-button';
-    exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
+    setIconButton(exportBtn, 'i-csv', '実績CSV', { variant: 'ghost', showText: true });
+        exportBtn.addEventListener('click', () => exportLogsForProduct(plan.product_code));
 
     tdActions.appendChild(scanBtn);
     tdActions.appendChild(detailBtn);
@@ -2475,9 +2028,8 @@ function renderPlanTable() {
 
     if (currentUser && currentUser.role === 'admin') {
       const delPlanBtn = document.createElement('button');
-      delPlanBtn.textContent = '計画削除';
-      delPlanBtn.className = 'ghost-button';
-      delPlanBtn.style.fontSize = '0.7rem';
+      setIconButton(delPlanBtn, 'i-trash', '計画削除', { variant: 'danger', showText: true });
+            delPlanBtn.style.fontSize = '0.7rem';
       delPlanBtn.style.marginLeft = '4px';
       delPlanBtn.addEventListener('click', () => handleDeletePlan(plan));
       tdActions.appendChild(delPlanBtn);
@@ -3052,4 +2604,732 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initUserManagement);
 } else {
   initUserManagement();
+}
+
+/* ================================
+   MONITOR CAROUSEL (Digital Signage)
+   - UI only (no business logic changes)
+   ================================ */
+
+let monitorCarouselState = {
+  enabled: false,
+  overlay: null,
+  slides: [],
+  slideIndex: 0,
+  rotateTimer: null,
+  refreshTimer: null,
+  keyHandler: null,
+  chart: null,
+  refs: {}
+};
+
+function toggleMonitorCarousel() {
+  if (monitorCarouselState.enabled) {
+    exitMonitorCarousel();
+  } else {
+    enterMonitorCarousel();
+  }
+}
+
+function enterMonitorCarousel() {
+  try {
+    // Ensure dashboard is visible behind (for data / existing refresh timers)
+    const links = document.querySelectorAll('.sidebar-link');
+    const sections = document.querySelectorAll('.section');
+    sections.forEach(sec => sec.classList.toggle('active', sec.id === 'dashboard-section'));
+    links.forEach(l => l.classList.toggle('active', l.dataset.section === 'dashboard-section'));
+
+    document.body.classList.add('monitor-mode');
+
+    ensureMonitorCarouselStyles();
+
+    // Build overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'monitor-carousel-overlay';
+    overlay.className = 'monitor-carousel-overlay';
+
+    overlay.innerHTML = `
+      <div class="monitor-carousel-shell">
+        <div class="monitor-carousel-top">
+          <div class="monitor-carousel-brand">
+            <div class="monitor-carousel-title">生産進捗モニタ</div>
+            <div class="monitor-carousel-sub" id="monitor-carousel-clock">-</div>
+          </div>
+          <div class="monitor-carousel-actions">
+            <button type="button" class="monitor-carousel-btn" id="monitor-prev">◀</button>
+            <div class="monitor-carousel-indicator" id="monitor-indicator">1 / 1</div>
+            <button type="button" class="monitor-carousel-btn" id="monitor-next">▶</button>
+            <button type="button" class="monitor-carousel-btn monitor-carousel-btn-exit" id="monitor-exit">✕</button>
+          </div>
+        </div>
+        <div class="monitor-carousel-viewport">
+          <div class="monitor-carousel-track" id="monitor-track"></div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    monitorCarouselState.enabled = true;
+    monitorCarouselState.overlay = overlay;
+
+    // Wire buttons
+    overlay.querySelector('#monitor-exit')?.addEventListener('click', exitMonitorCarousel);
+    overlay.querySelector('#monitor-prev')?.addEventListener('click', () => gotoMonitorSlide(monitorCarouselState.slideIndex - 1, true));
+    overlay.querySelector('#monitor-next')?.addEventListener('click', () => gotoMonitorSlide(monitorCarouselState.slideIndex + 1, true));
+
+    // Keyboard
+    monitorCarouselState.keyHandler = (e) => {
+      if (!monitorCarouselState.enabled) return;
+      if (e.key === 'Escape') exitMonitorCarousel();
+      if (e.key === 'ArrowLeft') gotoMonitorSlide(monitorCarouselState.slideIndex - 1, true);
+      if (e.key === 'ArrowRight') gotoMonitorSlide(monitorCarouselState.slideIndex + 1, true);
+    };
+    window.addEventListener('keydown', monitorCarouselState.keyHandler);
+
+    // Build slides and render
+    buildMonitorSlides();
+    updateMonitorCarousel();
+
+    // Auto rotate
+    monitorCarouselState.rotateTimer = setInterval(() => {
+      gotoMonitorSlide(monitorCarouselState.slideIndex + 1, false);
+    }, 12000);
+
+    // Data refresh while in monitor mode
+    monitorCarouselState.refreshTimer = setInterval(() => {
+      // Keep using existing fetch pipeline
+      try {
+        loadDashboard();
+        loadAnalytics();
+        loadPlans();
+      } catch (e) {
+        // ignore
+      }
+      updateMonitorCarousel();
+    }, 30000);
+
+    // Initial slide
+    gotoMonitorSlide(0, false);
+
+    showToast('モニタ表示（スライド）をONにしました。', 'info');
+  } catch (err) {
+    console.error(err);
+    showToast('モニタ表示の起動に失敗しました: ' + (err?.message || err), 'error');
+    // Fail-safe
+    exitMonitorCarousel();
+  }
+}
+
+function exitMonitorCarousel() {
+  try {
+    monitorCarouselState.enabled = false;
+
+    if (monitorCarouselState.rotateTimer) {
+      clearInterval(monitorCarouselState.rotateTimer);
+      monitorCarouselState.rotateTimer = null;
+    }
+    if (monitorCarouselState.refreshTimer) {
+      clearInterval(monitorCarouselState.refreshTimer);
+      monitorCarouselState.refreshTimer = null;
+    }
+
+    if (monitorCarouselState.keyHandler) {
+      window.removeEventListener('keydown', monitorCarouselState.keyHandler);
+      monitorCarouselState.keyHandler = null;
+    }
+
+    if (monitorCarouselState.chart) {
+      try { monitorCarouselState.chart.destroy(); } catch (e) {}
+      monitorCarouselState.chart = null;
+    }
+
+    if (monitorCarouselState.overlay) {
+      monitorCarouselState.overlay.remove();
+      monitorCarouselState.overlay = null;
+    }
+
+    monitorCarouselState.slides = [];
+    monitorCarouselState.slideIndex = 0;
+    monitorCarouselState.refs = {};
+
+    document.body.classList.remove('monitor-mode');
+
+    showToast('モニタ表示（スライド）をOFFにしました。', 'info');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function ensureMonitorCarouselStyles() {
+  if (document.getElementById('monitor-carousel-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'monitor-carousel-styles';
+  style.textContent = `
+    .monitor-carousel-overlay{position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#0b1220,#0f2a60);color:#e5e7eb;font-family:Inter,\"Noto Sans JP\",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+    .monitor-carousel-shell{height:100%;display:flex;flex-direction:column;}
+    .monitor-carousel-top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(15,23,42,.55);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08);}
+    .monitor-carousel-title{font-size:1.2rem;font-weight:700;letter-spacing:.02em;}
+    .monitor-carousel-sub{font-size:.9rem;opacity:.9;margin-top:2px;}
+    .monitor-carousel-actions{display:flex;align-items:center;gap:10px;}
+    .monitor-carousel-btn{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:8px 10px;font-size:1rem;line-height:1;cursor:pointer;}
+    .monitor-carousel-btn:active{transform:translateY(1px);}
+    .monitor-carousel-btn-exit{background:rgba(249,115,22,.18);border-color:rgba(249,115,22,.35);}
+    .monitor-carousel-indicator{min-width:78px;text-align:center;font-size:.9rem;opacity:.9;}
+
+    .monitor-carousel-viewport{flex:1;overflow:hidden;}
+    .monitor-carousel-track{height:100%;display:flex;transition:transform .55s cubic-bezier(.2,.8,.2,1);}
+    .monitor-slide{min-width:100%;height:100%;padding:18px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;}
+    .monitor-slide-title{font-size:1.35rem;font-weight:800;color:#fff;}
+    .monitor-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+    .monitor-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:12px;}
+    .monitor-card-label{font-size:.9rem;opacity:.85;margin-bottom:6px;}
+    .monitor-card-value{font-size:2rem;font-weight:800;color:#fff;}
+
+    .monitor-two-col{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;}
+
+    .monitor-table{width:100%;border-collapse:collapse;font-size:1rem;}
+    .monitor-table th,.monitor-table td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.10);vertical-align:top;}
+    .monitor-table th{font-weight:700;opacity:.95;text-align:left;}
+    .monitor-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.85rem;font-weight:700;}
+    .monitor-pill-warn{background:rgba(249,115,22,.22);border:1px solid rgba(249,115,22,.35);color:#fff;}
+    .monitor-pill-danger{background:rgba(220,38,38,.22);border:1px solid rgba(220,38,38,.35);color:#fff;}
+    .monitor-pill-ok{background:rgba(34,197,94,.22);border:1px solid rgba(34,197,94,.35);color:#fff;}
+
+    .monitor-chart-wrap{flex:1;min-height:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:12px;}
+    .monitor-chart-wrap canvas{width:100% !important;height:100% !important;}
+
+    @media (max-width: 900px){
+      .monitor-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .monitor-card-value{font-size:1.7rem;}
+      .monitor-slide-title{font-size:1.15rem;}
+      .monitor-two-col{grid-template-columns:1fr;}
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function buildMonitorSlides() {
+  const track = document.getElementById('monitor-track');
+  if (!track) return;
+  track.innerHTML = '';
+  monitorCarouselState.slides = [];
+  monitorCarouselState.refs = {};
+
+  // Slide 1: Summary KPI
+  const s1 = document.createElement('div');
+  s1.className = 'monitor-slide';
+  s1.innerHTML = `
+    <div class="monitor-slide-title">ダッシュボード（要約）</div>
+    <div class="monitor-grid">
+      <div class="monitor-card"><div class="monitor-card-label">本日の総生産数量</div><div class="monitor-card-value" id="m-today-total">-</div></div>
+      <div class="monitor-card"><div class="monitor-card-label">本日の不良数量</div><div class="monitor-card-value" id="m-today-ng">-</div></div>
+      <div class="monitor-card"><div class="monitor-card-label">計画達成率</div><div class="monitor-card-value" id="m-plan-rate">-</div></div>
+      <div class="monitor-card"><div class="monitor-card-label">遅れ時間（合計）</div><div class="monitor-card-value" id="m-delay">-</div></div>
+    </div>
+    <div class="monitor-two-col">
+      <div class="monitor-card">
+        <div class="monitor-card-label">外注比率（直近7日）</div>
+        <div class="monitor-card-value" id="m-external">-</div>
+      </div>
+      <div class="monitor-card">
+        <div class="monitor-card-label">メッセージ</div>
+        <div id="m-message" style="font-size:1.05rem;line-height:1.5;color:#fff;"></div>
+      </div>
+    </div>
+  `;
+
+  // Slide 2: Chart
+  const s2 = document.createElement('div');
+  s2.className = 'monitor-slide';
+  s2.innerHTML = `
+    <div class="monitor-slide-title">工程別 生産量（直近7日）</div>
+    <div class="monitor-chart-wrap"><canvas id="monitor-process-chart"></canvas></div>
+  `;
+
+  // Slide 3: Overdue plans
+  const s3 = document.createElement('div');
+  s3.className = 'monitor-slide';
+  s3.innerHTML = `
+    <div class="monitor-slide-title">Overdue Plan（計画遅れ）</div>
+    <div class="monitor-card" style="flex:1;min-height:0;overflow:auto;">
+      <table class="monitor-table">
+        <thead><tr><th>図番</th><th>工程</th><th>残数</th><th>遅れ</th><th>予定終了</th></tr></thead>
+        <tbody id="m-overdue"></tbody>
+      </table>
+    </div>
+  `;
+
+  // Slide 4: Top NG
+  const s4 = document.createElement('div');
+  s4.className = 'monitor-slide';
+  s4.innerHTML = `
+    <div class="monitor-slide-title">Top NG（直近7日）</div>
+    <div class="monitor-card" style="flex:1;min-height:0;overflow:auto;">
+      <table class="monitor-table">
+        <thead><tr><th>工程</th><th>不良数</th><th>不良率</th><th>対象件数</th></tr></thead>
+        <tbody id="m-topng"></tbody>
+      </table>
+    </div>
+  `;
+
+  // Slide 5: Bottleneck
+  const s5 = document.createElement('div');
+  s5.className = 'monitor-slide';
+  s5.innerHTML = `
+    <div class="monitor-slide-title">Top Bottleneck Process（直近7日）</div>
+    <div class="monitor-card" style="flex:1;min-height:0;overflow:auto;">
+      <table class="monitor-table">
+        <thead><tr><th>工程</th><th>総工数 [h]</th><th>件数</th><th>平均 [min]</th></tr></thead>
+        <tbody id="m-bottleneck"></tbody>
+      </table>
+    </div>
+  `;
+
+  // Slide 6: Top products
+  const s6 = document.createElement('div');
+  s6.className = 'monitor-slide';
+  s6.innerHTML = `
+    <div class="monitor-slide-title">Top 品目（頻度）</div>
+    <div class="monitor-two-col" style="flex:1;min-height:0;">
+      <div class="monitor-card" style="overflow:auto;">
+        <div style="font-weight:800;margin-bottom:8px;">直近7日</div>
+        <table class="monitor-table">
+          <thead><tr><th>図番</th><th>件数</th></tr></thead>
+          <tbody id="m-topprod-week"></tbody>
+        </table>
+      </div>
+      <div class="monitor-card" style="overflow:auto;">
+        <div style="font-weight:800;margin-bottom:8px;">直近30日</div>
+        <table class="monitor-table">
+          <thead><tr><th>図番</th><th>件数</th></tr></thead>
+          <tbody id="m-topprod-month"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const slides = [s1, s2, s3, s4, s5, s6];
+  slides.forEach(s => track.appendChild(s));
+  monitorCarouselState.slides = slides;
+
+  // Cache refs
+  monitorCarouselState.refs = {
+    todayTotal: document.getElementById('m-today-total'),
+    todayNg: document.getElementById('m-today-ng'),
+    planRate: document.getElementById('m-plan-rate'),
+    delay: document.getElementById('m-delay'),
+    external: document.getElementById('m-external'),
+    message: document.getElementById('m-message'),
+    overdueTbody: document.getElementById('m-overdue'),
+    topNgTbody: document.getElementById('m-topng'),
+    bottleneckTbody: document.getElementById('m-bottleneck'),
+    topWeekTbody: document.getElementById('m-topprod-week'),
+    topMonthTbody: document.getElementById('m-topprod-month'),
+    indicator: document.getElementById('monitor-indicator'),
+    clock: document.getElementById('monitor-carousel-clock')
+  };
+}
+
+function gotoMonitorSlide(index, userInitiated) {
+  const slides = monitorCarouselState.slides || [];
+  if (!slides.length) return;
+
+  const n = slides.length;
+  const next = ((index % n) + n) % n;
+  monitorCarouselState.slideIndex = next;
+
+  const track = document.getElementById('monitor-track');
+  if (track) {
+    track.style.transform = `translateX(${-next * 100}%)`;
+  }
+
+  const ind = monitorCarouselState.refs?.indicator;
+  if (ind) ind.textContent = `${next + 1} / ${n}`;
+
+  // If user clicks, reset timer for better UX
+  if (userInitiated && monitorCarouselState.rotateTimer) {
+    clearInterval(monitorCarouselState.rotateTimer);
+    monitorCarouselState.rotateTimer = setInterval(() => {
+      gotoMonitorSlide(monitorCarouselState.slideIndex + 1, false);
+    }, 12000);
+  }
+}
+
+function updateMonitorCarousel() {
+  if (!monitorCarouselState.enabled) return;
+
+  // Clock
+  const now = new Date();
+  const clockEl = monitorCarouselState.refs?.clock;
+  if (clockEl) {
+    const pad = (n) => String(n).padStart(2, '0');
+    clockEl.textContent = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  }
+
+  const data = computeMonitorData();
+  renderMonitorSummary(data);
+  renderMonitorOverdue(data);
+  renderMonitorTopNg(data);
+  renderMonitorBottleneck(data);
+  renderMonitorTopProducts(data);
+  renderMonitorChart(data);
+}
+
+function computeMonitorData() {
+  const now = new Date();
+
+  const logs = Array.isArray(dashboardLogs) ? dashboardLogs.slice() : [];
+  const planList = Array.isArray(plans) ? plans.slice() : [];
+
+  const getLogDate = (log) => {
+    const s = log?.timestamp_start || log?.timestamp_end || log?.created_at || '';
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const withinDays = (d, days) => {
+    if (!d) return false;
+    const ms = days * 24 * 60 * 60 * 1000;
+    return (now.getTime() - d.getTime()) <= ms;
+  };
+
+  // Today totals
+  const isSameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  let todayTotal = 0;
+  let todayNg = 0;
+  logs.forEach(l => {
+    const d = getLogDate(l);
+    if (!d) return;
+    if (isSameDay(d, now)) {
+      todayTotal += Number(l.qty_total || 0);
+      todayNg += Number(l.qty_ng || 0);
+    }
+  });
+
+  // Plan KPI
+  let planTotalQty = 0;
+  let planActualQty = 0;
+  let totalDelayMs = 0;
+  let overdueItems = [];
+
+  planList.forEach(p => {
+    const planQty = Number(p.planned_qty || 0);
+    planTotalQty += planQty;
+
+    const related = logs.filter(l => l.product_code === p.product_code && (!p.process_name || l.process_name === p.process_name));
+    const actual = related.reduce((sum, l) => sum + Number(l.qty_total || 0), 0);
+    planActualQty += actual;
+
+    const end = p.planned_end ? new Date(p.planned_end) : null;
+    const endValid = end && !isNaN(end.getTime());
+
+    const rate = planQty > 0 ? (actual / planQty) : 0;
+    const isDone = (p.status === '完了' || p.status === '中止' || rate >= 1);
+
+    if (!isDone && endValid && end.getTime() < now.getTime()) {
+      const remain = Math.max(0, planQty - actual);
+      const delay = now.getTime() - end.getTime();
+      totalDelayMs += delay;
+      overdueItems.push({
+        product_code: p.product_code,
+        process_name: p.process_name || '',
+        planned_end: p.planned_end,
+        remain,
+        delayMs: delay
+      });
+    }
+  });
+
+  overdueItems.sort((a, b) => b.delayMs - a.delayMs);
+
+  const planRate = planTotalQty > 0 ? Math.round((planActualQty * 100) / planTotalQty) : 0;
+
+  // External ratio (7 days)
+  let internalQty = 0;
+  let externalQty = 0;
+  logs.forEach(l => {
+    const d = getLogDate(l);
+    if (!withinDays(d, 7)) return;
+
+    const qty = Number(l.qty_total || 0);
+    const locationText = String(l.location || '');
+    const isExternal = /外注|subcon|vendor/i.test(locationText.toLowerCase()) || (l.work_type && /外注|external/i.test(String(l.work_type)));
+    if (isExternal) externalQty += qty;
+    else internalQty += qty;
+  });
+  const extRate = (internalQty + externalQty) > 0 ? Math.round((externalQty * 100) / (internalQty + externalQty)) : 0;
+
+  // Top NG (7 days) by process
+  const ngAgg = new Map();
+  logs.forEach(l => {
+    const d = getLogDate(l);
+    if (!withinDays(d, 7)) return;
+    const proc = String(l.process_name || '');
+    if (!proc) return;
+
+    const ng = Number(l.qty_ng || 0);
+    const ok = Number(l.qty_ok || 0);
+    const total = Number(l.qty_total || 0);
+
+    const cur = ngAgg.get(proc) || { ng: 0, total: 0, rows: 0 };
+    cur.ng += ng;
+    cur.total += total;
+    cur.rows += 1;
+    ngAgg.set(proc, cur);
+  });
+  const topNg = Array.from(ngAgg.entries())
+    .map(([process, v]) => ({
+      process,
+      ng: v.ng,
+      total: v.total,
+      rows: v.rows,
+      rate: v.total > 0 ? (v.ng / v.total) : 0
+    }))
+    .sort((a, b) => (b.ng - a.ng) || (b.rate - a.rate))
+    .slice(0, 8);
+
+  // Bottleneck (7 days): duration
+  const bnAgg = new Map();
+  logs.forEach(l => {
+    const d = getLogDate(l);
+    if (!withinDays(d, 7)) return;
+    const proc = String(l.process_name || '');
+    if (!proc) return;
+
+    const dur = Number(l.duration_sec || 0);
+    if (!dur) return;
+
+    const cur = bnAgg.get(proc) || { dur: 0, rows: 0 };
+    cur.dur += dur;
+    cur.rows += 1;
+    bnAgg.set(proc, cur);
+  });
+  const bottleneck = Array.from(bnAgg.entries())
+    .map(([process, v]) => ({
+      process,
+      hours: v.dur / 3600,
+      rows: v.rows,
+      avgMin: v.rows > 0 ? (v.dur / 60) / v.rows : 0
+    }))
+    .sort((a, b) => b.hours - a.hours)
+    .slice(0, 8);
+
+  // Top products by frequency
+  const freqAgg = (days) => {
+    const m = new Map();
+    logs.forEach(l => {
+      const d = getLogDate(l);
+      if (!withinDays(d, days)) return;
+      const pc = String(l.product_code || '');
+      if (!pc) return;
+      m.set(pc, (m.get(pc) || 0) + 1);
+    });
+    return Array.from(m.entries())
+      .map(([product_code, count]) => ({ product_code, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  };
+
+  const topWeek = freqAgg(7);
+  const topMonth = freqAgg(30);
+
+  // For chart: process qty total (7 days)
+  const procQty = new Map();
+  logs.forEach(l => {
+    const d = getLogDate(l);
+    if (!withinDays(d, 7)) return;
+    const proc = String(l.process_name || '');
+    if (!proc) return;
+    procQty.set(proc, (procQty.get(proc) || 0) + Number(l.qty_total || 0));
+  });
+  const procQtySorted = Array.from(procQty.entries())
+    .map(([process, qty]) => ({ process, qty }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 10);
+
+  return {
+    now,
+    todayTotal,
+    todayNg,
+    planRate,
+    totalDelayMs,
+    externalRate: extRate,
+    overdueItems,
+    topNg,
+    bottleneck,
+    topWeek,
+    topMonth,
+    procQtySorted,
+    message: document.getElementById('ticker-text')?.textContent || '—'
+  };
+}
+
+function renderMonitorSummary(data) {
+  const r = monitorCarouselState.refs || {};
+
+  if (r.todayTotal) r.todayTotal.textContent = String(data.todayTotal ?? 0);
+  if (r.todayNg) r.todayNg.textContent = String(data.todayNg ?? 0);
+  if (r.planRate) r.planRate.textContent = `${data.planRate ?? 0}%`;
+
+  const delayH = (data.totalDelayMs || 0) / 3600000;
+  if (r.delay) {
+    if (delayH <= 0.01) {
+      r.delay.innerHTML = `<span class="monitor-pill monitor-pill-ok">0h</span>`;
+    } else {
+      r.delay.textContent = `${delayH.toFixed(1)}h`;
+    }
+  }
+
+  if (r.external) r.external.textContent = `${data.externalRate ?? 0}%`;
+  if (r.message) r.message.textContent = String(data.message || '—');
+}
+
+function renderMonitorOverdue(data) {
+  const tbody = monitorCarouselState.refs?.overdueTbody;
+  if (!tbody) return;
+
+  const items = Array.isArray(data.overdueItems) ? data.overdueItems : [];
+  if (!items.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><span class="monitor-pill monitor-pill-ok">遅れなし</span></td></tr>`;
+    return;
+  }
+
+  const fmt = (s) => {
+    if (!s) return '';
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return String(s);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  tbody.innerHTML = items.slice(0, 10).map(it => {
+    const delayH = (it.delayMs || 0) / 3600000;
+    const pill = delayH >= 24 ? 'monitor-pill-danger' : 'monitor-pill-warn';
+    return `
+      <tr>
+        <td>${escapeHtml(it.product_code || '')}</td>
+        <td>${escapeHtml(it.process_name || '')}</td>
+        <td><span class="monitor-pill ${pill}">${Number(it.remain || 0)}</span></td>
+        <td><span class="monitor-pill ${pill}">${delayH.toFixed(1)}h</span></td>
+        <td>${escapeHtml(fmt(it.planned_end))}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderMonitorTopNg(data) {
+  const tbody = monitorCarouselState.refs?.topNgTbody;
+  if (!tbody) return;
+
+  const rows = Array.isArray(data.topNg) ? data.topNg : [];
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="4"><span class="monitor-pill monitor-pill-ok">データなし</span></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const ratePct = (r.rate || 0) * 100;
+    const pill = ratePct >= 5 ? 'monitor-pill-danger' : (ratePct >= 2 ? 'monitor-pill-warn' : 'monitor-pill-ok');
+    return `
+      <tr>
+        <td>${escapeHtml(r.process || '')}</td>
+        <td><span class="monitor-pill ${pill}">${Number(r.ng || 0)}</span></td>
+        <td>${ratePct.toFixed(1)}%</td>
+        <td>${Number(r.rows || 0)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderMonitorBottleneck(data) {
+  const tbody = monitorCarouselState.refs?.bottleneckTbody;
+  if (!tbody) return;
+
+  const rows = Array.isArray(data.bottleneck) ? data.bottleneck : [];
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="4"><span class="monitor-pill monitor-pill-ok">データなし</span></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const pill = r.hours >= 10 ? 'monitor-pill-danger' : (r.hours >= 5 ? 'monitor-pill-warn' : 'monitor-pill-ok');
+    return `
+      <tr>
+        <td>${escapeHtml(r.process || '')}</td>
+        <td><span class="monitor-pill ${pill}">${Number(r.hours || 0).toFixed(1)}</span></td>
+        <td>${Number(r.rows || 0)}</td>
+        <td>${Number(r.avgMin || 0).toFixed(1)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderMonitorTopProducts(data) {
+  const week = monitorCarouselState.refs?.topWeekTbody;
+  const month = monitorCarouselState.refs?.topMonthTbody;
+
+  const render = (tbody, rows) => {
+    if (!tbody) return;
+    if (!rows || !rows.length) {
+      tbody.innerHTML = `<tr><td colspan="2"><span class="monitor-pill monitor-pill-ok">データなし</span></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.slice(0, 10).map(r => `
+      <tr>
+        <td>${escapeHtml(r.product_code || '')}</td>
+        <td><span class="monitor-pill monitor-pill-ok">${Number(r.count || 0)}</span></td>
+      </tr>
+    `).join('');
+  };
+
+  render(week, data.topWeek);
+  render(month, data.topMonth);
+}
+
+function renderMonitorChart(data) {
+  const canvas = document.getElementById('monitor-process-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const labels = (data.procQtySorted || []).map(x => x.process);
+  const values = (data.procQtySorted || []).map(x => Number(x.qty || 0));
+
+  // Avoid rendering empty chart
+  if (!labels.length) return;
+
+  if (!monitorCarouselState.chart) {
+    const ctx = canvas.getContext('2d');
+    monitorCarouselState.chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: '数量',
+          data: values
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#ffffff' },
+            grid: { color: 'rgba(255,255,255,.08)' }
+          },
+          y: {
+            ticks: { color: '#ffffff' },
+            grid: { color: 'rgba(255,255,255,.08)' }
+          }
+        }
+      }
+    });
+  } else {
+    monitorCarouselState.chart.data.labels = labels;
+    monitorCarouselState.chart.data.datasets[0].data = values;
+    monitorCarouselState.chart.update();
+  }
 }
