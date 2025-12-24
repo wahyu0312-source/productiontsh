@@ -1152,109 +1152,272 @@ body.monitor-mode .logs-table {
     display: none;
   }
 }
-/* === Theme & mobile overrides (bright blue + orange) === */
+
+
+/* === Bright theme (Blue + Orange) & Mobile UX improvements === */
 :root {
-  --color-accent: #ff8a00;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-accent: #f97316;
+
   --color-bg: #f5f7ff;
-  --color-surface-alt: #fff7f0;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+
+  --transition-base: .25s ease;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
 }
 
-/* Gradient hero & primary accents in blue + orange */
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Sidebar: avoid dark/black feel, keep contrast */
+.sidebar {
+  background: linear-gradient(180deg, var(--color-primary-dark), #0b2e8a);
+}
+
+.sidebar-link.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-left: 3px solid var(--color-accent);
+}
+
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* Top bar: blue + subtle orange highlight */
+.topbar {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+}
+
+/* Landing / hero */
 .welcome-card {
-  background: linear-gradient(135deg, var(--color-primary) 0%, #ff9800 100%);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
   color: #ffffff;
 }
 
-.sidebar-logo-pill {
-  background: linear-gradient(135deg, var(--color-primary) 0%, #ffb74d 100%);
-}
-
-.section-title-badge {
-  background: rgba(255, 152, 0, 0.15);
-  color: #fb8c00;
-}
-
+/* Primary button: blue -> orange */
 .primary-button {
-  background: linear-gradient(135deg, var(--color-primary) 0%, #ff9800 100%);
-  border-color: transparent;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: #ffffff;
 }
 
 .primary-button:hover {
-  filter: brightness(0.95);
+  filter: brightness(0.97);
 }
 
-/* Slightly softer mobile bottom nav */
-.mobile-nav-bar {
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+/* Minor accents */
+.ticker-label {
+  background: var(--color-accent);
 }
 
-/* App footer fixed to bottom (except monitor-mode) */
-.app-footer {
-  margin-top: auto;
-  padding: 8px 16px;
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  display: block;
-}
-
-body.monitor-mode .app-footer {
-  display: none;
-}
-
-/* Overlay untuk mobile sidebar */
+/* Mobile sidebar overlay stacking (overlay behind sidebar) */
 .sidebar-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  z-index: 90;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--transition-base);
-}
-
-.sidebar-overlay.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* Required field / 必須項目の視覚化 */
-.field-required::after {
-  content: " *";
-  color: var(--color-error);
-  font-weight: 600;
-  margin-left: 2px;
-}
-
-.required-field {
-  border-color: var(--color-warning);
-  background: #fffef7;
-}
-
-/* 生産一覧テーブルの見やすさ向上 */
-#plans-section table th,
-#plans-section table td {
-  white-space: nowrap;
-}
-
-#plans-section .table-wrapper {
-  overflow-x: auto;
-}
-
-/* スマホでのカード感アップ */
-#scan-section .form-grid {
-  row-gap: var(--space-md);
+  z-index: 80;
 }
 
 @media (max-width: 768px) {
-  .content {
-    padding: var(--space-md);
-  }
-  .card {
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  }
-  .topbar {
-    padding: 0 var(--space-md);
+  .sidebar {
+    z-index: 90;
   }
 }
+
+/* 生産計画 KPI cards */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+}
+
+.kpi-card {
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 18px rgba(15,23,42,.06);
+  border: 1px solid rgba(229,231,235,.7);
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+.kpi-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: .2px;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.kpi-unit {
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: .9;
+}
+
+.kpi-sub {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+}
+
+.kpi-card.kpi-primary { border-top: 3px solid var(--color-primary); }
+.kpi-card.kpi-accent  { border-top: 3px solid var(--color-accent); }
+.kpi-card.kpi-warning { border-top: 3px solid var(--color-warning); }
+
+/* 生産データ入力（モバイル）: app-like, one-hand */
+.selection-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  margin-bottom: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff7ed;
+  border: 1px solid rgba(249,115,22,.35);
+  font-size: 0.78rem;
+}
+
+.chip-label {
+  color: #9a3412;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+.scan-hint-compact {
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+.mobile-actionbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* reduce scroll: hide login 안내 card */
+  .scan-user-card {
+    display: none;
+  }
+
+  /* larger inputs for touch */
+  .scan-entry-card .form-group input,
+  .scan-entry-card .form-group select,
+  .scan-entry-card .form-group textarea {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    border-radius: 12px;
+  }
+
+  /* desktop buttons are duplicated, hide them and use fixed action bar */
+  .scan-entry-card .button-row {
+    display: none;
+  }
+
+  .mobile-actionbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 52px; /* above bottom nav */
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    gap: 8px;
+    z-index: 35;
+  }
+
+  .mobile-actionbar .primary-button,
+  .mobile-actionbar .ghost-button {
+    flex: 1;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+  }
+
+  /* make the scan section feel like full-screen */
+  .content {
+    padding-bottom: 150px; /* room for actionbar + bottom nav */
+  }
+}
+
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive tables: convert to cards on small screens */
+@media (max-width: 600px) {
+  table.responsive-table thead {
+    display: none;
+  }
+
+  table.responsive-table,
+  table.responsive-table tbody,
+  table.responsive-table tr,
+  table.responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  table.responsive-table tbody tr {
+    background: var(--color-surface);
+    border: 1px solid rgba(229,231,235,.8);
+    border-radius: 14px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 6px 18px rgba(15,23,42,.05);
+  }
+
+  table.responsive-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px dashed rgba(229,231,235,.9);
+    white-space: normal;
+  }
+
+  table.responsive-table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  table.responsive-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+  }
+}
+
