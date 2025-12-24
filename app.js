@@ -413,11 +413,28 @@ document.addEventListener('DOMContentLoaded', () => {
    ================================ */
 
 function setupSidebar() {
-  // Sidebar + mobile bottom nav
+  // Sidebar + mobile bottom nav + mobile overlay
   const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
   const sections = document.querySelectorAll('.section');
   const sidebar = document.querySelector('.sidebar');
   const burger = document.getElementById('btn-menu-toggle');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+  const openSidebarMobile = () => {
+    if (!sidebar) return;
+    sidebar.classList.remove('sidebar-hidden');
+    if (sidebarOverlay) {
+      sidebarOverlay.classList.add('visible');
+    }
+  };
+
+  const closeSidebarMobile = () => {
+    if (!sidebar) return;
+    sidebar.classList.add('sidebar-hidden');
+    if (sidebarOverlay) {
+      sidebarOverlay.classList.remove('visible');
+    }
+  };
 
   links.forEach(link => {
     link.addEventListener('click', () => {
@@ -433,18 +450,29 @@ function setupSidebar() {
         sec.classList.toggle('active', sec.id === target);
       });
 
-      // Di mobile, hanya tutup sidebar jika klik dari sidebar
-      if (window.innerWidth <= 800 && sidebar && link.classList.contains('sidebar-link')) {
-        sidebar.classList.add('sidebar-hidden');
+      // Di mobile, setelah memilih menu, sidebar ditutup supaya tidak menutupi konten
+      if (window.innerWidth <= 800 && sidebar) {
+        closeSidebarMobile();
       }
     });
   });
 
   if (burger && sidebar) {
     burger.addEventListener('click', () => {
-      sidebar.classList.toggle('sidebar-hidden');
+      // Toggle khusus mobile
+      if (window.innerWidth <= 800) {
+        if (sidebar.classList.contains('sidebar-hidden')) {
+          openSidebarMobile();
+        } else {
+          closeSidebarMobile();
+        }
+      } else {
+        // Desktop: tetap bisa collapse/expand jika diperlukan
+        sidebar.classList.toggle('sidebar-hidden');
+      }
     });
 
+    // Initial state untuk mobile
     if (window.innerWidth <= 800) {
       sidebar.classList.add('sidebar-hidden');
     }
@@ -452,12 +480,24 @@ function setupSidebar() {
     window.addEventListener('resize', () => {
       if (window.innerWidth > 800) {
         sidebar.classList.remove('sidebar-hidden');
+        if (sidebarOverlay) {
+          sidebarOverlay.classList.remove('visible');
+        }
       } else {
         sidebar.classList.add('sidebar-hidden');
+        if (sidebarOverlay) {
+          sidebarOverlay.classList.remove('visible');
+        }
       }
     });
   }
+
+  // Klik di area gelap (overlay) juga menutup sidebar
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', closeSidebarMobile);
+  }
 }
+
 
 
 /* ================================
