@@ -3333,3 +3333,238 @@ function renderMonitorChart(data) {
     monitorCarouselState.chart.update();
   }
 }
+/* =========================================================
+   PATCH: Digital Signage (Monitor Carousel) - SAFE overlay
+   Tambahkan di paling bawah app.js (tidak ubah bisnis logic)
+   ========================================================= */
+(function () {
+  function qs(sel, root = document) { return root.querySelector(sel); }
+  function qsa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
+
+  let monitor = {
+    open: false,
+    idx: 0,
+    slides: [],
+    timer: null,
+    overlay: null
+  };
+
+  function formatNow() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function ensureOverlay() {
+    if (monitor.overlay) return monitor.overlay;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'monitor-overlay';
+    overlay.innerHTML = `
+      <div class="monitor-bar">
+        <div>
+          <div class="monitor-title">生産進捗モニタ</div>
+          <div class="monitor-meta" id="monitor-time">${formatNow()}</div>
+        </div>
+        <div class="monitor-controls">
+          <button class="monitor-btn" id="monitor-prev">◀</button>
+          <div class="monitor-meta" id="monitor-page">-/-</div>
+          <button class="monitor-btn" id="monitor-next">▶</button>
+          <button class="monitor-btn" id="monitor-close">✕</button>
+        </div>
+      </div>
+      <div class="monitor-stage" id="monitor-stage"></div>
+    `;
+    document.body.appendChild(overlay);
+
+    qs('#monitor-close', overlay).addEventListener('click', closeMonitor);
+    qs('#monitor-prev', overlay).addEventListener('click', () => gotoSlide(monitor.idx - 1));
+    qs('#monitor-next', overlay).addEventListener('click', () => gotoSlide(monitor.idx + 1));
+
+    // Keyboard
+    window.addEventListener('keydown', (e) => {
+      if (!monitor.open) return;
+      if (e.key === 'Escape') closeMonitor();
+      if (e.key === 'ArrowLeft') gotoSlide(monitor.idx - 1);
+      if (e.key === 'ArrowRight') gotoSlide(monitor.idx + 1);
+    });
+
+    // Basic swipe
+    let sx = 0, sy = 0;
+    overlay.addEventListener('touchstart', (e) => {
+      if (!monitor.open) return;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    }, { passive: true });
+    overlay.addEventListener('touchend', (e) => {
+      if (!monitor.open) return;
+      const ex = e.changedTouches[0].clientX;
+      const ey = e.changedTouches[0].clientY;
+      const dx = ex - sx, dy = ey - sy;
+      if (Math.abs(dx) > 60 && Math.abs(dy) < 60) {
+        if (dx < 0) gotoSlide(monitor.idx + 1);
+        else gotoSlide(monitor.idx - 1);
+      }
+    }, { passive: true });
+
+    monitor.overlay = overlay;
+    return overlay;
+  }
+
+  function cloneForMonitor(node) {
+    const clone = node.cloneNode(true);
+
+    // Buang elemen interaktif (tidak mempengaruhi halaman normal)
+    qsa('button,input,select,textarea', clone).forEach(el => el.remove());
+
+    // Buang QR reader area kalau ikut ke-clone
+    qsa('.qr-reader, #qr-reader-terminal, #qr-reader-user', clone).forEach(el => el.remove());
+
+    // Buang footer kecil yang tidak perlu (opsional)
+    qsa('.app-footer', clone).forEach(el => el.remove());
+
+    return clone;
+  }
+
+  function buildSlidesFromDom() {
+    const stage = qs('#monitor-stage', monitor.overlay);
+    stage.innerHTML = '';
+    monitor.slides = [];
+
+    const defs = [
+      { title: 'ダッシュボード', pick: () => qs('#dashboard-section') },
+      { title: '生産計画一覧', pick: () => qs('#plan-list-section') },
+      { title: '最新の実績一覧', pick: () => qs('#dashboard-section .card:has(#logs-tbody)') || qs('#dashboard-section') },
+      { title: '工程別 生産量', pick: () => qs('#process-chart') }
+    ];
+
+    defs.forEach(def => {
+      const src = def.pick();
+      const slide = document.createElement('div');
+      slide.className = 'monitor-slide';
+
+      const canvas = document.createElement('div');
+      canvas.className = 'monitor-canvas';
+
+      // Chart canvas special handling
+      if (src && src.tagName === 'CANVAS') {
+        try {
+          const img = document.createElement('img');
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          img.alt = def.title;
+          img.src = src.toDataURL('image/png');
+          canvas.appendChild(titleBlock(def.title));
+          canvas.appendChild(img);
+        } catch {
+          canvas.appendChild(titleBlock(def.title));
+          canvas.appendChild(emptyBlock('チャートを生成できませんでした。'));
+        }
+      } else if (src) {
+        canvas.appendChild(titleBlock(def.title));
+        canvas.appendChild(cloneForMonitor(src));
+      } else {
+        canvas.appendChild(titleBlock(def.title));
+        canvas.appendChild(emptyBlock('表示するデータがありません。'));
+      }
+
+      slide.appendChild(canvas);
+      stage.appendChild(slide);
+      monitor.slides.push(slide);
+    });
+
+    // Update page indicator
+    const page = qs('#monitor-page', monitor.overlay);
+    page.textContent = `1/${monitor.slides.length || 1}`;
+  }
+
+  function titleBlock(text) {
+    const d = document.createElement('div');
+    d.style.fontWeight = '800';
+    d.style.fontSize = '1.1rem';
+    d.style.margin = '2px 0 10px';
+    d.textContent = text;
+    return d;
+  }
+
+  function emptyBlock(text) {
+    const d = document.createElement('div');
+    d.style.padding = '14px';
+    d.style.borderRadius = '12px';
+    d.style.background = 'rgba(15,23,42,.06)';
+    d.style.color = '#0f172a';
+    d.textContent = text;
+    return d;
+  }
+
+  function gotoSlide(nextIdx) {
+    if (!monitor.open || monitor.slides.length === 0) return;
+    const n = monitor.slides.length;
+    monitor.idx = (nextIdx % n + n) % n;
+
+    monitor.slides.forEach((s, i) => s.classList.toggle('active', i === monitor.idx));
+
+    const page = qs('#monitor-page', monitor.overlay);
+    page.textContent = `${monitor.idx + 1}/${n}`;
+  }
+
+  function openMonitor() {
+    const overlay = ensureOverlay();
+    overlay.classList.add('active');
+    monitor.open = true;
+
+    // rebuild slide from current DOM (anti blank)
+    buildSlidesFromDom();
+    gotoSlide(0);
+
+    // update clock
+    const timeEl = qs('#monitor-time', overlay);
+    timeEl.textContent = formatNow();
+
+    // rotate
+    clearInterval(monitor.timer);
+    monitor.timer = setInterval(() => {
+      // refresh chart image setiap pindah (supaya tidak stale)
+      try {
+        const t = qs('#monitor-time', overlay);
+        if (t) t.textContent = formatNow();
+      } catch {}
+      gotoSlide(monitor.idx + 1);
+    }, 12000);
+  }
+
+  function closeMonitor() {
+    if (!monitor.overlay) return;
+    monitor.overlay.classList.remove('active');
+    monitor.open = false;
+    clearInterval(monitor.timer);
+    monitor.timer = null;
+  }
+
+  function toggleMonitor() {
+    if (monitor.open) closeMonitor();
+    else openMonitor();
+  }
+
+  // Ambil alih tombol モニタ表示 secara aman (tanpa edit handler lama)
+  function bindMonitorButton() {
+    const btn = document.getElementById('btn-monitor-mode');
+    if (!btn) return;
+
+    // Capture listener: jalan duluan, lalu hentikan listener lain agar tidak bentrok
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      toggleMonitor();
+    }, true);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindMonitorButton);
+  } else {
+    bindMonitorButton();
+  }
+
+  // expose (debug)
+  window.toggleMonitorOverlay = toggleMonitor;
+})();
