@@ -66,7 +66,7 @@
         <!-- Quick search -->
         <div class="quick-search">
           <input id="header-product-search" type="text" placeholder="製品番号検索">
-          <button id="btn-header-search" class="ghost-button ghost-small">検索</button>
+          <button id="btn-header-search" class="ghost-button ghost-small"><svg class="icon"><use href="#i-search"></use></svg>検索</button>
         </div>
         <button id="btn-monitor-mode" class="ghost-button ghost-small">
           モニタ表示
@@ -244,27 +244,7 @@
           </div>
         </div>
 
-        
-        <!-- 生産計画 KPI（モバイル優先） -->
-        <div class="kpi-grid" aria-label="生産計画KPI">
-          <div class="kpi-card kpi-primary">
-            <div class="kpi-label">計画達成率</div>
-            <div class="kpi-value"><span id="kpi-plan-achievement">0</span><span class="kpi-unit">%</span></div>
-            <div class="kpi-sub">計画合計に対する実績</div>
-          </div>
-          <div class="kpi-card kpi-warning">
-            <div class="kpi-label">遅れ時間</div>
-            <div class="kpi-value"><span id="kpi-plan-delay">0.0</span><span class="kpi-unit">h</span></div>
-            <div class="kpi-sub">期限超過（未完了）の合計</div>
-          </div>
-          <div class="kpi-card kpi-accent">
-            <div class="kpi-label">外注比率</div>
-            <div class="kpi-value"><span id="kpi-plan-subcon">0</span><span class="kpi-unit">%</span></div>
-            <div class="kpi-sub">本日の実績（外注/合計）</div>
-          </div>
-        </div>
-
-<!-- 最新実績一覧 -->
+        <!-- 最新実績一覧 -->
         <div class="card">
           <div class="card-header-row">
             <div class="card-header-left">
@@ -275,7 +255,7 @@
               </div>
             </div>
             <div class="button-row">
-              <button id="btn-refresh-dashboard" class="secondary-button">更新</button>
+              <button id="btn-refresh-dashboard" class="primary-button"><svg class="icon"><use href="#i-refresh"></use></svg>更新</button>
               <button id="btn-export-product" class="ghost-button">製品別Excelエクスポート</button>
             </div>
           </div>
@@ -391,15 +371,15 @@
       </section>
 
       <!-- Scan -->
-      <section id="scan-section" class="section scan-section">
+      <section id="scan-section" class="section">
         <!-- ユーザー認証案内 -->
-        <div class="card scan-user-card">
+        <div class="card">
           <h2 class="card-title">ユーザー認証</h2>
           <p>ユーザー認証は画面右上のメニューから行ってください。</p>
         </div>
 
         <!-- 工程スキャン -->
-        <div class="card scan-terminal-card">
+        <div class="card">
           <h2 class="card-title">工程スキャン</h2>
           <p>工程に設置されたQRコードをスキャンして、生産を記録します。</p>
 
@@ -418,31 +398,11 @@
         </div>
 
         <!-- 生産データ入力 -->
-        <div class="card scan-entry-card">
+        <div class="card">
           <h2 class="card-title">生産データ入力</h2>
           <p>生産計画一覧から対象行の「スキャン/更新」を選択し、工程をスキャンしてから実績を入力してください。</p>
 
-          
-          <div class="selection-summary" aria-label="現在の選択">
-            <div class="chip">
-              <span class="chip-label">図番</span>
-              <span id="sel-plan-code">-</span>
-            </div>
-            <div class="chip">
-              <span class="chip-label">工程</span>
-              <span id="sel-terminal-name">未スキャン</span>
-            </div>
-            <div class="chip">
-              <span class="chip-label">ユーザー</span>
-              <span id="sel-user-name">未ログイン</span>
-            </div>
-          </div>
-
-          <p class="hint scan-hint-compact">
-            必須項目（*）を入力し、「保存」で実績登録します。スマホでは下部の固定ボタンが使えます。
-          </p>
-
-<!-- Plan情報 -->
+          <!-- Plan情報 -->
           <div class="form-grid">
             <div class="form-group">
               <label>製品番号</label>
@@ -512,13 +472,7 @@
             <button id="btn-clear-form" class="ghost-button">クリア</button>
           </div>
 
-          
-          <!-- Mobile one-hand action bar -->
-          <div class="mobile-actionbar" aria-label="アクション">
-            <button id="btn-save-log-mobile" class="primary-button">保存</button>
-            <button id="btn-clear-form-mobile" class="ghost-button">クリア</button>
-          </div>
-<p class="hint" style="margin-top:6px;">
+          <p class="hint" style="margin-top:6px;">
             ※ 現在のユーザーは右上メニューで確認できます。生産計画と工程を選択した状態で実績を登録してください。
           </p>
         </div>
@@ -610,7 +564,7 @@
           <div class="card-header-row">
             <h2 class="card-title">生産計画一覧</h2>
             <div class="button-row">
-              <button id="btn-refresh-plans" class="secondary-button">更新</button>
+              <button id="btn-refresh-plans" class="primary-button"><svg class="icon"><use href="#i-refresh"></use></svg>更新</button>
             </div>
           </div>
           <div class="table-wrapper">
@@ -780,7 +734,7 @@
           <div class="admin-section">
             <h4>📋 ユーザー一覧</h4>
             <div class="table-wrapper">
-              <table>
+              <table class="responsive-table">
                 <thead>
                 <tr>
                   <th>QR</th>
@@ -797,7 +751,6 @@
           </div>
         </div>
       </section>
-      </section>
 
       <!-- 工程一覧 / QRラベル -->
       <section id="terminalqr-section" class="section">
@@ -807,7 +760,7 @@
           <p class="warning">管理者としてログインすると内容が表示されます。（ロール: admin）</p>
 
           <div class="table-wrapper">
-            <table>
+            <table class="responsive-table">
               <thead>
               <tr>
                 <th>QR</th>
@@ -837,22 +790,22 @@
 
     <!-- Floating Scan button (mobile) -->
     <button id="fab-scan" class="fab-scan" aria-label="スキャン画面へ">
-      <span class="fab-icon">📷</span>
+      <svg class="icon icon-lg" aria-hidden="true"><use href="#i-scan"></use></svg>
       <span class="fab-label">SCAN</span>
     </button>
 
     <!-- Mobile bottom navigation -->
     <nav class="mobile-bottom-nav">
       <button class="mobile-nav-link active" data-section="dashboard-section">
-        <span class="mobile-nav-icon">🏠</span>
+        <svg class="icon icon-lg mobile-nav-icon" aria-hidden="true"><use href="#i-home"></use></svg>
         <span class="mobile-nav-label">ダッシュボード</span>
       </button>
       <button class="mobile-nav-link" data-section="scan-section">
-        <span class="mobile-nav-icon">📷</span>
+        <svg class="icon icon-lg mobile-nav-icon" aria-hidden="true"><use href="#i-scan"></use></svg>
         <span class="mobile-nav-label">スキャン</span>
       </button>
       <button class="mobile-nav-link" data-section="plan-list-section">
-        <span class="mobile-nav-icon">📋</span>
+        <svg class="icon icon-lg mobile-nav-icon" aria-hidden="true"><use href="#i-list"></use></svg>
         <span class="mobile-nav-label">生産一覧</span>
       </button>
     </nav>
@@ -983,6 +936,52 @@
 
 <!-- Toast notification -->
 <div id="global-toast" class="toast hidden"></div>
+
+<!-- SVG Icon Sprite (UI consistent icons) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
+  <symbol id="i-home" viewBox="0 0 24 24">
+    <path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/>
+  </symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24">
+    <path d="M4 7V4h3V2H2v5h2zm13-5v2h3v3h2V2h-5zM4 17H2v5h5v-2H4v-3zm18 0h-2v3h-3v2h5v-5z"/>
+    <path d="M7 12h10v2H7z"/>
+  </symbol>
+  <symbol id="i-list" viewBox="0 0 24 24">
+    <path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/>
+  </symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24">
+    <path d="M17.65 6.35A7.95 7.95 0 0012 4V1L7 6l5 5V7a5 5 0 014.9 4H19a7 7 0 00-1.35-4.65z"/>
+    <path d="M6.35 17.65A7.95 7.95 0 0012 20v3l5-5-5-5v4a5 5 0 01-4.9-4H5a7 7 0 001.35 4.65z"/>
+  </symbol>
+  <symbol id="i-info" viewBox="0 0 24 24">
+    <path d="M11 17h2v-6h-2v6zm0-8h2V7h-2v2z"/>
+    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/>
+  </symbol>
+  <symbol id="i-download" viewBox="0 0 24 24">
+    <path d="M5 20h14v-2H5v2z"/>
+    <path d="M11 3h2v9h3l-4 4-4-4h3V3z"/>
+  </symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24">
+    <path d="M6 7h12l-1 14H7L6 7zm3-3h6l1 2H8l1-2z"/>
+  </symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24">
+    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/>
+    <path d="M20.71 7.04a1 1 0 000-1.41L18.37 3.29a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+  </symbol>
+  <symbol id="i-print" viewBox="0 0 24 24">
+    <path d="M6 9V3h12v6H6zm10-4H8v2h8V5z"/>
+    <path d="M6 19v2h12v-2H6z"/>
+    <path d="M19 10H5a3 3 0 00-3 3v4h4v-3h12v3h4v-4a3 3 0 00-3-3z"/>
+  </symbol>
+  <symbol id="i-csv" viewBox="0 0 24 24">
+    <path d="M6 2h9l5 5v15a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/>
+    <path d="M14 2v6h6"/>
+    <path d="M7 14h10v2H7v-2zm0 4h10v2H7v-2z"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24">
+    <path d="M10 2a8 8 0 105.29 14l4.7 4.7 1.41-1.41-4.7-4.7A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z"/>
+  </symbol>
+</svg>
 
 <script src="app.js"></script>
 <script>
