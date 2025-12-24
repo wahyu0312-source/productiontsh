@@ -1419,3 +1419,149 @@ body.monitor-mode .app-footer {
   color: #0f172a;
   font-weight: 700;
 }
+/* =========================================================
+   PATCH: Monitor overlay (digital signage) - readable & safe
+   Tambahkan di paling bawah style.css
+   ========================================================= */
+
+/* Overlay container (tidak mengubah UI normal) */
+.monitor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(1200px 600px at 50% 40%, rgba(37,99,235,.35), rgba(15,23,42,.95));
+  color: #e5e7eb;
+  display: none;
+}
+
+.monitor-overlay.active { display: block; }
+
+.monitor-bar {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(15,23,42,.75);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.monitor-title {
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.monitor-meta {
+  opacity: .9;
+  font-size: .9rem;
+}
+
+.monitor-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.monitor-btn {
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.monitor-btn:hover { background: rgba(255,255,255,.14); }
+
+.monitor-stage {
+  height: calc(100vh - 54px);
+  padding: 14px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.monitor-slide {
+  width: min(1200px, 100%);
+  height: 100%;
+  display: none;
+}
+
+.monitor-slide.active { display: block; }
+
+/* White readable canvas for cloned contents */
+.monitor-canvas {
+  background: rgba(255,255,255,.96);
+  color: #0f172a;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  height: 100%;
+  overflow: auto;
+  padding: 14px;
+}
+
+/* Hide interactive controls inside monitor (tidak mengubah halaman normal) */
+.monitor-overlay .monitor-canvas button,
+.monitor-overlay .monitor-canvas input,
+.monitor-overlay .monitor-canvas select,
+.monitor-overlay .monitor-canvas textarea {
+  display: none !important;
+}
+
+/* Keep titles readable */
+.monitor-overlay .card-title,
+.monitor-overlay h1,
+.monitor-overlay h2,
+.monitor-overlay h3 {
+  color: #0f172a !important;
+}
+
+/* =========================================================
+   PATCH: Table alignment for 最新の実績一覧 (logs-table)
+   ========================================================= */
+
+.logs-table {
+  table-layout: fixed; /* penting: header & body stabil */
+}
+
+.logs-table th, .logs-table td {
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* PAKU lebar kolom (sesuaikan bila perlu) */
+.logs-table thead th:nth-child(1) { width: 140px; } /* 工程開始 */
+.logs-table thead th:nth-child(2) { width: 90px; }  /* 図番 */
+.logs-table thead th:nth-child(3) { width: 130px; } /* 品名 */
+.logs-table thead th:nth-child(4) { width: 120px; } /* 工程 */
+.logs-table thead th:nth-child(5) { width: 90px; }  /* ユーザー */
+.logs-table thead th:nth-child(6) { width: 120px; } /* 数量 */
+.logs-table thead th:nth-child(7) { width: 110px; } /* ステータス */
+.logs-table thead th:nth-child(8) { width: 110px; } /* 所要時間 */
+.logs-table thead th:nth-child(9) { width: 120px; } /* ロケーション */
+.logs-table thead th:nth-child(10){ width: 240px; } /* 操作 */
+
+.logs-table td:last-child { text-align: right; }
+
+/* Action button container agar rapi & tidak mendorong kolom lain */
+.logs-table td:last-child > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logs-table td:last-child button {
+  white-space: nowrap;
+}
+
+/* Plan list action area (kalau ada class ini di versi Anda) */
+.plans-actions,
+.plan-actions,
+.table-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+}
