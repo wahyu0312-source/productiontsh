@@ -1,9 +1,9 @@
-const CACHE_NAME = 'productionsh-cache-monitorfix-v1';
+const CACHE_NAME = 'productionsh-cache-v4-monitor-carousel';
 const OFFLINE_URLS = [
   './',
-  './index-improved.html',
-  './style-improved.css',
-  './app-improved.js',
+  './index.html',
+  './style.css',
+  './app.js',
   './manifest.json',
   './tsh.png'
 ];
