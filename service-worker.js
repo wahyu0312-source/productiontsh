@@ -1,4 +1,4 @@
-const CACHE_NAME = 'productionsh-cache-v3';
+const CACHE_NAME = 'productionsh-cache-v4';
 
 const OFFLINE_URLS = [
   './',
