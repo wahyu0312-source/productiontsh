@@ -244,7 +244,27 @@
           </div>
         </div>
 
-        <!-- 最新実績一覧 -->
+        
+        <!-- 生産計画 KPI（モバイル優先） -->
+        <div class="kpi-grid" aria-label="生産計画KPI">
+          <div class="kpi-card kpi-primary">
+            <div class="kpi-label">計画達成率</div>
+            <div class="kpi-value"><span id="kpi-plan-achievement">0</span><span class="kpi-unit">%</span></div>
+            <div class="kpi-sub">計画合計に対する実績</div>
+          </div>
+          <div class="kpi-card kpi-warning">
+            <div class="kpi-label">遅れ時間</div>
+            <div class="kpi-value"><span id="kpi-plan-delay">0.0</span><span class="kpi-unit">h</span></div>
+            <div class="kpi-sub">期限超過（未完了）の合計</div>
+          </div>
+          <div class="kpi-card kpi-accent">
+            <div class="kpi-label">外注比率</div>
+            <div class="kpi-value"><span id="kpi-plan-subcon">0</span><span class="kpi-unit">%</span></div>
+            <div class="kpi-sub">本日の実績（外注/合計）</div>
+          </div>
+        </div>
+
+<!-- 最新実績一覧 -->
         <div class="card">
           <div class="card-header-row">
             <div class="card-header-left">
@@ -309,7 +329,7 @@
           </div>
 
           <div class="table-wrapper">
-            <table class="logs-table">
+            <table class="logs-table responsive-table">
               <thead>
               <tr>
                 <th>工程開始</th>
@@ -371,15 +391,15 @@
       </section>
 
       <!-- Scan -->
-      <section id="scan-section" class="section">
+      <section id="scan-section" class="section scan-section">
         <!-- ユーザー認証案内 -->
-        <div class="card">
+        <div class="card scan-user-card">
           <h2 class="card-title">ユーザー認証</h2>
           <p>ユーザー認証は画面右上のメニューから行ってください。</p>
         </div>
 
         <!-- 工程スキャン -->
-        <div class="card">
+        <div class="card scan-terminal-card">
           <h2 class="card-title">工程スキャン</h2>
           <p>工程に設置されたQRコードをスキャンして、生産を記録します。</p>
 
@@ -398,11 +418,31 @@
         </div>
 
         <!-- 生産データ入力 -->
-        <div class="card">
+        <div class="card scan-entry-card">
           <h2 class="card-title">生産データ入力</h2>
           <p>生産計画一覧から対象行の「スキャン/更新」を選択し、工程をスキャンしてから実績を入力してください。</p>
 
-          <!-- Plan情報 -->
+          
+          <div class="selection-summary" aria-label="現在の選択">
+            <div class="chip">
+              <span class="chip-label">図番</span>
+              <span id="sel-plan-code">-</span>
+            </div>
+            <div class="chip">
+              <span class="chip-label">工程</span>
+              <span id="sel-terminal-name">未スキャン</span>
+            </div>
+            <div class="chip">
+              <span class="chip-label">ユーザー</span>
+              <span id="sel-user-name">未ログイン</span>
+            </div>
+          </div>
+
+          <p class="hint scan-hint-compact">
+            必須項目（*）を入力し、「保存」で実績登録します。スマホでは下部の固定ボタンが使えます。
+          </p>
+
+<!-- Plan情報 -->
           <div class="form-grid">
             <div class="form-group">
               <label>製品番号</label>
@@ -472,7 +512,13 @@
             <button id="btn-clear-form" class="ghost-button">クリア</button>
           </div>
 
-          <p class="hint" style="margin-top:6px;">
+          
+          <!-- Mobile one-hand action bar -->
+          <div class="mobile-actionbar" aria-label="アクション">
+            <button id="btn-save-log-mobile" class="primary-button">保存</button>
+            <button id="btn-clear-form-mobile" class="ghost-button">クリア</button>
+          </div>
+<p class="hint" style="margin-top:6px;">
             ※ 現在のユーザーは右上メニューで確認できます。生産計画と工程を選択した状態で実績を登録してください。
           </p>
         </div>
@@ -568,7 +614,7 @@
             </div>
           </div>
           <div class="table-wrapper">
-            <table>
+            <table class="responsive-table">
               <thead>
               <tr>
                 <th>図番</th>
@@ -668,7 +714,7 @@
         <div id="admin-user-list-card" class="card hidden">
           <h3 class="card-title">ユーザー一覧 / QRラベル</h3>
           <div class="table-wrapper">
-            <table>
+            <table class="responsive-table">
               <thead>
               <tr>
                 <th>QR</th>
