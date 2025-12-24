@@ -1,4 +1,5 @@
-const CACHE_NAME = 'productionsh-cache-v4-monitor-carousel';
+// NOTE: Cache name is bumped to force update when UI assets change
+const CACHE_NAME = 'productionsh-cache-v3';
 const OFFLINE_URLS = [
   './',
   './index.html',
