@@ -400,7 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setSafetyMessage();           // ★ Safety message di dashboard
   renderLastUserQuickLogin();   // ★ quick login
 
-  loadMasterData();
+    updateSelectionSummary();
+loadMasterData();
   loadDashboard();
   loadAnalytics();
   startDashboardAutoRefresh();
@@ -603,7 +604,14 @@ function setupButtons() {
   const btnClearForm = document.getElementById('btn-clear-form');
   if (btnClearForm) btnClearForm.addEventListener('click', clearForm);
 
-  // OK/NG → 総数量自動計算
+  
+  // Mobile action bar (one-hand)
+  const btnSaveLogMobile = document.getElementById('btn-save-log-mobile');
+  if (btnSaveLogMobile) btnSaveLogMobile.addEventListener('click', handleSaveLog);
+
+  const btnClearFormMobile = document.getElementById('btn-clear-form-mobile');
+  if (btnClearFormMobile) btnClearFormMobile.addEventListener('click', clearForm);
+// OK/NG → 総数量自動計算
   const qtyOkInput = document.getElementById('log-qty-ok');
   const qtyNgInput = document.getElementById('log-qty-ng');
   if (qtyOkInput && qtyNgInput) {
@@ -862,7 +870,9 @@ async function loginWithUserId(userId) {
     if (idEl) idEl.textContent = user.user_id;
     if (roleEl) roleEl.textContent = user.role;
 
-    document.getElementById('top-username').textContent = user.name_ja;
+    
+    updateSelectionSummary();
+document.getElementById('top-username').textContent = user.name_ja;
     document.getElementById('top-userrole').textContent = getRoleLabel(user.role);
     document.getElementById('welcome-name').textContent = user.name_ja;
 
@@ -958,7 +968,9 @@ function handleLogout() {
   if (userMenuPanel) userMenuPanel.classList.add('hidden');
 
   showToast('ログアウトしました。', 'info');
+  updateSelectionSummary();
 }
+
 
 function handleHeaderSearch() {
   const input = document.getElementById('header-product-search');
@@ -1012,6 +1024,8 @@ function selectTerminalById(terminalId) {
   if (idEl) idEl.textContent = currentTerminal.terminal_id;
   if (processEl) processEl.textContent = currentTerminal.process_name;
   if (locEl) locEl.textContent = currentTerminal.location;
+
+  updateSelectionSummary();
 
   showToast('端末を選択しました: ' + currentTerminal.terminal_id, 'info');
 }
@@ -1235,7 +1249,8 @@ async function loadDashboard() {
     renderDashboardTable();
     updateAlertBanner();
     renderPlanTable();
-  } catch (err) {
+      updatePlanKpis();
+} catch (err) {
     console.error(err);
     alert('ダッシュボード取得に失敗しました: ' + err.message);
   }
@@ -1366,6 +1381,7 @@ function renderDashboardTable() {
       : '';
 
     const statusCell = document.createElement('td');
+    statusCell.setAttribute('data-label', 'ステータス');
     const badge = document.createElement('span');
     badge.classList.add('badge');
 
@@ -1395,20 +1411,22 @@ function renderDashboardTable() {
       : `${log.qty_total || 0} (${log.qty_ok || 0} / ${log.qty_ng || 0})`;
 
     tr.innerHTML = `
-      <td>${startText}</td>
-      <td>${log.product_code || ''}</td>
-      <td>${log.product_name || ''}</td>
-      <td>${log.process_name || ''}</td>
-      <td>${userText}</td>
-      <td>${qtyText}</td>
+      <td data-label="工程開始">${escapeHtml(startText)}</td>
+      <td data-label="図番">${escapeHtml(log.product_code || '')}</td>
+      <td data-label="品名">${escapeHtml(log.product_name || '')}</td>
+      <td data-label="工程">${escapeHtml(log.process_name || '')}</td>
+      <td data-label="ユーザー">${escapeHtml(userText)}</td>
+      <td data-label="数量(OK/不良)">${escapeHtml(qtyText)}</td>
     `;
     tr.appendChild(statusCell);
 
     const tdDuration = document.createElement('td');
+    tdDuration.setAttribute('data-label', '所要時間(分)');
     tdDuration.textContent = durationMin || '';
     tr.appendChild(tdDuration);
 
     const tdLoc = document.createElement('td');
+    tdLoc.setAttribute('data-label', 'ロケーション');
     const locWrapper = document.createElement('div');
     locWrapper.className = 'location-cell';
 
@@ -1436,6 +1454,7 @@ function renderDashboardTable() {
     }
 
     const tdActions = document.createElement('td');
+    tdActions.setAttribute('data-label', '操作');
 
     if (isPlan) {
       tdActions.classList.add('plans-actions');
@@ -1603,6 +1622,110 @@ function formatDateTime(value) {
 
   return `${year}-${month}-${day} ${hour}:${minute}`;
 }
+
+/* ================================
+   KPI / Mobile helper
+   ================================ */
+
+function getDayKeyLocal(d) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getLogBaseDate(log) {
+  if (!log) return null;
+  const s = log.timestamp_start || log.timestamp_end || log.planned_start || log.created_at || '';
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function isExternalLog(log) {
+  if (!log) return false;
+  const wt = String(log.work_type || '').trim();
+  if (wt) return wt === '外注';
+  const location = String(log.location || log.terminal_location || '').toLowerCase();
+  return /外注|subcon|vendor/i.test(location);
+}
+
+function updateSelectionSummary() {
+  const planCodeEl = document.getElementById('sel-plan-code');
+  const terminalNameEl = document.getElementById('sel-terminal-name');
+  const userNameEl = document.getElementById('sel-user-name');
+
+  if (planCodeEl) {
+    const v = document.getElementById('log-product-code')?.value || '';
+    planCodeEl.textContent = v ? v : '-';
+  }
+  if (terminalNameEl) {
+    terminalNameEl.textContent = currentTerminal?.name_ja || '未スキャン';
+  }
+  if (userNameEl) {
+    userNameEl.textContent = currentUser?.name_ja || '未ログイン';
+  }
+}
+
+function updatePlanKpis() {
+  const elAch = document.getElementById('kpi-plan-achievement');
+  const elDelay = document.getElementById('kpi-plan-delay');
+  const elSub = document.getElementById('kpi-plan-subcon');
+  if (!elAch && !elDelay && !elSub) return;
+
+  const now = new Date();
+
+  // 計画達成率 / 遅れ時間（未完了）
+  const activePlans = (plans || []).filter(p => !['完了', '中止'].includes(p?.status || ''));
+  let planSum = 0;
+  let actualSum = 0;
+  let delayHours = 0;
+
+  activePlans.forEach(p => {
+    const planQty = Number(p.planned_qty || 0);
+    planSum += planQty;
+
+    const related = (dashboardLogs || []).filter(l =>
+      !l?.is_plan_only &&
+      l.product_code === p.product_code &&
+      (!p.process_name || l.process_name === p.process_name)
+    );
+    const actualQty = related.reduce((s, l) => s + Number(l.qty_total || 0), 0);
+    actualSum += actualQty;
+
+    if (p.planned_end) {
+      const end = new Date(p.planned_end);
+      if (!isNaN(end.getTime()) && now > end && actualQty < planQty) {
+        delayHours += (now.getTime() - end.getTime()) / 36e5;
+      }
+    }
+  });
+
+  const ach = planSum > 0 ? Math.round((actualSum * 100) / planSum) : 0;
+  if (elAch) elAch.textContent = String(Math.min(ach, 200));
+  if (elDelay) elDelay.textContent = String(Math.max(0, delayHours).toFixed(1));
+
+  // 外注比率（本日の実績）
+  const todayKey = getDayKeyLocal(now);
+  let totalToday = 0;
+  let externalToday = 0;
+
+  (dashboardLogs || []).forEach(l => {
+    if (!l || l.is_plan_only) return;
+    const d = getLogBaseDate(l);
+    if (!d) return;
+    if (getDayKeyLocal(d) !== todayKey) return;
+
+    const qty = Number(l.qty_total || 0);
+    totalToday += qty;
+    if (isExternalLog(l)) externalToday += qty;
+  });
+
+  const subconRate = totalToday > 0 ? Math.round((externalToday * 100) / totalToday) : 0;
+  if (elSub) elSub.textContent = String(subconRate);
+}
+
 
 /* ================================
    Export logs CSV (per product)
@@ -1857,6 +1980,9 @@ async function loadAnalytics() {
       }
     }
 
+    // Update KPI cards (uses loaded plans/logs)
+    updatePlanKpis();
+
     const tickerEl = document.getElementById('ticker-text');
     if (tickerEl) {
       let msg;
@@ -1866,6 +1992,11 @@ async function loadAnalytics() {
         msg = `本日の生産数量は ${today.total} 個です。安全第一で作業を続けましょう。`;
       } else {
         msg = '生産データはまだありません。スキャン画面から実績を登録してください。';
+      }
+            const achEl = document.getElementById('kpi-plan-achievement');
+      const achText = achEl ? achEl.textContent : '';
+      if (achText) {
+        msg = msg + `（計画達成率: ${achText}%）`;
       }
       tickerEl.textContent = msg;
     }
@@ -1956,7 +2087,8 @@ async function loadPlans() {
     plans = data || [];
     renderPlanTable();
     renderDashboardTable();
-  } catch (err) {
+      updatePlanKpis();
+} catch (err) {
     console.error(err);
     alert('生産計画の取得に失敗しました: ' + err.message);
   }
@@ -1985,17 +2117,18 @@ function renderPlanTable() {
     const rate = planQty > 0 ? Math.round((actualTotal * 100) / planQty) : 0;
 
     tr.innerHTML = `
-      <td>${plan.product_code || ''}</td>
-      <td>${plan.product_name || ''}</td>
-      <td>${plan.process_name || ''}</td>
-      <td>${plan.planned_qty || 0}</td>
-      <td>${plan.planned_start || ''}</td>
-      <td>${plan.planned_end || ''}</td>
-      <td>${actualTotal} / ${planQty} (${rate}%)</td>
-      <td>${plan.status || ''}</td>
+      <td data-label="図番">${escapeHtml(plan.product_code || '')}</td>
+      <td data-label="品名">${escapeHtml(plan.product_name || '')}</td>
+      <td data-label="工程名">${escapeHtml(plan.process_name || '')}</td>
+      <td data-label="計画数量">${escapeHtml(String(plan.planned_qty || 0))}</td>
+      <td data-label="計画開始">${escapeHtml(plan.planned_start || '')}</td>
+      <td data-label="計画終了">${escapeHtml(plan.planned_end || '')}</td>
+      <td data-label="実績/計画">${escapeHtml(`${actualTotal} / ${planQty} (${rate}%)`)}</td>
+      <td data-label="ステータス">${escapeHtml(plan.status || '')}</td>
     `;
 
     const tdActions = document.createElement('td');
+    tdActions.setAttribute('data-label', '操作');
     tdActions.classList.add('plans-actions');
 
     const scanBtn = document.createElement('button');
@@ -2043,7 +2176,9 @@ function startScanForPlan(plan) {
   if (nameEl) nameEl.value = plan.product_name || '';
   if (qtyEl) qtyEl.value = plan.planned_qty || 0;
 
-  const links = document.querySelectorAll('.sidebar-link');
+  
+  updateSelectionSummary();
+const links = document.querySelectorAll('.sidebar-link');
   const sections = document.querySelectorAll('.section');
   const sidebar = document.querySelector('.sidebar');
 
