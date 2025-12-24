@@ -44,7 +44,10 @@
   </aside>
 
   <!-- Main area -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
   <div class="main-area">
+
 
     <!-- Top bar -->
     <header class="topbar">
@@ -419,30 +422,34 @@
             </div>
           </div>
 
-          <!-- Input utama -->
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="log-status">ステータス</label>
-              <select id="log-status" class="required-field">
-                <option value="工程開始">工程開始</option>
-                <option value="工程終了" selected>工程終了</option>
-                <option value="一時停止">一時停止（保留）</option>
-                <option value="検査保留">検査保留</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="log-qty-ok">OK数量</label>
-              <input id="log-qty-ok" type="number" min="0" value="0" class="required-field">
-            </div>
-            <div class="form-group">
-              <label for="log-qty-ng">不良数量</label>
-              <input id="log-qty-ng" type="number" min="0" value="0" class="required-field">
-            </div>
-            <div class="form-group">
-              <label for="log-qty-total">総数量</label>
-              <input id="log-qty-total" type="number" min="0" value="0" readonly class="required-field">
-            </div>
-          </div>
+        <!-- Input utama operator - WITH REQUIRED FIELD HIGHLIGHTING -->
+<div class="form-grid">
+  <div class="form-group">
+    <label for="log-status" class="field-required">ステータス</label>
+    <select id="log-status" class="required-field">
+      <option value="工程開始">工程開始</option>
+      <option value="工程終了" selected>工程終了</option>
+      <option value="一時停止">一時停止（保留）</option>
+      <option value="検査保留">検査保留</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="log-qty-ok" class="field-required">OK数量</label>
+    <input id="log-qty-ok" type="number" min="0" value="0" class="required-field">
+  </div>
+
+  <div class="form-group">
+    <label for="log-qty-ng" class="field-required">不良数量</label>
+    <input id="log-qty-ng" type="number" min="0" value="0" class="required-field">
+  </div>
+
+  <div class="form-group">
+    <label for="log-qty-total">総数量</label>
+    <input id="log-qty-total" type="number" min="0" value="0" readonly>
+  </div>
+</div>
+
 
           <!-- Multi-operator -->
           <div class="form-grid two-col">
@@ -477,18 +484,20 @@
           <h2 class="card-title">生産計画登録</h2>
           <p>新しい生産計画を登録してください。（製品 × 工程 × 数量 単位）</p>
           <div class="form-grid">
-            <div class="form-group">
-              <label for="plan-product-code">図番</label>
-              <input id="plan-product-code" type="text" placeholder="例: Z-001">
-            </div>
-            <div class="form-group">
-              <label for="plan-product-name">品名</label>
-              <input id="plan-product-name" type="text" placeholder="例: 品名A">
-            </div>
-            <div class="form-group">
-              <label for="plan-process">工程名</label>
-              <select id="plan-process">
-                <option value="">選択してください</option>
+  <div class="form-group">
+    <label for="plan-product-code" class="field-required">図番</label>
+    <input id="plan-product-code" type="text" placeholder="例: Z-001">
+  </div>
+
+  <div class="form-group">
+    <label for="plan-product-name" class="field-required">品名</label>
+    <input id="plan-product-name" type="text" placeholder="例: 品名A">
+  </div>
+
+  <div class="form-group">
+    <label for="plan-process" class="field-required">工程名</label>
+    <select id="plan-process">
+      <option value="">選択してください</option>
                 <option value="準備工程">準備工程</option>
                 <option value="レザー加工">レザー加工</option>
                 <option value="外注工程">外注工程</option>
@@ -505,18 +514,20 @@
                 <option value="出荷完成">出荷完成</option>
               </select>
             </div>
-            <div class="form-group">
-              <label for="plan-qty">計画数量</label>
-              <input id="plan-qty" type="number" min="0" value="0">
-            </div>
-            <div class="form-group">
-              <label for="plan-start">計画開始</label>
-              <input id="plan-start" type="datetime-local">
-            </div>
-            <div class="form-group">
-              <label for="plan-end">計画終了</label>
-              <input id="plan-end" type="datetime-local">
-            </div>
+           <div class="form-group">
+    <label for="plan-qty" class="field-required">計画数量</label>
+    <input id="plan-qty" type="number" min="0" value="0">
+  </div>
+
+  <div class="form-group">
+    <label for="plan-start" class="field-required">計画開始</label>
+    <input id="plan-start" type="datetime-local">
+  </div>
+
+  <div class="form-group">
+    <label for="plan-end" class="field-required">計画終了</label>
+    <input id="plan-end" type="datetime-local">
+  </div>
             <div class="form-group">
               <label for="plan-status">ステータス</label>
               <select id="plan-status">
