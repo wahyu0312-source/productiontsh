@@ -169,6 +169,17 @@
 
       <!-- Dashboard -->
       <section id="dashboard-section" class="section active">
+        <div class="page">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1 class="page-title">ダッシュボード</h1>
+              <p class="page-subtitle">最新の進捗状況と生産計画を確認します。</p>
+            </div>
+            <div class="page-actions"></div>
+          </div>
+          <div class="page-content">
+            <div id="dash-summary-block" class="monitor-source">
+
         <div class="card welcome-card">
           <div class="welcome-main">
             <div class="welcome-icon">👋</div>
@@ -191,7 +202,8 @@
             <div class="welcome-meta-item">
               <span class="meta-label">本日</span>
               <span id="welcome-date"></span>
-            </div>
+            </div>            </div>
+
           </div>
         </div>
 
@@ -243,6 +255,10 @@
             計画データなし
           </div>
         </div>
+
+                    </div>
+
+            <div id="dash-latest-block" class="monitor-source">
 
         <!-- 最新実績一覧 -->
         <div class="card">
@@ -329,6 +345,10 @@
           </div>
         </div>
 
+                    </div>
+
+            <div id="dash-chart-block" class="monitor-source">
+
         <!-- 工程別 生産量 -->
         <div class="card small-gap">
           <h2 class="card-title">工程別 生産量（直近7日）</h2>
@@ -368,10 +388,23 @@
             </table>
           </div>
         </div>
-      </section>
+      
+          </div>
+        </div>
+</section>
 
       <!-- Scan -->
       <section id="scan-section" class="section">
+        <div class="page">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1 class="page-title">スキャン / 生産データ入力</h1>
+              <p class="page-subtitle">工程QRを読み取り、実績を入力します。</p>
+            </div>
+            <div class="page-actions"></div>
+          </div>
+          <div class="page-content">
+
         <!-- ユーザー認証案内 -->
         <div class="card">
           <h2 class="card-title">ユーザー認証</h2>
@@ -476,10 +509,23 @@
             ※ 現在のユーザーは右上メニューで確認できます。生産計画と工程を選択した状態で実績を登録してください。
           </p>
         </div>
-      </section>
+      
+          </div>
+        </div>
+</section>
 
       <!-- 生産計画入力 -->
       <section id="plan-input-section" class="section">
+        <div class="page">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1 class="page-title">生産計画入力</h1>
+              <p class="page-subtitle">新しい生産計画を登録します。</p>
+            </div>
+            <div class="page-actions"></div>
+          </div>
+          <div class="page-content">
+
         <div class="card">
           <h2 class="card-title">生産計画登録</h2>
           <p>新しい生産計画を登録してください。（製品 × 工程 × 数量 単位）</p>
@@ -556,10 +602,24 @@
           </div>
           <button id="btn-import-plans" class="secondary-button">インポート実行</button>
         </div>
-      </section>
+      
+          </div>
+        </div>
+</section>
 
       <!-- 生産一覧 -->
       <section id="plan-list-section" class="section">
+        <div class="page">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1 class="page-title">生産計画一覧</h1>
+              <p class="page-subtitle">登録済み計画の進捗確認・スキャン開始・更新ができます。</p>
+            </div>
+            <div class="page-actions"></div>
+          </div>
+          <div class="page-content">
+            <div id="plan-list-block" class="monitor-source">
+
         <div class="card">
           <div class="card-header-row">
             <h2 class="card-title">生産計画一覧</h2>
@@ -584,12 +644,27 @@
               </thead>
               <tbody id="plans-tbody"></tbody>
             </table>
+            </div>
+
           </div>
         </div>
-      </section>
+      
+          </div>
+        </div>
+</section>
 
       <!-- Admin: user & terminal register -->
       <section id="admin-section" class="section">
+        <div class="page">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1 class="page-title">管理者</h1>
+              <p class="page-subtitle">ユーザー/工程の登録と管理を行います。</p>
+            </div>
+            <div class="page-actions"></div>
+          </div>
+          <div class="page-content">
+
         <div class="card">
           <h2 class="card-title">管理者メニュー（ユーザー / 工程登録）</h2>
           <p>管理者権限ユーザーでログインすると使用できます。（ロール: admin）</p>
@@ -750,10 +825,23 @@
             </div>
           </div>
         </div>
-      </section>
+      
+          </div>
+        </div>
+</section>
 
       <!-- 工程一覧 / QRラベル -->
       <section id="terminalqr-section" class="section">
+        <div class="page">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1 class="page-title">工程一覧 / QRラベル</h1>
+              <p class="page-subtitle">工程一覧の確認とQRラベルの印刷/ダウンロードを行います。</p>
+            </div>
+            <div class="page-actions"></div>
+          </div>
+          <div class="page-content">
+
         <div id="admin-terminal-list-card" class="card">
           <h2 class="card-title">工程一覧 / QRラベル</h2>
           <p>登録済みの工程一覧と各工程のQRラベルを確認できます。</p>
@@ -784,7 +872,10 @@
           </p>
           <div id="terminal-qr-list" class="terminalqr-grid hidden"></div>
         </div>
-      </section>
+      
+          </div>
+        </div>
+</section>
 
     </main>
 
@@ -981,6 +1072,18 @@
   <symbol id="i-search" viewBox="0 0 24 24">
     <path d="M10 2a8 8 0 105.29 14l4.7 4.7 1.41-1.41-4.7-4.7A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z"/>
   </symbol>
+
+  <symbol id="i-chevron-left" viewBox="0 0 24 24">
+    <path d="M15 18l-6-6 6-6 1.4 1.4L11.8 12l4.6 4.6L15 18z"/>
+  </symbol>
+
+  <symbol id="i-chevron-right" viewBox="0 0 24 24">
+    <path d="M9 6l6 6-6 6-1.4-1.4 4.6-4.6L7.6 7.4 9 6z"/>
+  </symbol>
+
+  <symbol id="i-close" viewBox="0 0 24 24">
+    <path d="M18.3 5.7L12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3 1.4 1.4z"/>
+  </symbol>
 </svg>
 
 <script src="app.js"></script>
@@ -993,5 +1096,39 @@
     });
   }
 </script>
+
+  <!-- Monitor Carousel (Digital Signage) -->
+  <div id="monitor-carousel" class="monitor-carousel" aria-hidden="true">
+    <div class="monitor-topbar">
+      <div class="monitor-brand">
+        <img src="tsh.png" alt="TSH" class="monitor-logo">
+        <div class="monitor-title">
+          <div class="monitor-title-main">生産進捗 モニタ</div>
+          <div class="monitor-title-sub" id="monitor-clock">--:--</div>
+        </div>
+      </div>
+      <div class="monitor-controls">
+        <button class="ghost-button ghost-small" id="monitor-prev" title="前へ" aria-label="前へ">
+          <svg class="icon"><use href="#i-chevron-left"></use></svg>
+        </button>
+        <div class="monitor-dots" id="monitor-dots" aria-label="スライド選択"></div>
+        <button class="ghost-button ghost-small" id="monitor-next" title="次へ" aria-label="次へ">
+          <svg class="icon"><use href="#i-chevron-right"></use></svg>
+        </button>
+        <button class="ghost-button ghost-small" id="btn-exit-monitor" title="通常表示へ" aria-label="通常表示へ">
+          <svg class="icon"><use href="#i-close"></use></svg>
+          戻る
+        </button>
+      </div>
+    </div>
+    <div class="monitor-viewport">
+      <div class="monitor-track" id="monitor-track">
+        <div class="monitor-slide" data-slide="0"></div>
+        <div class="monitor-slide" data-slide="1"></div>
+        <div class="monitor-slide" data-slide="2"></div>
+        <div class="monitor-slide" data-slide="3"></div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
