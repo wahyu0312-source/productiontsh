@@ -611,6 +611,7 @@ body{
   width:100%;
   border-collapse: collapse;
   font-size:.78rem;
+  table-layout: auto; /* FIX: keep logs natural */
 }
 
 .logs-table th,
@@ -621,40 +622,27 @@ body{
   vertical-align: middle; /* FIX */
 }
 
-@media (min-width: 769px){
-  .logs-table thead th{ text-align: left; }          /* FIX */
-  .logs-table thead th:last-child{ text-align:right; } /* FIX */
-  .logs-table td:last-child{ text-align:right; }       /* FIX */
-  .logs-table th:last-child,
-  .logs-table td:last-child{ width: 140px; }           /* FIX */
-}
-
-
 .logs-table thead th{
   background: #f3f4f6;
   font-weight: 800;
 }
- .logs-table thead th{
-   background: #f3f4f6;
-   font-weight: 800;
- }
 
-/* FIX: logs-table header alignment (match body; align 操作 to action buttons) */
+/* FIX: logs-table header/body alignment (esp. 操作) */
 @media (min-width: 769px){
-.logs-table thead th{
-text-align: left;          /* FIX: header tidak “mengambang” di tengah */
-vertical-align: middle;    /* FIX: posisi teks header lebih rapi */
+  .logs-table thead th{
+    text-align: left;
+    vertical-align: middle;
+  }
+  .logs-table thead th:last-child{ text-align: right; }
+  .logs-table td:last-child{ text-align: right; white-space: nowrap; }
+  .logs-table th:last-child,
+  .logs-table td:last-child{ width: 140px; }
 }
-.logs-table thead th:last-child{
- text-align: right;         /* FIX: header 操作 sejajar dengan tombol */
- }
- .logs-table td:last-child{
-   text-align: right;         /* FIX: row non-flex tetap rapi */
-}
- .logs-table th:last-child,
-.logs-table td:last-child{
-width: 140px;              /* FIX: kolom 操作 stabil */
-}
+
+/* FIX: logs-table should NOT be ellipsized (keeps header/body consistent) */
+.logs-table td{
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* Generic tables inside wrappers */
@@ -937,8 +925,6 @@ width: 140px;              /* FIX: kolom 操作 stabil */
 /* Ensure last card doesn't create extra whitespace */
 .page-content .card:last-child{ margin-bottom: 0; }
 
-
-
 /* Monitor mode + Carousel */
 
 /* Monitor carousel base layout */
@@ -1103,7 +1089,6 @@ width: 140px;              /* FIX: kolom 操作 stabil */
 .monitor-kpi-right .chart-wrapper{ min-height: 360px; }
 .monitor-kpi-right canvas{ max-height: 520px; }
 
-
 .monitor-slide .card{
   background: rgba(255,255,255,.96);
   color: #0f172a;
@@ -1200,23 +1185,25 @@ body.monitor-mode #monitor-carousel .logs-table{ font-size: .9rem; }
   .topbar-subtitle{ display:none; }
   .topbar{ padding: 10px 12px; }
 }
-/* FIX: keep tables readable WITHOUT breaking 操作 alignment */
-.table-wrapper table{ table-layout: fixed; }
+
+/* ===========================================
+   Table readability (global, without breaking logs-table)
+   =========================================== */
+
+/* FIX: only non-logs tables use fixed layout */
+.table-wrapper table:not(.logs-table){ table-layout: fixed; }
+
 .table-wrapper th, .table-wrapper td{ vertical-align: middle; }
 .table-wrapper th{ white-space: nowrap; }
 .table-wrapper td{ overflow:hidden; text-overflow: ellipsis; }
 
-/* FIX: 操作 column should align with its icon buttons on desktop */
+/* FIX: last column alignment on desktop */
 @media (min-width: 769px){
   .table-wrapper th:last-child,
   .table-wrapper td:last-child{
     text-align: right;
   }
 }
-
-/* FIX: remove center override (it breaks desktop alignment) */
-/* DO NOT force justify-content:center for desktop action buttons */
-
 
 .plans-actions .icon-btn,
 .user-actions .icon-btn,
@@ -1237,7 +1224,6 @@ body.monitor-mode #monitor-carousel .logs-table{ font-size: .9rem; }
     justify-content: flex-start;
   }
 }
-
 
 /* FIX: brighten monitor theme (cerah) while keeping contrast */
 body.monitor-mode #monitor-carousel{
