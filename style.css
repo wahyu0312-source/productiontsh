@@ -380,6 +380,15 @@ body{
   align-items:center;
 }
 
+@media (min-width: 769px){
+  .list-action-buttons,
+  .plans-actions,
+  .user-actions{
+    justify-content:flex-end; /* FIX: align 操作 buttons to the right like the header */
+    flex-wrap:nowrap;         /* FIX: keep icon buttons in one line on desktop */
+  }
+}
+
 /* ===========================================
    Content / Cards
    =========================================== */
@@ -633,6 +642,14 @@ body{
   background: #f3f4f6;
   font-weight: 800;
 }
+
+/* FIX: desktop table alignment for readability (match header & body) */
+.table-wrapper table:not(.logs-table) th{ text-align:left; vertical-align:middle; }
+.table-wrapper table:not(.logs-table) td{ vertical-align:middle; }
+.table-wrapper table:not(.logs-table) thead th:last-child{ text-align:right; }
+/* keep action column compact */
+.table-wrapper table:not(.logs-table) th:last-child,
+.table-wrapper table:not(.logs-table) td:last-child{ width: 140px; }
 
 /* Responsive table -> card (only for tables that opt-in) */
 @media (max-width: 768px){
