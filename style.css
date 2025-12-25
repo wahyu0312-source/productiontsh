@@ -618,8 +618,17 @@ body{
   padding: 8px 10px;
   border-bottom: 1px solid var(--c-border);
   white-space: nowrap;
-  vertical-align: top;
+  vertical-align: middle; /* FIX */
 }
+
+@media (min-width: 769px){
+  .logs-table thead th{ text-align: left; }          /* FIX */
+  .logs-table thead th:last-child{ text-align:right; } /* FIX */
+  .logs-table td:last-child{ text-align:right; }       /* FIX */
+  .logs-table th:last-child,
+  .logs-table td:last-child{ width: 140px; }           /* FIX */
+}
+
 
 .logs-table thead th{
   background: #f3f4f6;
