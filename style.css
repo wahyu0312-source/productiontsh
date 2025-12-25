@@ -380,6 +380,15 @@ body{
   align-items:center;
 }
 
+@media (min-width: 769px){
+  .list-action-buttons,
+  .plans-actions,
+  .user-actions{
+    justify-content:flex-end; /* FIX: align 操作 buttons to the right like the header */
+    flex-wrap:nowrap;         /* FIX: keep icon buttons in one line on desktop */
+  }
+}
+
 /* ===========================================
    Content / Cards
    =========================================== */
@@ -633,6 +642,14 @@ body{
   background: #f3f4f6;
   font-weight: 800;
 }
+
+/* FIX: desktop table alignment for readability (match header & body) */
+.table-wrapper table:not(.logs-table) th{ text-align:left; vertical-align:middle; }
+.table-wrapper table:not(.logs-table) td{ vertical-align:middle; }
+.table-wrapper table:not(.logs-table) thead th:last-child{ text-align:right; }
+/* keep action column compact */
+.table-wrapper table:not(.logs-table) th:last-child,
+.table-wrapper table:not(.logs-table) td:last-child{ width: 140px; }
 
 /* Responsive table -> card (only for tables that opt-in) */
 @media (max-width: 768px){
@@ -899,12 +916,10 @@ body{
   position: fixed;
   inset: 0;
   z-index: 999;
-  /* FIX: brighter monitor background (better for signage rooms) */
-  background:
-    radial-gradient(1100px 700px at 18% 18%, rgba(47,128,237,.18), transparent 60%),
-    radial-gradient(900px 600px at 82% 24%, rgba(255,140,66,.16), transparent 60%),
-    linear-gradient(180deg, #f8fbff 0%, #eef6ff 60%, #f9fafb 100%);
-  color: #0f172a;
+  background: radial-gradient(1200px 600px at 20% 20%, rgba(47,128,237,.20), transparent 55%),
+              radial-gradient(900px 500px at 80% 30%, rgba(255,140,66,.18), transparent 55%),
+              linear-gradient(180deg, #0b1020, #070a12 70%);
+  color: #f8fafc;
   flex-direction: column;
 }
 
@@ -914,8 +929,8 @@ body{
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(15,23,42,.10);
-  background: rgba(255,255,255,.78); /* FIX: brighter topbar */
+  border-bottom: 1px solid rgba(148,163,184,.22);
+  background: rgba(2,6,23,.55);
   backdrop-filter: blur(10px);
 }
 
@@ -944,7 +959,7 @@ body{
 }
 .monitor-title-sub{
   font-size: .9rem;
-  color: rgba(15,23,42,.65); /* FIX: readable on light bg */
+  color: rgba(226,232,240,.85);
   margin-top: 2px;
 }
 
@@ -967,8 +982,8 @@ body{
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  border: 1px solid rgba(15,23,42,.22); /* FIX: visible on light bg */
-  background: rgba(15,23,42,.10);
+  border: 1px solid rgba(226,232,240,.55);
+  background: rgba(226,232,240,.12);
   cursor: pointer;
 }
 .monitor-dot.active{
@@ -998,10 +1013,10 @@ body{
 }
 
 .monitor-slide .card{
-  background: rgba(255,255,255,.98);
+  background: rgba(255,255,255,.96);
   color: #0f172a;
-  border: 1px solid rgba(226,232,240,.95);
-  box-shadow: 0 12px 28px rgba(15,23,42,.16); /* FIX: softer shadow for bright theme */
+  border: 1px solid rgba(226,232,240,.9);
+  box-shadow: 0 16px 44px rgba(0,0,0,.35);
 }
 
 .monitor-slide .card .hint{ color: #64748b; }
@@ -1124,19 +1139,4 @@ body.monitor-mode #monitor-carousel .logs-table{ font-size: .9rem; }
     min-width: 0;
     justify-content: flex-start;
   }
-}
-
-
-/* FIX: bigger charts on monitor */
-.monitor-slide .chart-wrapper{ height: 340px; }
-
-/* FIX: arrange chart cards in 2 columns on monitor (fills screen, looks like signage) */
-body.monitor-mode #dash-chart-block{
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 14px;
-  align-content: start;
-}
-@media (max-width: 980px){
-  body.monitor-mode #dash-chart-block{ grid-template-columns: 1fr; }
 }
