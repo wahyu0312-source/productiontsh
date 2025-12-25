@@ -380,15 +380,6 @@ body{
   align-items:center;
 }
 
-@media (min-width: 769px){
-  .list-action-buttons,
-  .plans-actions,
-  .user-actions{
-    justify-content:flex-end; /* FIX: align 操作 buttons to the right like the header */
-    flex-wrap:nowrap;         /* FIX: keep icon buttons in one line on desktop */
-  }
-}
-
 /* ===========================================
    Content / Cards
    =========================================== */
