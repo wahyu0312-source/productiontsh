@@ -97,7 +97,7 @@ function getRoleLabel(role) {
 function iconMarkup(symbolId, extraClass = '') {
   const cls = ['icon', extraClass].filter(Boolean).join(' ');
   return `<svg class="${cls}" aria-hidden="true"><use href="#${symbolId}"></use></svg>`;
-} // FIX: close iconMarkup so monitor carousel code is global (prevents enterMonitorModeCarousel missing)
+} // FIX: close iconMarkup so monitor carousel code runs in global scope
 
 /* ================================
    Monitor Carousel (Digital Signage)
@@ -256,6 +256,13 @@ function setMonitorIndex(i, instant = false) {
 
   const dots = Array.from(dotsEl.querySelectorAll('.monitor-dot'));
   dots.forEach((d, idx) => d.classList.toggle('active', idx === monitorCarousel.index));
+
+  // FIX: Chart.js canvas can lose size after moving into monitor; resize on slide change
+  try {
+    if (typeof processChart !== 'undefined' && processChart && typeof processChart.resize === 'function') {
+      processChart.resize();
+    }
+  } catch (_) {}
 }
 
 function startMonitorAuto() {
@@ -293,26 +300,189 @@ function startMonitorClock() {
   monitorCarousel.clockTimer = setInterval(update, 1000);
 }
 
+
+function computeOverdueSummaryForMonitor() {
+  // FIX: provide KPI summary (遅れ件数 / 遅れ時間) for monitor signage
+  const now = new Date();
+  const items = (plans || [])
+    .map(plan => {
+      const end = parseDateFlexible(plan.planned_end);
+      if (!end) return null;
+
+      const related = (dashboardLogs || []).filter(l =>
+        l.product_code === plan.product_code &&
+        (!plan.process_name || l.process_name === plan.process_name)
+      );
+      const actualTotal = related.reduce((sum, l) => sum + safeNumber(l.qty_total), 0);
+      const planQty = safeNumber(plan.planned_qty);
+
+      // completed or no plan qty
+      if (planQty > 0 && actualTotal >= planQty) return null;
+
+      // not yet due
+      if (end > now) return null;
+
+      const lateH = Math.max(0, (now - end) / (3600 * 1000));
+      return { late_h: lateH };
+    })
+    .filter(Boolean);
+
+  return {
+    count: items.length,
+    late_total_h: items.reduce((sum, it) => sum + safeNumber(it.late_h), 0)
+  };
+}
+
+function buildMonitorKpiSlide(slide) {
+  // FIX: dedicated KPI+Chart slide for digital signage (avoid "welcome only" first view)
+  if (!slide) return;
+
+  slide.innerHTML = `
+    <div class="monitor-kpi-layout">
+      <div class="monitor-kpi-panel">
+        <div class="monitor-kpi-head">
+          <div>
+            <div class="monitor-kpi-title">KPI（本日）</div>
+            <div class="monitor-kpi-updated" id="monitor-kpi-updated">更新: -</div>
+          </div>
+        </div>
+
+        <div class="monitor-kpi-grid">
+          <div class="monitor-kpi-card">
+            <div class="monitor-kpi-label">計画達成率</div>
+            <div class="monitor-kpi-value" id="monitor-kpi-planrate">0%</div>
+            <div class="monitor-kpi-sub" id="monitor-kpi-planmini">0 / 0</div>
+          </div>
+
+          <div class="monitor-kpi-card">
+            <div class="monitor-kpi-label">本日の総生産数量</div>
+            <div class="monitor-kpi-value" id="monitor-kpi-todaytotal">0</div>
+          </div>
+
+          <div class="monitor-kpi-card monitor-kpi-warn">
+            <div class="monitor-kpi-label">本日の不良数量</div>
+            <div class="monitor-kpi-value" id="monitor-kpi-todayng">0</div>
+          </div>
+
+          <div class="monitor-kpi-card">
+            <div class="monitor-kpi-label">遅れ件数</div>
+            <div class="monitor-kpi-value" id="monitor-kpi-overduecount">0</div>
+          </div>
+
+          <div class="monitor-kpi-card">
+            <div class="monitor-kpi-label">遅れ時間（合計h）</div>
+            <div class="monitor-kpi-value" id="monitor-kpi-overdueh">0.0</div>
+          </div>
+
+          <div class="monitor-kpi-card">
+            <div class="monitor-kpi-label">外注比率</div>
+            <div class="monitor-kpi-value" id="monitor-kpi-outsourceratio">-</div>
+            <div class="monitor-kpi-sub">※データ未連携の場合は「-」</div>
+          </div>
+        </div>
+
+        <div class="monitor-kpi-info">
+          <div class="monitor-kpi-info-label">INFO</div>
+          <div class="monitor-kpi-info-text" id="monitor-kpi-info-text">-</div>
+        </div>
+      </div>
+
+      <div class="monitor-kpi-right" id="monitor-kpi-right"></div>
+    </div>
+  `;
+
+  const right = slide.querySelector('#monitor-kpi-right');
+
+  // Move only the chart card (the one that contains #process-chart) into the KPI slide
+  const canvas = document.getElementById('process-chart');
+  const chartCard = canvas ? canvas.closest('.card') : null;
+
+  if (right && chartCard) {
+    if (!monitorCarousel.restoreMap.has(chartCard)) {
+      monitorCarousel.restoreMap.set(chartCard, { parent: chartCard.parentNode, next: chartCard.nextSibling });
+    }
+    right.appendChild(chartCard);
+  }
+}
+
+function updateMonitorKpiSlide() {
+  // FIX: keep KPI slide values in sync with live dashboard data
+  const slide0 = (monitorCarousel.slides || [])[0];
+  if (!slide0) return;
+  if (!slide0.querySelector('#monitor-kpi-planrate')) return; // not built yet
+
+  const getText = (id, fallback = '0') => {
+    const el = document.getElementById(id);
+    const t = el ? (el.textContent || '').trim() : '';
+    return t || fallback;
+  };
+
+  const todayTotal = getText('today-total', '0');
+  const todayNg = getText('today-ng', '0');
+
+  const planTotal = safeNumber(getText('plan-total', '0'));
+  const actualTotal = safeNumber(getText('actual-total', '0'));
+  const rate = planTotal > 0 ? Math.round((actualTotal * 100) / planTotal) : 0;
+
+  const overdue = computeOverdueSummaryForMonitor();
+
+  const tickerText = (() => {
+    const el = document.getElementById('ticker-text');
+    return el ? (el.textContent || '').trim() : '';
+  })();
+
+  const safety = (() => {
+    const el = document.getElementById('safety-message');
+    return el ? (el.textContent || '').trim() : '';
+  })();
+
+  const infoLine = [tickerText, safety].filter(Boolean).join(' / ');
+
+  const set = (sel, val) => {
+    const el = slide0.querySelector(sel);
+    if (el) el.textContent = val;
+  };
+
+  set('#monitor-kpi-planrate', `${rate}%`);
+  set('#monitor-kpi-planmini', `${actualTotal} / ${planTotal}`);
+  set('#monitor-kpi-todaytotal', todayTotal);
+  set('#monitor-kpi-todayng', todayNg);
+  set('#monitor-kpi-overduecount', String(overdue.count || 0));
+  set('#monitor-kpi-overdueh', (overdue.late_total_h || 0).toFixed(1));
+
+  // Outsource ratio: show '-' unless you wire real data later
+  set('#monitor-kpi-outsourceratio', '-');
+
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  set('#monitor-kpi-updated', `更新: ${hh}:${mm}`);
+
+  set('#monitor-kpi-info-text', infoLine || '-');
+}
+
 function enterMonitorModeCarousel() {
   setupMonitorCarouselUI();
   const root = monitorCarousel.root;
   const slides = monitorCarousel.slides;
   if (!root || slides.length === 0) return;
 
+  // FIX: build KPI + Chart slide first (no need to navigate to see KPI/graphs)
+  buildMonitorKpiSlide(slides[0]);
+
   const sources = [
-    { id: 'dash-summary-block', title: '概要' },
-    { id: 'dash-chart-block', title: 'グラフ' },
-    { id: 'plan-list-block', title: '計画一覧' },
     { id: 'dash-latest-block', title: '最新実績' },
+    { id: 'plan-list-block', title: '計画一覧' },
     { id: 'dash-overdue-block', title: '遅れ計画' },
     { id: 'dash-topng-block', title: 'Top NG' },
     { id: 'dash-bottleneck-block', title: 'ボトルネック' },
-    { id: 'dash-topitems-block', title: '頻出品目' }
+    { id: 'dash-topitems-block', title: '頻出品目' },
+    { id: 'dash-summary-block', title: '概要' }
   ];
 
-  // Fill each slide by moving existing DOM blocks (keeps live updates)
+  // Fill remaining slides by moving existing DOM blocks (keeps live updates)
   sources.forEach((s, idx) => {
-    const slide = slides[idx];
+    const slide = slides[idx + 1];
     if (!slide) return;
     slide.innerHTML = '';
 
@@ -335,9 +505,13 @@ function enterMonitorModeCarousel() {
 
   root.classList.add('active');
   root.setAttribute('aria-hidden', 'false');
+
+  // FIX: refresh KPI now (and ensure charts get correct size after DOM move)
+  updateMonitorKpiSlide();
   setMonitorIndex(0, true);
   startMonitorAuto();
 }
+
 
 function exitMonitorModeCarousel() {
   stopMonitorAuto();
@@ -366,8 +540,8 @@ function exitMonitorModeCarousel() {
     root.setAttribute('aria-hidden', 'true');
   }
 }
+// FIX: removed stray '}' that broke JS parsing / scope
 
-// FIX: removed stray '}' that caused SyntaxError (Unexpected token '}')
 
 /* ================================
    QRラベル 共通
@@ -2345,6 +2519,7 @@ function setHiddenById(id, hidden) {
 function updateSpecialMonitorBlocks() {
   renderOverduePlansBlock();
   renderTopNgBlock();
+  updateMonitorKpiSlide(); // FIX: keep monitor KPI slide synced
   renderBottleneckBlock();
   renderTopItemsBlock();
 }
