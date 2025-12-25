@@ -97,8 +97,6 @@ function getRoleLabel(role) {
 function iconMarkup(symbolId, extraClass = '') {
   const cls = ['icon', extraClass].filter(Boolean).join(' ');
   return `<svg class="${cls}" aria-hidden="true"><use href="#${symbolId}"></use></svg>`;
-} // FIX: close iconMarkup so monitor carousel code is not trapped / unreachable
-
 
 /* ================================
    Monitor Carousel (Digital Signage)
@@ -257,6 +255,14 @@ function setMonitorIndex(i, instant = false) {
 
   const dots = Array.from(dotsEl.querySelectorAll('.monitor-dot'));
   dots.forEach((d, idx) => d.classList.toggle('active', idx === monitorCarousel.index));
+
+  // FIX: Chart.js canvas can lose size after DOM move; resize on slide change
+  try {
+    if (typeof processChart !== 'undefined' && processChart && typeof processChart.resize === 'function') {
+      processChart.resize();
+    }
+  } catch (e) { /* noop */ }
+
 }
 
 function startMonitorAuto() {
@@ -301,8 +307,8 @@ function enterMonitorModeCarousel() {
   if (!root || slides.length === 0) return;
 
   const sources = [
-    { id: 'dash-summary-block', title: '概要' },
     { id: 'dash-chart-block', title: 'グラフ' },
+    { id: 'dash-summary-block', title: '概要' },
     { id: 'plan-list-block', title: '計画一覧' },
     { id: 'dash-latest-block', title: '最新実績' },
     { id: 'dash-overdue-block', title: '遅れ計画' },
@@ -310,6 +316,7 @@ function enterMonitorModeCarousel() {
     { id: 'dash-bottleneck-block', title: 'ボトルネック' },
     { id: 'dash-topitems-block', title: '頻出品目' }
   ];
+  // FIX: start monitor with charts (bright, informative) and keep others in later slides
 
   // Fill each slide by moving existing DOM blocks (keeps live updates)
   sources.forEach((s, idx) => {
@@ -338,6 +345,9 @@ function enterMonitorModeCarousel() {
   root.setAttribute('aria-hidden', 'false');
   setMonitorIndex(0, true);
   startMonitorAuto();
+
+  // FIX: refresh KPI/chart after moving dashboard blocks into monitor slides
+  try { loadAnalytics(); } catch (e) { /* noop */ }
 }
 
 function exitMonitorModeCarousel() {
@@ -367,8 +377,7 @@ function exitMonitorModeCarousel() {
     root.setAttribute('aria-hidden', 'true');
   }
 }
-
-// FIX: removed stray '}' that previously closed iconMarkup at wrong place
+}
 
 
 /* ================================
