@@ -1,4 +1,6 @@
-const CACHE_NAME = 'productionsh-cache-v10'; // FIX: bump cache for monitor bright update
+const CACHE_NAME = 'productionsh-cache-v11'; // FIX: bump cache to ensure updated assets are fetched
+
+
 
 const OFFLINE_URLS = [
   './',
