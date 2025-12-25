@@ -629,24 +629,24 @@ body{
    background: #f3f4f6;
    font-weight: 800;
  }
-+
-+/* FIX: logs-table header alignment (match body; align 操作 to action buttons) */
-+@media (min-width: 769px){
-+  .logs-table thead th{
-+    text-align: left;          /* FIX: header tidak “mengambang” di tengah */
-+    vertical-align: middle;    /* FIX: posisi teks header lebih rapi */
-+  }
-+  .logs-table thead th:last-child{
-+    text-align: right;         /* FIX: header 操作 sejajar dengan tombol */
-+  }
-+  .logs-table td:last-child{
-+    text-align: right;         /* FIX: row non-flex tetap rapi */
-+  }
-+  .logs-table th:last-child,
-+  .logs-table td:last-child{
-+    width: 140px;              /* FIX: kolom 操作 stabil */
-+  }
-+}
+
+/* FIX: logs-table header alignment (match body; align 操作 to action buttons) */
+@media (min-width: 769px){
+.logs-table thead th{
+text-align: left;          /* FIX: header tidak “mengambang” di tengah */
+vertical-align: middle;    /* FIX: posisi teks header lebih rapi */
+}
+.logs-table thead th:last-child{
+ text-align: right;         /* FIX: header 操作 sejajar dengan tombol */
+ }
+ .logs-table td:last-child{
+   text-align: right;         /* FIX: row non-flex tetap rapi */
+}
+ .logs-table th:last-child,
+.logs-table td:last-child{
+width: 140px;              /* FIX: kolom 操作 stabil */
+}
+}
 
 /* Generic tables inside wrappers */
 /* FIX: table header/body alignment (especially 操作 column) */
