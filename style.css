@@ -381,11 +381,11 @@ body{
 }
 
 @media (min-width: 769px){
-  .list-action-buttons,
   .plans-actions,
-  .user-actions{
-    justify-content:flex-end; /* FIX: align 操作 buttons to the right like the header */
-    flex-wrap:nowrap;         /* FIX: keep icon buttons in one line on desktop */
+  .user-actions,
+  .list-action-buttons{
+    justify-content: flex-end; /* FIX: align 操作 buttons with header on desktop */
+    flex-wrap: nowrap;         /* FIX: keep action icons on one line */
   }
 }
 
@@ -627,6 +627,14 @@ body{
 }
 
 /* Generic tables inside wrappers */
+/* FIX: table header/body alignment (especially 操作 column) */
+.table-wrapper table:not(.logs-table) th{ text-align:left; vertical-align:middle; }
+.table-wrapper table:not(.logs-table) td{ vertical-align:middle; }
+.table-wrapper table:not(.logs-table) thead th:last-child{ text-align:right; }
+.table-wrapper table:not(.logs-table) tbody td:last-child{ text-align:right; }
+.table-wrapper table:not(.logs-table) thead th:last-child,
+.table-wrapper table:not(.logs-table) tbody td:last-child{ width: 150px; }
+
 .table-wrapper table:not(.logs-table){
   width:100%;
   border-collapse: collapse;
@@ -642,14 +650,6 @@ body{
   background: #f3f4f6;
   font-weight: 800;
 }
-
-/* FIX: desktop table alignment for readability (match header & body) */
-.table-wrapper table:not(.logs-table) th{ text-align:left; vertical-align:middle; }
-.table-wrapper table:not(.logs-table) td{ vertical-align:middle; }
-.table-wrapper table:not(.logs-table) thead th:last-child{ text-align:right; }
-/* keep action column compact */
-.table-wrapper table:not(.logs-table) th:last-child,
-.table-wrapper table:not(.logs-table) td:last-child{ width: 140px; }
 
 /* Responsive table -> card (only for tables that opt-in) */
 @media (max-width: 768px){
@@ -1012,6 +1012,67 @@ body{
   padding: 16px;
 }
 
+/* FIX: KPI + Chart layout for monitor (slide 0) */
+.monitor-kpi-layout{
+  display:grid;
+  grid-template-columns: 420px 1fr;
+  gap: 14px;
+  align-items:start;
+}
+@media (max-width: 1024px){
+  .monitor-kpi-layout{ grid-template-columns: 1fr; }
+}
+.monitor-kpi-panel{
+  background: rgba(255,255,255,.96);
+  border: 1px solid rgba(226,232,240,.92);
+  border-radius: 16px;
+  box-shadow: 0 16px 44px rgba(0,0,0,.25);
+  padding: 14px;
+}
+.monitor-kpi-title{ font-size: 1.1rem; font-weight: 900; color:#0f172a; }
+.monitor-kpi-updated{ margin-top:4px; font-size:.82rem; color:#475569; }
+
+.monitor-kpi-grid{
+  margin-top: 12px;
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 10px;
+}
+.monitor-kpi-card{
+  border-radius: 14px;
+  border: 1px solid rgba(226,232,240,.95);
+  background: rgba(248,250,252,.95);
+  padding: 10px 12px;
+}
+.monitor-kpi-warn{ background: rgba(255,237,213,.95); border-color: rgba(251,146,60,.35); }
+.monitor-kpi-label{ font-size:.78rem; color:#64748b; font-weight:800; }
+.monitor-kpi-value{ margin-top:4px; font-size: 1.6rem; font-weight: 900; color:#0f172a; }
+.monitor-kpi-sub{ margin-top:2px; font-size:.78rem; color:#475569; }
+
+.monitor-kpi-info{
+  margin-top: 12px;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  border-radius: 999px;
+  background: rgba(15,23,42,.92);
+  color:#ffffff;
+  padding: 6px 10px;
+  font-size:.86rem;
+}
+.monitor-kpi-info-label{
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--c-accent);
+  font-weight: 900;
+  font-size:.78rem;
+}
+.monitor-kpi-info-text{ overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* FIX: chart sizing inside KPI slide (make signage readable) */
+.monitor-kpi-right .chart-wrapper{ min-height: 360px; }
+.monitor-kpi-right canvas{ max-height: 520px; }
+
+
 .monitor-slide .card{
   background: rgba(255,255,255,.96);
   color: #0f172a;
@@ -1139,4 +1200,25 @@ body.monitor-mode #monitor-carousel .logs-table{ font-size: .9rem; }
     min-width: 0;
     justify-content: flex-start;
   }
+}
+
+
+/* FIX: brighten monitor theme (cerah) while keeping contrast */
+body.monitor-mode #monitor-carousel{
+  background: radial-gradient(1200px 700px at 20% 18%, rgba(37,99,235,.18), transparent 60%),
+              radial-gradient(900px 600px at 82% 28%, rgba(249,115,22,.16), transparent 60%),
+              linear-gradient(180deg, #f8fafc, #eef2ff 55%, #f1f5f9);
+  color:#0f172a;
+}
+body.monitor-mode #monitor-carousel .monitor-topbar{
+  background: rgba(255,255,255,.82);
+  border-bottom: 1px solid rgba(226,232,240,.9);
+}
+body.monitor-mode #monitor-carousel .monitor-title-main,
+body.monitor-mode #monitor-carousel .monitor-title-sub{
+  color:#0f172a;
+}
+body.monitor-mode #monitor-carousel .monitor-dot{
+  border-color: rgba(100,116,139,.55);
+  background: rgba(100,116,139,.14);
 }
