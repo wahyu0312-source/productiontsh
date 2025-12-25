@@ -1191,18 +1191,23 @@ body.monitor-mode #monitor-carousel .logs-table{ font-size: .9rem; }
   .topbar-subtitle{ display:none; }
   .topbar{ padding: 10px 12px; }
 }
-/* Table readability + consistent action column */
+/* FIX: keep tables readable WITHOUT breaking 操作 alignment */
 .table-wrapper table{ table-layout: fixed; }
 .table-wrapper th, .table-wrapper td{ vertical-align: middle; }
 .table-wrapper th{ white-space: nowrap; }
 .table-wrapper td{ overflow:hidden; text-overflow: ellipsis; }
-.table-wrapper td[data-label="操作"]{ text-align:center; }
 
-.plans-actions,
-.user-actions,
-.list-action-buttons{
-  justify-content: center;
+/* FIX: 操作 column should align with its icon buttons on desktop */
+@media (min-width: 769px){
+  .table-wrapper th:last-child,
+  .table-wrapper td:last-child{
+    text-align: right;
+  }
 }
+
+/* FIX: remove center override (it breaks desktop alignment) */
+/* DO NOT force justify-content:center for desktop action buttons */
+
 
 .plans-actions .icon-btn,
 .user-actions .icon-btn,
