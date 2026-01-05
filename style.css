@@ -1609,3 +1609,31 @@ body.monitor-mode #monitor-carousel .monitor-kpi-right canvas{
 .mw-chip:active{
   transform: translateY(1px);
 }
+/* ================================
+   FIX: Monitor chart "turun terus"
+   - Kunci tinggi chart container saat monitor-mode
+   - Hindari layout drift akibat canvas resize
+   ================================ */
+
+body.monitor-mode {
+  overflow: hidden; /* stop halaman ikut scroll */
+}
+
+body.monitor-mode .monitor-slide {
+  overflow: hidden; /* stop slide ikut memanjang karena chart */
+}
+
+/* Ini yang paling penting: tinggi chart-wrapper DI KUNCI */
+body.monitor-mode .monitor-kpi-right .chart-wrapper {
+  height: min(520px, calc(100vh - 260px));
+  min-height: 360px;
+  max-height: 520px;
+  overflow: hidden;
+}
+
+/* Pastikan canvas mengikuti wrapper, tidak “nambah tinggi sendiri” */
+body.monitor-mode .monitor-kpi-right #process-chart {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
