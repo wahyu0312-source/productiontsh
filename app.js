@@ -116,7 +116,8 @@ const monitorCarousel = {
   dotsEl: null,
   viewport: null,
   bound: false,
-  clockTimer: null
+  clockTimer: null,
+  single: false
 };
 
 function setupMonitorCarouselUI() {
@@ -132,6 +133,26 @@ function setupMonitorCarouselUI() {
   monitorCarousel.dotsEl = dotsEl;
   monitorCarousel.viewport = viewport;
   monitorCarousel.slides = Array.from(root.querySelectorAll('.monitor-slide'));
+
+  // Single-slide mode: URL param ?single=1 or toggle button
+  const params = new URLSearchParams(window.location.search || '');
+  if (params.get('single') === '1') {
+    monitorCarousel.single = true;
+  }
+  root.classList.toggle('monitor-single', monitorCarousel.single);
+
+  const singleBtn = document.getElementById('monitor-single-toggle');
+  if (singleBtn && !singleBtn.dataset.bound) {
+    singleBtn.dataset.bound = '1';
+    singleBtn.addEventListener('click', () => {
+      monitorCarousel.single = !monitorCarousel.single;
+      root.classList.toggle('monitor-single', monitorCarousel.single);
+      setMonitorIndex(0);
+      if (monitorCarousel.single) stopMonitorAuto(); else startMonitorAuto();
+      showToast(monitorCarousel.single ? 'モニタ: 単一表示に切り替えました。' : 'モニタ: 自動スライドに戻しました。', 'info');
+    });
+  }
+
 
   // Build dots once
   if (!dotsEl.dataset.built) {
@@ -267,6 +288,8 @@ function setMonitorIndex(i, instant = false) {
 }
 
 function startMonitorAuto() {
+  // In single-slide mode, do not auto-rotate
+  if (monitorCarousel.single) return;
   stopMonitorAuto();
   monitorCarousel.timer = setInterval(() => {
     setMonitorIndex(monitorCarousel.index + 1);
@@ -338,57 +361,98 @@ function buildMonitorKpiSlide(slide) {
   // FIX: dedicated KPI+Chart slide for digital signage (avoid "welcome only" first view)
   if (!slide) return;
 
+  
   slide.innerHTML = `
-    <div class="monitor-kpi-layout">
-      <div class="monitor-kpi-panel">
-        <div class="monitor-kpi-head">
-          <div>
-            <div class="monitor-kpi-title">KPI（本日）</div>
-            <div class="monitor-kpi-updated" id="monitor-kpi-updated">更新: -</div>
+    <div class="monitor-kpi-screen">
+      <div class="monitor-kpi-top">
+        <div class="monitor-kpi-panel">
+          <div class="monitor-kpi-head">
+            <div>
+              <div class="monitor-kpi-title">KPI（本日）</div>
+              <div class="monitor-kpi-updated" id="monitor-kpi-updated">更新: -</div>
+            </div>
+          </div>
+
+          <div class="monitor-kpi-grid">
+            <div class="monitor-kpi-card">
+              <div class="monitor-kpi-label">計画達成率</div>
+              <div class="monitor-kpi-value" id="monitor-kpi-planrate">0%</div>
+              <div class="monitor-kpi-sub" id="monitor-kpi-planmini">0 / 0</div>
+            </div>
+
+            <div class="monitor-kpi-card">
+              <div class="monitor-kpi-label">本日の総生産数量</div>
+              <div class="monitor-kpi-value" id="monitor-kpi-todaytotal">0</div>
+            </div>
+
+            <div class="monitor-kpi-card monitor-kpi-warn">
+              <div class="monitor-kpi-label">本日の不良数量</div>
+              <div class="monitor-kpi-value" id="monitor-kpi-todayng">0</div>
+            </div>
+
+            <div class="monitor-kpi-card">
+              <div class="monitor-kpi-label">遅れ件数</div>
+              <div class="monitor-kpi-value" id="monitor-kpi-overduecount">0</div>
+            </div>
+
+            <div class="monitor-kpi-card">
+              <div class="monitor-kpi-label">遅れ時間（合計h）</div>
+              <div class="monitor-kpi-value" id="monitor-kpi-overdueh">0.0</div>
+              <div class="monitor-kpi-sub" id="monitor-kpi-overduemini">-</div>
+            </div>
+
+            <div class="monitor-kpi-card">
+              <div class="monitor-kpi-label">外注比率（数量/工数）</div>
+              <div class="monitor-kpi-value" id="monitor-kpi-outsourceratio">-</div>
+              <div class="monitor-kpi-sub" id="monitor-kpi-outsourcemh">-</div>
+            </div>
+          </div>
+
+          <div class="monitor-kpi-info">
+            <div class="monitor-kpi-info-label">INFO</div>
+            <div class="monitor-kpi-info-text" id="monitor-kpi-info-text">-</div>
           </div>
         </div>
 
-        <div class="monitor-kpi-grid">
-          <div class="monitor-kpi-card">
-            <div class="monitor-kpi-label">計画達成率</div>
-            <div class="monitor-kpi-value" id="monitor-kpi-planrate">0%</div>
-            <div class="monitor-kpi-sub" id="monitor-kpi-planmini">0 / 0</div>
-          </div>
-
-          <div class="monitor-kpi-card">
-            <div class="monitor-kpi-label">本日の総生産数量</div>
-            <div class="monitor-kpi-value" id="monitor-kpi-todaytotal">0</div>
-          </div>
-
-          <div class="monitor-kpi-card monitor-kpi-warn">
-            <div class="monitor-kpi-label">本日の不良数量</div>
-            <div class="monitor-kpi-value" id="monitor-kpi-todayng">0</div>
-          </div>
-
-          <div class="monitor-kpi-card">
-            <div class="monitor-kpi-label">遅れ件数</div>
-            <div class="monitor-kpi-value" id="monitor-kpi-overduecount">0</div>
-          </div>
-
-          <div class="monitor-kpi-card">
-            <div class="monitor-kpi-label">遅れ時間（合計h）</div>
-            <div class="monitor-kpi-value" id="monitor-kpi-overdueh">0.0</div>
-          </div>
-
-          <div class="monitor-kpi-card">
-            <div class="monitor-kpi-label">外注比率</div>
-            <div class="monitor-kpi-value" id="monitor-kpi-outsourceratio">-</div>
-            <div class="monitor-kpi-sub">※データ未連携の場合は「-」</div>
-          </div>
-        </div>
-
-        <div class="monitor-kpi-info">
-          <div class="monitor-kpi-info-label">INFO</div>
-          <div class="monitor-kpi-info-text" id="monitor-kpi-info-text">-</div>
-        </div>
+        <div class="monitor-kpi-right" id="monitor-kpi-right"></div>
       </div>
 
-      <div class="monitor-kpi-right" id="monitor-kpi-right"></div>
+      <div class="monitor-kpi-bottom">
+        <div class="card monitor-mini-card">
+          <h2 class="card-title">遅れTop5</h2>
+          <div class="table-wrapper">
+            <table class="logs-table">
+              <thead>
+                <tr>
+                  <th>図番</th>
+                  <th>工程</th>
+                  <th class="align-right">遅れ</th>
+                </tr>
+              </thead>
+              <tbody id="monitor-overdue-top-tbody"></tbody>
+            </table>
+          </div>
+          <div id="monitor-overdue-top-empty" class="empty-state hidden">遅れ計画はありません。</div>
+        </div>
+
+        <div class="card monitor-mini-card">
+          <h2 class="card-title">最新実績（5件）</h2>
+          <div class="table-wrapper">
+            <table class="logs-table">
+              <thead>
+                <tr>
+                  <th>時刻</th>
+                  <th>図番</th>
+                  <th class="align-right">数量</th>
+                  <th class="align-right">NG</th>
+                </tr>
+              </thead>
+              <tbody id="monitor-latest5-tbody"></tbody>
+            </table>
+          </div>
+          <div id="monitor-latest5-empty" class="empty-state hidden">実績はまだありません。</div>
+        </div>
+      </div>
     </div>
   `;
 
@@ -449,19 +513,116 @@ function updateMonitorKpiSlide() {
   set('#monitor-kpi-todaytotal', todayTotal);
   set('#monitor-kpi-todayng', todayNg);
   // Prefer backend KPI (more accurate). Fallback to local estimate.
-const overdueKpi = (latestPlanKpi && latestPlanKpi.overdue) ? latestPlanKpi.overdue : overdue;
-set('#monitor-kpi-overduecount', String(overdueKpi.count || 0));
-set('#monitor-kpi-overdueh', (overdueKpi.late_total_h || 0).toFixed(1));
+  const overdueKpi = (latestPlanKpi && latestPlanKpi.overdue) ? latestPlanKpi.overdue : overdue;
+  const lateH = Number(overdueKpi.late_total_h || 0);
+  const lateMin = Number(overdueKpi.late_total_min || 0);
+  set('#monitor-kpi-overduecount', String(overdueKpi.count || 0));
+  set('#monitor-kpi-overdueh', lateH.toFixed(1));
+  // show HH:MM style as sub
+  const h = Math.floor(lateMin / 60);
+  const m = Math.floor(lateMin % 60);
+  set('#monitor-kpi-overduemini', `合計 ${h}h ${m}m`);
 
-const outKpi = (latestPlanKpi && latestPlanKpi.outsource) ? latestPlanKpi.outsource : null;
-set('#monitor-kpi-outsourceratio', outKpi ? `${(outKpi.ratio_qty_pct || 0).toFixed(1)}%` : '-');
+  const outKpi = (latestPlanKpi && latestPlanKpi.outsource) ? latestPlanKpi.outsource : null;
+  if (outKpi) {
+    set('#monitor-kpi-outsourceratio', `${(outKpi.ratio_qty_pct || 0).toFixed(1)}%`);
+    set('#monitor-kpi-outsourcemh', `工数: ${(outKpi.ratio_mh_pct || 0).toFixed(1)}%`);
+  } else {
+    set('#monitor-kpi-outsourceratio', '-');
+    set('#monitor-kpi-outsourcemh', '-');
+  }
   const now = new Date();
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
   set('#monitor-kpi-updated', `更新: ${hh}:${mm}`);
 
   set('#monitor-kpi-info-text', infoLine || '-');
+
+  // update mini tables (overdue / latest)
+  updateMonitorMiniTables(slide0);
 }
+
+
+function updateMonitorMiniTables(slide0) {
+  if (!slide0) return;
+
+  // Overdue Top 5 (simple estimate)
+  const tbodyOver = slide0.querySelector('#monitor-overdue-top-tbody');
+  const emptyOver = slide0.querySelector('#monitor-overdue-top-empty');
+  if (tbodyOver) tbodyOver.innerHTML = '';
+
+  const now = new Date();
+  const calcActual = (plan) => {
+    const pid = String(plan.plan_id || '');
+    const rel = (dashboardLogs || []).filter(l => {
+      if (pid && String(l.plan_id || '') === pid) return true;
+      // fallback by product+process
+      if (String(l.product_code || '') !== String(plan.product_code || '')) return false;
+      if (String(l.process_name || '') !== String(plan.process_name || '')) return false;
+      return true;
+    });
+    return rel.reduce((sum, l) => sum + safeNumber(l.qty_total), 0);
+  };
+
+  const overdueList = (plans || []).map(p => {
+    const end = parseDateFlexible(p.planned_end);
+    const planQty = safeNumber(p.planned_qty);
+    if (!end || !planQty) return null;
+
+    const actual = calcActual(p);
+    if (actual >= planQty) return null; // done
+
+    if (end > now) return null; // not due yet
+
+    const lateMin = Math.max(0, (now - end) / 60000);
+    return { plan: p, lateMin };
+  }).filter(Boolean).sort((a, b) => b.lateMin - a.lateMin).slice(0, 5);
+
+  if (tbodyOver) {
+    overdueList.forEach(row => {
+      const tr = document.createElement('tr');
+      const lateH = row.lateMin / 60;
+      tr.innerHTML = `
+        <td>${escapeHtml(row.plan.product_code || '')}</td>
+        <td>${escapeHtml(row.plan.process_name || '')}</td>
+        <td class="align-right">${lateH.toFixed(1)}h</td>
+      `;
+      tbodyOver.appendChild(tr);
+    });
+  }
+
+  if (emptyOver) emptyOver.classList.toggle('hidden', overdueList.length > 0);
+
+  // Latest 5 logs
+  const tbodyLatest = slide0.querySelector('#monitor-latest5-tbody');
+  const emptyLatest = slide0.querySelector('#monitor-latest5-empty');
+  if (tbodyLatest) tbodyLatest.innerHTML = '';
+
+  const latest = (dashboardLogs || []).slice().sort((a, b) => {
+    const ta = parseDateFlexible(a.timestamp_end || a.timestamp_start) || new Date(0);
+    const tb = parseDateFlexible(b.timestamp_end || b.timestamp_start) || new Date(0);
+    return tb - ta;
+  }).slice(0, 5);
+
+  if (tbodyLatest) {
+    latest.forEach(l => {
+      const t = parseDateFlexible(l.timestamp_end || l.timestamp_start);
+      const hh = t ? String(t.getHours()).padStart(2, '0') : '--';
+      const mm = t ? String(t.getMinutes()).padStart(2, '0') : '--';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${hh}:${mm}</td>
+        <td>${escapeHtml(l.product_code || '')}</td>
+        <td class="align-right">${safeNumber(l.qty_total)}</td>
+        <td class="align-right">${safeNumber(l.qty_ng)}</td>
+      `;
+      tbodyLatest.appendChild(tr);
+    });
+  }
+
+  if (emptyLatest) emptyLatest.classList.toggle('hidden', latest.length > 0);
+}
+
 
 function enterMonitorModeCarousel() {
   setupMonitorCarouselUI();
@@ -471,6 +632,20 @@ function enterMonitorModeCarousel() {
 
   // FIX: build KPI + Chart slide first (no need to navigate to see KPI/graphs)
   buildMonitorKpiSlide(slides[0]);
+
+  // If single-slide mode is enabled, keep only slide 0 (KPI) and stop here.
+  if (monitorCarousel.single) {
+    for (let i = 1; i < slides.length; i++) {
+      slides[i].innerHTML = '';
+    }
+    root.classList.add('active');
+    root.setAttribute('aria-hidden', 'false');
+    setMonitorIndex(0);
+    stopMonitorAuto();
+    startMonitorClock();
+    return;
+  }
+
 
   const sources = [
     { id: 'dash-latest-block', title: '最新実績' },
@@ -851,6 +1026,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setSafetyMessage();           // ★ Safety message di dashboard
   renderLastUserQuickLogin();   // ★ quick login
 
+  setupMobileWizard();        // ★ mobile wizard (operator flow)
   loadMasterData();
   loadDashboard();
   loadAnalytics();
@@ -956,6 +1132,7 @@ function setupSidebar() {
    ================================ */
 
 function setupButtons() {
+  bindQrModalClose();
   // ユーザーQRスキャン
   const btnUserScan = document.getElementById('btn-start-user-scan');
   if (btnUserScan) {
@@ -1147,6 +1324,471 @@ function setupButtons() {
 
 
 
+
+/* ================================
+   Mobile Wizard (Operator Flow)
+   - Uses existing inputs (log-*) as the single source of truth
+   - Wizard controls simply write to those inputs and trigger existing actions
+   ================================ */
+
+let mobileWizard = {
+  enabled: false,
+  step: 1,
+  bound: false,
+  planQuery: '',
+  planAll: []
+};
+
+function isMobileWizardEnabled() {
+  const el = document.getElementById('mobile-wizard');
+  if (!el) return false;
+  return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+}
+
+function setupMobileWizard() {
+  // Only bind once; state can be toggled by resize.
+  if (!mobileWizard.bound) {
+    mobileWizard.bound = true;
+    bindMobileWizardEvents();
+    window.addEventListener('resize', () => {
+      // Update visibility-driven bindings / state
+      updateWizardState();
+    });
+  }
+  updateWizardState();
+}
+
+function bindMobileWizardEvents() {
+  const back = document.getElementById('mw-back');
+  const next = document.getElementById('mw-next');
+
+  if (back) back.addEventListener('click', () => moveWizard(-1));
+  if (next) next.addEventListener('click', () => moveWizard(1));
+
+  const btnLogin = document.getElementById('mw-btn-login');
+  const userIdInput = document.getElementById('mw-user-id');
+  if (btnLogin && userIdInput) {
+    btnLogin.addEventListener('click', async () => {
+      const id = (userIdInput.value || '').trim();
+      if (!id) { showToast('ユーザーIDを入力してください。', 'error'); return; }
+      await loginWithUserId(id);
+      updateWizardState();
+    });
+    userIdInput.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnLogin.click();
+      }
+    });
+  }
+
+  const btnUserScan = document.getElementById('mw-btn-user-scan');
+  if (btnUserScan) btnUserScan.addEventListener('click', () => startQrScan('user'));
+
+  const btnTerminalScan = document.getElementById('mw-btn-terminal-scan');
+  if (btnTerminalScan) btnTerminalScan.addEventListener('click', () => startQrScan('terminal'));
+
+  const planSelect = document.getElementById('mw-plan-select');
+  if (planSelect) {
+    planSelect.addEventListener('change', () => {
+      const pid = planSelect.value;
+      if (!pid) return;
+      const plan = (plans || []).find(p => String(p.plan_id) === String(pid));
+      if (plan) startScanForPlan(plan);
+      updateWizardState();
+    });
+  }
+
+
+  const planSearch = document.getElementById('mw-plan-search');
+  if (planSearch && !planSearch.dataset.bound) {
+    planSearch.dataset.bound = '1';
+    planSearch.addEventListener('input', () => {
+      mobileWizard.planQuery = (planSearch.value || '').trim();
+      renderWizardPlanOptions();
+      renderRecentPlanChips();
+    });
+    planSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        planSearch.value = '';
+        mobileWizard.planQuery = '';
+        renderWizardPlanOptions();
+        renderRecentPlanChips();
+      }
+    });
+  }
+
+  const btnOpenPlans = document.getElementById('mw-btn-open-plans');
+  if (btnOpenPlans) {
+    btnOpenPlans.addEventListener('click', () => {
+      // navigate to plan list section
+      const target = 'plan-list-section';
+      const links = document.querySelectorAll('.sidebar-link, .mobile-nav-link');
+      const sections = document.querySelectorAll('.section');
+      sections.forEach(sec => sec.classList.toggle('active', sec.id === target));
+      links.forEach(l => l.classList.toggle('active', l.dataset.section === target));
+      showToast('生産計画一覧を開きました。対象行の「スキャン/更新」で計画を選択してください。', 'info');
+    });
+  }
+
+  // Qty controls: sync to existing inputs
+  const statusSel = document.getElementById('mw-status');
+  if (statusSel) {
+    statusSel.addEventListener('change', () => {
+      const main = document.getElementById('log-status');
+      if (main) main.value = statusSel.value;
+    });
+  }
+
+  const okInput = document.getElementById('mw-ok-input');
+  const ngInput = document.getElementById('mw-ng-input');
+
+  const syncQtyToMain = () => {
+    const mainOk = document.getElementById('log-qty-ok');
+    const mainNg = document.getElementById('log-qty-ng');
+    if (mainOk && okInput) mainOk.value = String(Math.max(0, Number(okInput.value || 0)));
+    if (mainNg && ngInput) mainNg.value = String(Math.max(0, Number(ngInput.value || 0)));
+    // trigger total recalculation via input event
+    if (mainOk) mainOk.dispatchEvent(new Event('input', { bubbles: true }));
+    if (mainNg) mainNg.dispatchEvent(new Event('input', { bubbles: true }));
+    updateWizardTotalsFromMain();
+  };
+
+  const stepperBtns = document.querySelectorAll('.mw-stepper-btn');
+  stepperBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-target');
+      const delta = Number(btn.getAttribute('data-delta') || 0);
+      const input = target === 'ok' ? okInput : ngInput;
+      if (!input) return;
+      const nextVal = Math.max(0, Number(input.value || 0) + delta);
+      input.value = String(nextVal);
+      syncQtyToMain();
+    });
+  });
+
+  if (okInput) okInput.addEventListener('input', syncQtyToMain);
+  if (ngInput) ngInput.addEventListener('input', syncQtyToMain);
+
+  const crew = document.getElementById('mw-crew');
+  if (crew) {
+    crew.addEventListener('input', () => {
+      const main = document.getElementById('log-crew-size');
+      if (main) main.value = String(Math.max(1, Number(crew.value || 1)));
+    });
+  }
+
+  const lot = document.getElementById('mw-lot');
+  if (lot) {
+    lot.addEventListener('input', () => {
+      const main = document.getElementById('log-lot-number');
+      if (main) main.value = lot.value;
+    });
+  }
+
+  const note = document.getElementById('mw-note');
+  if (note) {
+    note.addEventListener('input', () => {
+      const main = document.getElementById('log-note');
+      if (main) main.value = note.value;
+    });
+  }
+
+  const btnSave = document.getElementById('mw-btn-save');
+  if (btnSave) btnSave.addEventListener('click', () => {
+    const main = document.getElementById('btn-save-log');
+    if (main) main.click();
+  });
+
+  const btnClear = document.getElementById('mw-btn-clear');
+  if (btnClear) btnClear.addEventListener('click', () => {
+    const main = document.getElementById('btn-clear-form');
+    if (main) main.click();
+    // clear wizard fields
+    resetWizardQtyInputs();
+    updateWizardState();
+  });
+
+  // Initial sync when entering step 4
+  updateWizardTotalsFromMain();
+}
+
+function resetWizardQtyInputs() {
+  const okInput = document.getElementById('mw-ok-input');
+  const ngInput = document.getElementById('mw-ng-input');
+  if (okInput) okInput.value = '0';
+  if (ngInput) ngInput.value = '0';
+  const okV = document.getElementById('mw-ok-value');
+  const ngV = document.getElementById('mw-ng-value');
+  const totalV = document.getElementById('mw-total-value');
+  if (okV) okV.textContent = '0';
+  if (ngV) ngV.textContent = '0';
+  if (totalV) totalV.textContent = '0';
+}
+
+function updateWizardTotalsFromMain() {
+  const mainOk = document.getElementById('log-qty-ok');
+  const mainNg = document.getElementById('log-qty-ng');
+  const ok = mainOk ? Number(mainOk.value || 0) : 0;
+  const ng = mainNg ? Number(mainNg.value || 0) : 0;
+  const okV = document.getElementById('mw-ok-value');
+  const ngV = document.getElementById('mw-ng-value');
+  const totalV = document.getElementById('mw-total-value');
+  if (okV) okV.textContent = String(ok);
+  if (ngV) ngV.textContent = String(ng);
+  if (totalV) totalV.textContent = String(ok + ng);
+
+  // keep hidden wizard inputs aligned too
+  const okInput = document.getElementById('mw-ok-input');
+  const ngInput = document.getElementById('mw-ng-input');
+  if (okInput) okInput.value = String(ok);
+  if (ngInput) ngInput.value = String(ng);
+
+  const statusSel = document.getElementById('mw-status');
+  const mainStatus = document.getElementById('log-status');
+  if (statusSel && mainStatus) statusSel.value = mainStatus.value;
+}
+
+function moveWizard(delta) {
+  const maxStep = 4;
+  const next = Math.min(maxStep, Math.max(1, mobileWizard.step + delta));
+
+  // enforce prerequisites when moving forward
+  if (delta > 0) {
+    if (mobileWizard.step === 1 && !currentUser) { showToast('ログインしてください。', 'error'); return; }
+    if (mobileWizard.step === 2 && !currentTerminal) { showToast('工程QRをスキャンしてください。', 'error'); return; }
+    if (mobileWizard.step === 3 && !currentPlanForScan) { showToast('生産計画を選択してください。', 'error'); return; }
+  }
+
+  mobileWizard.step = next;
+  renderWizardStep();
+}
+
+function renderWizardStep() {
+  const wizard = document.getElementById('mobile-wizard');
+  if (!wizard) return;
+
+  const steps = Array.from(wizard.querySelectorAll('.mw-step'));
+  steps.forEach(s => s.classList.toggle('active', Number(s.getAttribute('data-step')) === mobileWizard.step));
+
+  const prog = Array.from(wizard.querySelectorAll('.mw-progress-step'));
+  prog.forEach(p => p.classList.toggle('active', Number(p.getAttribute('data-step')) === mobileWizard.step));
+
+  const back = document.getElementById('mw-back');
+  const next = document.getElementById('mw-next');
+  if (back) back.disabled = mobileWizard.step === 1;
+
+  if (next) {
+    if (mobileWizard.step === 4) {
+      next.textContent = '完了';
+      next.disabled = true;
+    } else {
+      next.textContent = '次へ';
+      next.disabled = false;
+    }
+  }
+
+  // when entering step 4, refresh display values
+  if (mobileWizard.step === 4) {
+    updateWizardTotalsFromMain();
+  }
+}
+
+function updateWizardState() {
+  const wizard = document.getElementById('mobile-wizard');
+  if (!wizard) return;
+
+  const enabled = isMobileWizardEnabled();
+  mobileWizard.enabled = enabled;
+
+  // status lines
+  const userStatus = document.getElementById('mw-user-status');
+  if (userStatus) userStatus.textContent = currentUser ? `${currentUser.user_id} / ${currentUser.name_ja}` : '未ログイン';
+
+  const termStatus = document.getElementById('mw-terminal-status');
+  const termId = document.getElementById('mw-terminal-id');
+  const proc = document.getElementById('mw-process-name');
+  const loc = document.getElementById('mw-location');
+  if (currentTerminal) {
+    if (termStatus) termStatus.textContent = currentTerminal.name_ja || currentTerminal.terminal_id;
+    if (termId) termId.textContent = currentTerminal.terminal_id || '-';
+    if (proc) proc.textContent = currentTerminal.process_name || '-';
+    if (loc) loc.textContent = currentTerminal.location || '-';
+  } else {
+    if (termStatus) termStatus.textContent = '未スキャン';
+    if (termId) termId.textContent = '-';
+    if (proc) proc.textContent = '-';
+    if (loc) loc.textContent = '-';
+  }
+
+  const planStatus = document.getElementById('mw-plan-status');
+  const pCode = document.getElementById('mw-product-code');
+  const pName = document.getElementById('mw-product-name');
+  const pQty = document.getElementById('mw-plan-qty');
+  if (currentPlanForScan) {
+    if (planStatus) planStatus.textContent = `${currentPlanForScan.product_code || ''} / ${currentPlanForScan.process_name || ''}`;
+    if (pCode) pCode.textContent = currentPlanForScan.product_code || '-';
+    if (pName) pName.textContent = currentPlanForScan.product_name || '-';
+    if (pQty) pQty.textContent = String(currentPlanForScan.planned_qty || 0);
+  } else {
+    if (planStatus) planStatus.textContent = '未選択';
+    if (pCode) pCode.textContent = '-';
+    if (pName) pName.textContent = '-';
+    if (pQty) pQty.textContent = '-';
+  }
+
+  // keep wizard <select> options fresh
+  renderWizardPlanOptions();
+  renderRecentPlanChips();
+
+  // auto-advance when prerequisites satisfied (only forward)
+  if (mobileWizard.step === 1 && currentUser) mobileWizard.step = 2;
+  if (mobileWizard.step === 2 && currentTerminal) mobileWizard.step = 3;
+  if (mobileWizard.step === 3 && currentPlanForScan) mobileWizard.step = 4;
+
+  renderWizardStep();
+}
+
+
+function getRecentPlansKey_() {
+  const uid = currentUser && currentUser.user_id ? String(currentUser.user_id) : 'guest';
+  return `recentPlans:${uid}`;
+}
+
+function loadRecentPlans_() {
+  try {
+    const raw = localStorage.getItem(getRecentPlansKey_());
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveRecentPlan_(plan) {
+  if (!plan || !plan.plan_id) return;
+  const item = {
+    plan_id: String(plan.plan_id),
+    label: `${plan.product_code || ''} / ${plan.process_name || ''}`
+  };
+  const arr = loadRecentPlans_();
+  const next = [item, ...arr.filter(x => String(x.plan_id) !== String(item.plan_id))].slice(0, 8);
+  try { localStorage.setItem(getRecentPlansKey_(), JSON.stringify(next)); } catch (e) {}
+  renderRecentPlanChips();
+}
+
+function renderRecentPlanChips() {
+  const box = document.getElementById('mw-recent-plans');
+  if (!box) return;
+
+  const query = (mobileWizard.planQuery || '').toLowerCase();
+  const items = loadRecentPlans_().filter(it => {
+    if (!query) return true;
+    return String(it.plan_id || '').toLowerCase().includes(query) || String(it.label || '').toLowerCase().includes(query);
+  });
+
+  box.innerHTML = '';
+  if (items.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.color = '#64748b';
+    empty.style.fontSize = '0.85rem';
+    empty.textContent = '（履歴なし）';
+    box.appendChild(empty);
+    return;
+  }
+
+  items.forEach(it => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mw-chip';
+    btn.textContent = it.label;
+    btn.title = `計画ID: ${it.plan_id}`;
+    btn.addEventListener('click', () => {
+      const plan = (plans || []).find(p => String(p.plan_id) === String(it.plan_id));
+      if (plan) {
+        startScanForPlan(plan);
+        const sel = document.getElementById('mw-plan-select');
+        if (sel) sel.value = String(plan.plan_id);
+        updateWizardState();
+      } else {
+        showToast('計画データが見つかりません。計画一覧を更新してください。', 'warning');
+      }
+    });
+    box.appendChild(btn);
+  });
+}
+
+function renderWizardPlanOptions() {
+  const sel = document.getElementById('mw-plan-select');
+  if (!sel) return;
+
+  const query = (mobileWizard.planQuery || '').toLowerCase().trim();
+
+  // keep current selection if still exists
+  const current = sel.value || (currentPlanForScan ? String(currentPlanForScan.plan_id || '') : '');
+
+  // candidate plans: prefer "today / near-term", and prefer current process if selected
+  const now = new Date();
+  const dayStart = new Date(now); dayStart.setHours(0,0,0,0);
+  const dayEnd = new Date(now); dayEnd.setHours(23,59,59,999);
+
+  const procName = currentTerminal && currentTerminal.process_name ? String(currentTerminal.process_name) : '';
+
+  const overlapToday = (p) => {
+    const ps = parseDateFlexible(p.planned_start);
+    const pe = parseDateFlexible(p.planned_end);
+    const s = ps || pe || new Date(0);
+    const e = pe || ps || new Date(0);
+    return s <= dayEnd && e >= dayStart;
+  };
+
+  let list = (plans || []).slice();
+
+  // prefer process match if available
+  if (procName) {
+    const procMatch = list.filter(p => String(p.process_name || '') === procName);
+    if (procMatch.length > 0) list = procMatch;
+  }
+
+  // prefer today's plans; if none, keep the list
+  const today = list.filter(overlapToday);
+  if (today.length > 0) list = today;
+
+  // sort by planned_end
+  list = list.slice().sort((a, b) => {
+    const ea = parseDateFlexible(a.planned_end) || new Date(0);
+    const eb = parseDateFlexible(b.planned_end) || new Date(0);
+    return ea - eb;
+  });
+
+  // store for other UI (chips, etc.)
+  mobileWizard.planAll = list;
+
+  // apply search query filter
+  const filtered = !query ? list : list.filter(p => {
+    const hay = [
+      p.plan_id,
+      p.product_code,
+      p.product_name,
+      p.process_name
+    ].map(x => String(x || '').toLowerCase()).join(' ');
+    return hay.includes(query);
+  });
+
+  // rebuild options
+  sel.innerHTML = `<option value="">-- 選択してください --</option>`;
+  filtered.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = String(p.plan_id || '');
+    const end = p.planned_end ? String(p.planned_end).replace('T', ' ').slice(0, 16) : '';
+    opt.textContent = `${p.product_code || ''} / ${p.process_name || ''} / Qty:${p.planned_qty || 0} / End:${end}`;
+    sel.appendChild(opt);
+  });
+
+  if (current) sel.value = current;
+}
+
+
 /* ================================
    Online / Offline Indicator
    ================================ */
@@ -1216,9 +1858,56 @@ async function loadMasterData() {
    QR Scan
    ================================ */
 
+
+/* ================================
+   QR Scan Modal (User QR)
+   ================================ */
+
+function openQrScanModal(titleText = 'QRスキャン') {
+  const modal = document.getElementById('qr-scan-modal');
+  const title = document.getElementById('qr-modal-title');
+  if (!modal) return;
+  if (title) title.textContent = titleText;
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+async function closeQrScanModal() {
+  const modal = document.getElementById('qr-scan-modal');
+  if (!modal) return;
+
+  // stop camera safely
+  if (html5Qrcode) {
+    try { await html5Qrcode.stop(); } catch (e) {}
+    try { await html5Qrcode.clear(); } catch (e) {}
+  }
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function bindQrModalClose() {
+  const btn = document.getElementById('btn-qr-modal-close');
+  const modal = document.getElementById('qr-scan-modal');
+  if (btn) btn.addEventListener('click', () => closeQrScanModal());
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeQrScanModal();
+    });
+  }
+}
+
+
 function startQrScan(mode) {
   currentScanMode = mode;
-  const readerElemId = mode === 'user' ? 'qr-reader' : 'qr-reader-terminal';
+  let readerElemId;
+  if (mode === 'user') {
+    readerElemId = 'qr-reader';
+    openQrScanModal('ユーザーQRスキャン');
+  } else {
+    // Mobile wizard uses its own visible reader
+    const wizardReader = document.getElementById('qr-reader-terminal-wizard');
+    readerElemId = wizardReader ? 'qr-reader-terminal-wizard' : 'qr-reader-terminal';
+  }
 
   if (html5Qrcode) {
     try { html5Qrcode.stop().catch(() => {}); } catch (e) {}
@@ -1229,6 +1918,8 @@ function startQrScan(mode) {
 
   const onScanSuccess = async (decodedText) => {
     try { await html5Qrcode.stop(); } catch (e) {}
+    try { await handleDecodedText(decodedText, mode); } catch (err) {
+    if (mode === 'user') { try { await closeQrScanModal(); } catch (e) {} }
     try { await handleDecodedText(decodedText, mode); } catch (err) {
       alert('QR処理中にエラーが発生しました: ' + err.message);
     }
@@ -1338,6 +2029,9 @@ async function loginWithUserId(userId) {
     renderDashboardTable();
     renderTerminalQrListIfAdmin();
     renderPlanTable();
+
+    // Mobile wizard status refresh
+    try { updateWizardState(); } catch (e) {}
 
     if (user.role === 'operator' && window.innerWidth <= 768) {
       const target = 'plans-section'; // id mungkin tidak ada → fallback di bawah
@@ -1479,6 +2173,9 @@ function selectTerminalById(terminalId) {
   if (locEl) locEl.textContent = currentTerminal.location;
 
   showToast('端末を選択しました: ' + currentTerminal.terminal_id, 'info');
+}
+
+  try { updateWizardState(); } catch (e) {}
 }
 
 /* ================================
@@ -2768,6 +3465,8 @@ async function loadPlans() {
     plans = data || [];
     renderPlanTable();
     renderDashboardTable();
+    try { renderWizardPlanOptions(); } catch (e) {}
+    try { updateWizardState(); } catch (e) {}
       updateSpecialMonitorBlocks();
 } catch (err) {
     console.error(err);
@@ -2888,6 +3587,7 @@ function renderPlanTable() {
 
 function startScanForPlan(plan) {
   currentPlanForScan = plan;
+  saveRecentPlan_(plan);
 
   const codeEl = document.getElementById('log-product-code');
   const nameEl = document.getElementById('log-product-name');
@@ -2909,6 +3609,7 @@ function startScanForPlan(plan) {
   }
 
   showToast(`生産計画を選択しました: ${plan.product_code || ''} / ${plan.process_name || ''}`, 'info');
+  try { updateWizardState(); } catch (e) {}
 }
 
 async function showPlanDetail(plan) {
