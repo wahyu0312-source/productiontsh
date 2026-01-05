@@ -3064,21 +3064,26 @@ async function handleCreateNewUser() {
   try {
     setGlobalLoading(true, 'ユーザー登録中...');
 
+    // Backend (Apps Script) expects: { user: { user_id, name_ja, role } }
+    // and returns: { user_id: "..." }
     const result = await callApi('createUser', {
-      userId: userId,
-      userName: userName,
-      role: userRole
-    });
-
-    if (result && result.success) {
-      lastCreatedUser = {
+      user: {
         user_id: userId,
         name_ja: userName,
-        role: userRole,
-        created_at: new Date().toISOString()
-      };
+        role: userRole
+      }
+    });
 
-      generateUserQRCode(userId, userName, userRole);
+    // callApi() will throw on ok:false, so reaching here means success.
+    // Keep a local copy for QR download and UI.
+    lastCreatedUser = {
+      user_id: (result && (result.user_id || result.userId)) ? (result.user_id || result.userId) : userId,
+      name_ja: userName,
+      role: userRole,
+      created_at: new Date().toISOString()
+    };
+
+    generateUserQRCode(lastCreatedUser.user_id, userName, userRole);
 
       const qrArea = document.getElementById('new-user-qr-area');
       if (qrArea) {
@@ -3089,7 +3094,7 @@ async function handleCreateNewUser() {
       const qrName = document.getElementById('new-user-qr-name');
       const qrRole = document.getElementById('new-user-qr-role');
 
-      if (qrId) qrId.textContent = userId;
+      if (qrId) qrId.textContent = lastCreatedUser.user_id;
       if (qrName) qrName.textContent = userName;
       if (qrRole) qrRole.textContent = getRoleLabel(userRole);
 
@@ -3097,17 +3102,14 @@ async function handleCreateNewUser() {
       userNameInput.value = '';
       userRoleSelect.value = 'operator';
 
-      await loadUserList();
+    await loadUserList();
 
-      showToast('✅ ユーザー登録が完了しました！', 'success');
+    showToast('ユーザー登録が完了しました。', 'success');
 
-      if (qrArea) {
-        setTimeout(() => {
-          qrArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
-      }
-    } else {
-      throw new Error(result && result.message ? result.message : 'ユーザー登録に失敗しました');
+    if (qrArea) {
+      setTimeout(() => {
+        qrArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
     }
   } catch (err) {
     console.error('User creation error:', err);
