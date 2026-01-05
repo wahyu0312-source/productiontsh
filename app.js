@@ -1134,7 +1134,24 @@ function setupButtons() {
 
   const logoutBtn = document.getElementById('btn-logout');
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', handleLogout);
+    logoutBtn.addEventListener('click', () => {
+    // Robust: avoid ReferenceError if handleLogout isn't in this build/cache.
+    if (typeof handleLogout === 'function') {
+      handleLogout();
+      return;
+    }
+    // Fallback minimal logout
+    currentUser = null;
+    currentTerminal = null;
+    try { localStorage.removeItem(LAST_USER_KEY); } catch {}
+    const nameEl = document.getElementById('current-user-name');
+    const idEl = document.getElementById('current-user-id');
+    const roleEl = document.getElementById('current-user-role');
+    if (nameEl) nameEl.textContent = 'ゲスト';
+    if (idEl) idEl.textContent = '-';
+    if (roleEl) roleEl.textContent = '';
+    showToast('ログアウトしました。', 'info');
+  });
   }
 
   // ユーザーメニュー開閉
