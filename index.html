@@ -530,14 +530,210 @@
           </div>
           <div class="page-content">
 
-        <!-- ユーザー認証案内 -->
-        <div class="card">
+        
+        <!-- Mobile Wizard (Operator Flow) -->
+        <div id="mobile-wizard" class="mobile-wizard mobile-only">
+          <div class="mw-header">
+            <div class="mw-title">オペレーター入力（モバイル）</div>
+            <div class="mw-subtitle">手順に沿って入力してください（1〜4）。</div>
+          </div>
+
+          <div class="mw-progress" aria-label="進捗">
+            <div class="mw-progress-step active" data-step="1">
+              <div class="mw-dot">1</div><div class="mw-step-label">ログイン</div>
+            </div>
+            <div class="mw-progress-step" data-step="2">
+              <div class="mw-dot">2</div><div class="mw-step-label">工程</div>
+            </div>
+            <div class="mw-progress-step" data-step="3">
+              <div class="mw-dot">3</div><div class="mw-step-label">計画</div>
+            </div>
+            <div class="mw-progress-step" data-step="4">
+              <div class="mw-dot">4</div><div class="mw-step-label">数量</div>
+            </div>
+          </div>
+
+          <div class="mw-steps">
+            <!-- Step 1: Login -->
+            <section class="mw-step active" data-step="1">
+              <div class="mw-card">
+                <div class="mw-card-title">1) ユーザー認証</div>
+                <div class="mw-status">
+                  <div class="mw-status-label">現在:</div>
+                  <div class="mw-status-value" id="mw-user-status">未ログイン</div>
+                </div>
+
+                <div class="mw-form">
+                  <label class="mw-label" for="mw-user-id">ユーザーID（手入力）</label>
+                  <div class="mw-row">
+                    <input id="mw-user-id" class="mw-input" type="text" placeholder="例: ADMIN001">
+                    <button id="mw-btn-login" class="primary-button mw-btn">ログイン</button>
+                  </div>
+                  <div class="mw-row">
+                    <button id="mw-btn-user-scan" class="secondary-button mw-btn mw-btn-wide">ユーザーQRスキャン</button>
+                  </div>
+                  <div class="hint">※QRスキャンはカメラ許可が必要です。</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Step 2: Terminal -->
+            <section class="mw-step" data-step="2">
+              <div class="mw-card">
+                <div class="mw-card-title">2) 工程（端末）スキャン</div>
+
+                <div class="mw-status">
+                  <div class="mw-status-label">工程:</div>
+                  <div class="mw-status-value" id="mw-terminal-status">未スキャン</div>
+                </div>
+
+                <div class="mw-row">
+                  <button id="mw-btn-terminal-scan" class="primary-button mw-btn mw-btn-wide">工程QRスキャン開始</button>
+                </div>
+
+                <div id="qr-reader-terminal-wizard" class="qr-reader qr-reader-wizard"></div>
+
+                <div class="mw-mini-grid">
+                  <div class="mw-mini">
+                    <div class="mw-mini-label">工程ID</div>
+                    <div class="mw-mini-value" id="mw-terminal-id">-</div>
+                  </div>
+                  <div class="mw-mini">
+                    <div class="mw-mini-label">工程</div>
+                    <div class="mw-mini-value" id="mw-process-name">-</div>
+                  </div>
+                  <div class="mw-mini">
+                    <div class="mw-mini-label">ロケーション</div>
+                    <div class="mw-mini-value" id="mw-location">-</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Step 3: Plan -->
+            <section class="mw-step" data-step="3">
+              <div class="mw-card">
+                <div class="mw-card-title">3) 生産計画の選択</div>
+
+                <div class="mw-status">
+                  <div class="mw-status-label">選択中:</div>
+                  <div class="mw-status-value" id="mw-plan-status">未選択</div>
+                </div>
+
+                
+                <label class="mw-label" for="mw-plan-search">計画検索（図番 / 品名 / 計画ID）</label>
+                <input id="mw-plan-search" class="mw-input" type="search" placeholder="例) 1234 / ブラケット / P-2026-001">
+
+                <div class="mw-recent">
+                  <div class="mw-recent-title">最近使った計画</div>
+                  <div id="mw-recent-plans" class="mw-chip-row" aria-label="最近使った計画"></div>
+                </div>
+
+<label class="mw-label" for="mw-plan-select">本日の計画（候補）</label>
+                <select id="mw-plan-select" class="mw-input">
+                  <option value="">-- 選択してください --</option>
+                </select>
+
+                <div class="mw-row" style="margin-top:10px;">
+                  <button id="mw-btn-open-plans" class="ghost-button mw-btn mw-btn-wide">生産計画一覧を開く</button>
+                </div>
+
+                <div class="mw-mini-grid" style="margin-top:12px;">
+                  <div class="mw-mini">
+                    <div class="mw-mini-label">図番</div>
+                    <div class="mw-mini-value" id="mw-product-code">-</div>
+                  </div>
+                  <div class="mw-mini">
+                    <div class="mw-mini-label">品名</div>
+                    <div class="mw-mini-value" id="mw-product-name">-</div>
+                  </div>
+                  <div class="mw-mini">
+                    <div class="mw-mini-label">計画数量</div>
+                    <div class="mw-mini-value" id="mw-plan-qty">-</div>
+                  </div>
+                </div>
+
+                <div class="hint">※おすすめ: 「生産計画一覧」から「スキャン/更新」でも選択できます。</div>
+              </div>
+            </section>
+
+            <!-- Step 4: Qty -->
+            <section class="mw-step" data-step="4">
+              <div class="mw-card">
+                <div class="mw-card-title">4) 実績入力（数量）</div>
+
+                <label class="mw-label" for="mw-status">ステータス</label>
+                <select id="mw-status" class="mw-input">
+                  <option value="工程開始">工程開始</option>
+                  <option value="工程終了" selected>工程終了</option>
+                  <option value="一時停止">一時停止（保留）</option>
+                  <option value="検査保留">検査保留</option>
+                </select>
+
+                <div class="mw-qty-grid">
+                  <div class="mw-qty-card">
+                    <div class="mw-qty-label">OK数量</div>
+                    <div class="mw-stepper">
+                      <button type="button" class="mw-stepper-btn" data-target="ok" data-delta="-1">-</button>
+                      <div class="mw-stepper-value" id="mw-ok-value">0</div>
+                      <button type="button" class="mw-stepper-btn" data-target="ok" data-delta="1">+</button>
+                    </div>
+                    <input id="mw-ok-input" class="mw-input mw-input-hidden" type="number" min="0" value="0">
+                  </div>
+
+                  <div class="mw-qty-card">
+                    <div class="mw-qty-label">不良数量</div>
+                    <div class="mw-stepper">
+                      <button type="button" class="mw-stepper-btn" data-target="ng" data-delta="-1">-</button>
+                      <div class="mw-stepper-value" id="mw-ng-value">0</div>
+                      <button type="button" class="mw-stepper-btn" data-target="ng" data-delta="1">+</button>
+                    </div>
+                    <input id="mw-ng-input" class="mw-input mw-input-hidden" type="number" min="0" value="0">
+                  </div>
+                </div>
+
+                <div class="mw-mini-grid" style="margin-top:12px;">
+                  <div class="mw-mini">
+                    <div class="mw-mini-label">総数量</div>
+                    <div class="mw-mini-value" id="mw-total-value">0</div>
+                  </div>
+                  <div class="mw-mini">
+                    <div class="mw-mini-label">作業人数</div>
+                    <input id="mw-crew" class="mw-input" type="number" min="1" value="1">
+                  </div>
+                </div>
+
+                <label class="mw-label" for="mw-lot" style="margin-top:10px;">ロット番号（任意）</label>
+                <input id="mw-lot" class="mw-input" type="text" placeholder="例: LOT20241001">
+
+                <label class="mw-label" for="mw-note" style="margin-top:10px;">備考（任意）</label>
+                <input id="mw-note" class="mw-input" type="text" placeholder="例: 金型異常あり">
+
+                <div class="mw-row" style="margin-top:12px;">
+                  <button id="mw-btn-save" class="primary-button mw-btn mw-btn-wide">保存</button>
+                </div>
+                <div class="mw-row">
+                  <button id="mw-btn-clear" class="ghost-button mw-btn mw-btn-wide">クリア</button>
+                </div>
+
+                <div class="hint">※保存には「ログイン」「工程」「計画」の3つが必須です。</div>
+              </div>
+            </section>
+          </div>
+
+          <div class="mw-nav">
+            <button id="mw-back" class="ghost-button mw-btn">戻る</button>
+            <button id="mw-next" class="primary-button mw-btn">次へ</button>
+          </div>
+        </div>
+<!-- ユーザー認証案内 -->
+        <div class="card desktop-only">
           <h2 class="card-title">ユーザー認証</h2>
           <p>ユーザー認証は画面右上のメニューから行ってください。</p>
         </div>
 
         <!-- 工程スキャン -->
-        <div class="card">
+        <div class="card desktop-only">
           <h2 class="card-title">工程スキャン</h2>
           <p>工程に設置されたQRコードをスキャンして、生産を記録します。</p>
 
@@ -556,7 +752,7 @@
         </div>
 
         <!-- 生産データ入力 -->
-        <div class="card">
+        <div class="card desktop-only">
           <h2 class="card-title">生産データ入力</h2>
           <p>生産計画一覧から対象行の「スキャン/更新」を選択し、工程をスキャンしてから実績を入力してください。</p>
 
@@ -1154,6 +1350,19 @@
 <div id="global-toast" class="toast hidden"></div>
 
 <!-- SVG Icon Sprite (UI consistent icons) -->
+
+  <!-- QR Scan Modal (for User QR / optional) -->
+  <div id="qr-scan-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content qr-scan-modal">
+      <div class="modal-head">
+        <h3 id="qr-modal-title" class="modal-title">QRスキャン</h3>
+        <button id="btn-qr-modal-close" class="ghost-button ghost-small" type="button">閉じる</button>
+      </div>
+      <div id="qr-reader" class="qr-reader"></div>
+      <p class="hint" style="margin-top:8px;">スキャン後、自動で閉じます。カメラが起動しない場合はブラウザのカメラ権限を確認してください。</p>
+    </div>
+  </div>
+
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
   <symbol id="i-home" viewBox="0 0 24 24">
     <path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/>
@@ -1239,6 +1448,10 @@
         <div class="monitor-dots" id="monitor-dots" aria-label="スライド選択"></div>
         <button class="ghost-button ghost-small" id="monitor-next" title="次へ" aria-label="次へ">
           <svg class="icon"><use href="#i-chevron-right"></use></svg>
+        </button>
+
+        <button class="ghost-button ghost-small" id="monitor-single-toggle" title="単一表示切替" aria-label="単一表示切替">
+          単
         </button>
         <button class="ghost-button ghost-small" id="btn-exit-monitor" title="通常表示へ" aria-label="通常表示へ">
           <svg class="icon"><use href="#i-close"></use></svg>
