@@ -12,6 +12,7 @@ let masterUsers = [];
 let masterTerminals = [];
 let dashboardLogs = [];
 let plans = [];
+let latestPlanKpi = null; // backend KPI for plan/delay/outsource
 let html5Qrcode = null;
 let currentScanMode = null;
 let currentPlanForScan = null; // ★ 生産計画から選択中のplan
@@ -447,12 +448,13 @@ function updateMonitorKpiSlide() {
   set('#monitor-kpi-planmini', `${actualTotal} / ${planTotal}`);
   set('#monitor-kpi-todaytotal', todayTotal);
   set('#monitor-kpi-todayng', todayNg);
-  set('#monitor-kpi-overduecount', String(overdue.count || 0));
-  set('#monitor-kpi-overdueh', (overdue.late_total_h || 0).toFixed(1));
+  // Prefer backend KPI (more accurate). Fallback to local estimate.
+const overdueKpi = (latestPlanKpi && latestPlanKpi.overdue) ? latestPlanKpi.overdue : overdue;
+set('#monitor-kpi-overduecount', String(overdueKpi.count || 0));
+set('#monitor-kpi-overdueh', (overdueKpi.late_total_h || 0).toFixed(1));
 
-  // Outsource ratio: show '-' unless you wire real data later
-  set('#monitor-kpi-outsourceratio', '-');
-
+const outKpi = (latestPlanKpi && latestPlanKpi.outsource) ? latestPlanKpi.outsource : null;
+set('#monitor-kpi-outsourceratio', outKpi ? `${(outKpi.ratio_qty_pct || 0).toFixed(1)}%` : '-');
   const now = new Date();
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
@@ -1559,6 +1561,7 @@ async function handleSaveLog() {
   const workType = isExternal ? '外注' : '社内';
 
   const log = {
+    plan_id: currentPlanForScan ? (currentPlanForScan.plan_id || '') : '',
     product_code: productCode,
     product_name: productName,
     lot_number: lotInput ? lotInput.value.trim() : '',
@@ -2317,6 +2320,7 @@ async function loadAnalytics() {
     const planVsActual = data.planVsActual || { plan_total: 0, actual_total: 0 };
     const manhourByProduct = data.manhourByProduct || [];
     const manhourByProcess = data.manhourByProcess || [];
+    latestPlanKpi = data.planKpi || null;
 
     document.getElementById('today-total').textContent = today.total;
     document.getElementById('today-ng').textContent = today.ng;
@@ -3064,26 +3068,21 @@ async function handleCreateNewUser() {
   try {
     setGlobalLoading(true, 'ユーザー登録中...');
 
-    // Backend (Apps Script) expects: { user: { user_id, name_ja, role } }
-    // and returns: { user_id: "..." }
     const result = await callApi('createUser', {
-      user: {
-        user_id: userId,
-        name_ja: userName,
-        role: userRole
-      }
+      userId: userId,
+      userName: userName,
+      role: userRole
     });
 
-    // callApi() will throw on ok:false, so reaching here means success.
-    // Keep a local copy for QR download and UI.
-    lastCreatedUser = {
-      user_id: (result && (result.user_id || result.userId)) ? (result.user_id || result.userId) : userId,
-      name_ja: userName,
-      role: userRole,
-      created_at: new Date().toISOString()
-    };
+    if (result && result.success) {
+      lastCreatedUser = {
+        user_id: userId,
+        name_ja: userName,
+        role: userRole,
+        created_at: new Date().toISOString()
+      };
 
-    generateUserQRCode(lastCreatedUser.user_id, userName, userRole);
+      generateUserQRCode(userId, userName, userRole);
 
       const qrArea = document.getElementById('new-user-qr-area');
       if (qrArea) {
@@ -3094,7 +3093,7 @@ async function handleCreateNewUser() {
       const qrName = document.getElementById('new-user-qr-name');
       const qrRole = document.getElementById('new-user-qr-role');
 
-      if (qrId) qrId.textContent = lastCreatedUser.user_id;
+      if (qrId) qrId.textContent = userId;
       if (qrName) qrName.textContent = userName;
       if (qrRole) qrRole.textContent = getRoleLabel(userRole);
 
@@ -3102,14 +3101,17 @@ async function handleCreateNewUser() {
       userNameInput.value = '';
       userRoleSelect.value = 'operator';
 
-    await loadUserList();
+      await loadUserList();
 
-    showToast('ユーザー登録が完了しました。', 'success');
+      showToast('✅ ユーザー登録が完了しました！', 'success');
 
-    if (qrArea) {
-      setTimeout(() => {
-        qrArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 300);
+      if (qrArea) {
+        setTimeout(() => {
+          qrArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+    } else {
+      throw new Error(result && result.message ? result.message : 'ユーザー登録に失敗しました');
     }
   } catch (err) {
     console.error('User creation error:', err);
