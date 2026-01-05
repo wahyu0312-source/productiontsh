@@ -116,8 +116,7 @@ const monitorCarousel = {
   dotsEl: null,
   viewport: null,
   bound: false,
-  clockTimer: null,
-  single: false
+  clockTimer: null
 };
 
 function setupMonitorCarouselUI() {
@@ -133,26 +132,6 @@ function setupMonitorCarouselUI() {
   monitorCarousel.dotsEl = dotsEl;
   monitorCarousel.viewport = viewport;
   monitorCarousel.slides = Array.from(root.querySelectorAll('.monitor-slide'));
-
-  // Single-slide mode: URL param ?single=1 or toggle button
-  const params = new URLSearchParams(window.location.search || '');
-  if (params.get('single') === '1') {
-    monitorCarousel.single = true;
-  }
-  root.classList.toggle('monitor-single', monitorCarousel.single);
-
-  const singleBtn = document.getElementById('monitor-single-toggle');
-  if (singleBtn && !singleBtn.dataset.bound) {
-    singleBtn.dataset.bound = '1';
-    singleBtn.addEventListener('click', () => {
-      monitorCarousel.single = !monitorCarousel.single;
-      root.classList.toggle('monitor-single', monitorCarousel.single);
-      setMonitorIndex(0);
-      if (monitorCarousel.single) stopMonitorAuto(); else startMonitorAuto();
-      showToast(monitorCarousel.single ? 'モニタ: 単一表示に切り替えました。' : 'モニタ: 自動スライドに戻しました。', 'info');
-    });
-  }
-
 
   // Build dots once
   if (!dotsEl.dataset.built) {
@@ -288,8 +267,6 @@ function setMonitorIndex(i, instant = false) {
 }
 
 function startMonitorAuto() {
-  // In single-slide mode, do not auto-rotate
-  if (monitorCarousel.single) return;
   stopMonitorAuto();
   monitorCarousel.timer = setInterval(() => {
     setMonitorIndex(monitorCarousel.index + 1);
@@ -632,20 +609,6 @@ function enterMonitorModeCarousel() {
 
   // FIX: build KPI + Chart slide first (no need to navigate to see KPI/graphs)
   buildMonitorKpiSlide(slides[0]);
-
-  // If single-slide mode is enabled, keep only slide 0 (KPI) and stop here.
-  if (monitorCarousel.single) {
-    for (let i = 1; i < slides.length; i++) {
-      slides[i].innerHTML = '';
-    }
-    root.classList.add('active');
-    root.setAttribute('aria-hidden', 'false');
-    setMonitorIndex(0);
-    stopMonitorAuto();
-    startMonitorClock();
-    return;
-  }
-
 
   const sources = [
     { id: 'dash-latest-block', title: '最新実績' },
@@ -1149,14 +1112,22 @@ function setupButtons() {
   const manualBtn = document.getElementById('btn-manual-login');
   const manualInput = document.getElementById('manual-user-id');
   if (manualBtn) {
-    manualBtn.addEventListener('click', handleManualLogin);
+    manualBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const userId = (manualInput?.value || '').trim();
+      if (!userId) {
+        alert('ユーザーIDを入力してください。');
+        return;
+      }
+      await loginWithUserId(userId);
+    });
   }
   // 手動ログイン（Enter）
   if (manualInput) {
     manualInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        handleManualLogin();
+        manualBtn?.click();
       }
     });
   }
@@ -1334,9 +1305,7 @@ function setupButtons() {
 let mobileWizard = {
   enabled: false,
   step: 1,
-  bound: false,
-  planQuery: '',
-  planAll: []
+  bound: false
 };
 
 function isMobileWizardEnabled() {
@@ -1396,25 +1365,6 @@ function bindMobileWizardEvents() {
       const plan = (plans || []).find(p => String(p.plan_id) === String(pid));
       if (plan) startScanForPlan(plan);
       updateWizardState();
-    });
-  }
-
-
-  const planSearch = document.getElementById('mw-plan-search');
-  if (planSearch && !planSearch.dataset.bound) {
-    planSearch.dataset.bound = '1';
-    planSearch.addEventListener('input', () => {
-      mobileWizard.planQuery = (planSearch.value || '').trim();
-      renderWizardPlanOptions();
-      renderRecentPlanChips();
-    });
-    planSearch.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        planSearch.value = '';
-        mobileWizard.planQuery = '';
-        renderWizardPlanOptions();
-        renderRecentPlanChips();
-      }
     });
   }
 
@@ -1639,7 +1589,6 @@ function updateWizardState() {
 
   // keep wizard <select> options fresh
   renderWizardPlanOptions();
-  renderRecentPlanChips();
 
   // auto-advance when prerequisites satisfied (only forward)
   if (mobileWizard.step === 1 && currentUser) mobileWizard.step = 2;
@@ -1649,135 +1598,23 @@ function updateWizardState() {
   renderWizardStep();
 }
 
-
-function getRecentPlansKey_() {
-  const uid = currentUser && currentUser.user_id ? String(currentUser.user_id) : 'guest';
-  return `recentPlans:${uid}`;
-}
-
-function loadRecentPlans_() {
-  try {
-    const raw = localStorage.getItem(getRecentPlansKey_());
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function saveRecentPlan_(plan) {
-  if (!plan || !plan.plan_id) return;
-  const item = {
-    plan_id: String(plan.plan_id),
-    label: `${plan.product_code || ''} / ${plan.process_name || ''}`
-  };
-  const arr = loadRecentPlans_();
-  const next = [item, ...arr.filter(x => String(x.plan_id) !== String(item.plan_id))].slice(0, 8);
-  try { localStorage.setItem(getRecentPlansKey_(), JSON.stringify(next)); } catch (e) {}
-  renderRecentPlanChips();
-}
-
-function renderRecentPlanChips() {
-  const box = document.getElementById('mw-recent-plans');
-  if (!box) return;
-
-  const query = (mobileWizard.planQuery || '').toLowerCase();
-  const items = loadRecentPlans_().filter(it => {
-    if (!query) return true;
-    return String(it.plan_id || '').toLowerCase().includes(query) || String(it.label || '').toLowerCase().includes(query);
-  });
-
-  box.innerHTML = '';
-  if (items.length === 0) {
-    const empty = document.createElement('div');
-    empty.style.color = '#64748b';
-    empty.style.fontSize = '0.85rem';
-    empty.textContent = '（履歴なし）';
-    box.appendChild(empty);
-    return;
-  }
-
-  items.forEach(it => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'mw-chip';
-    btn.textContent = it.label;
-    btn.title = `計画ID: ${it.plan_id}`;
-    btn.addEventListener('click', () => {
-      const plan = (plans || []).find(p => String(p.plan_id) === String(it.plan_id));
-      if (plan) {
-        startScanForPlan(plan);
-        const sel = document.getElementById('mw-plan-select');
-        if (sel) sel.value = String(plan.plan_id);
-        updateWizardState();
-      } else {
-        showToast('計画データが見つかりません。計画一覧を更新してください。', 'warning');
-      }
-    });
-    box.appendChild(btn);
-  });
-}
-
 function renderWizardPlanOptions() {
   const sel = document.getElementById('mw-plan-select');
   if (!sel) return;
 
-  const query = (mobileWizard.planQuery || '').toLowerCase().trim();
-
   // keep current selection if still exists
   const current = sel.value || (currentPlanForScan ? String(currentPlanForScan.plan_id || '') : '');
 
-  // candidate plans: prefer "today / near-term", and prefer current process if selected
-  const now = new Date();
-  const dayStart = new Date(now); dayStart.setHours(0,0,0,0);
-  const dayEnd = new Date(now); dayEnd.setHours(23,59,59,999);
-
-  const procName = currentTerminal && currentTerminal.process_name ? String(currentTerminal.process_name) : '';
-
-  const overlapToday = (p) => {
-    const ps = parseDateFlexible(p.planned_start);
-    const pe = parseDateFlexible(p.planned_end);
-    const s = ps || pe || new Date(0);
-    const e = pe || ps || new Date(0);
-    return s <= dayEnd && e >= dayStart;
-  };
-
-  let list = (plans || []).slice();
-
-  // prefer process match if available
-  if (procName) {
-    const procMatch = list.filter(p => String(p.process_name || '') === procName);
-    if (procMatch.length > 0) list = procMatch;
-  }
-
-  // prefer today's plans; if none, keep the list
-  const today = list.filter(overlapToday);
-  if (today.length > 0) list = today;
-
-  // sort by planned_end
-  list = list.slice().sort((a, b) => {
+  // build list (prefer near-term plans)
+  const list = (plans || []).slice().sort((a, b) => {
     const ea = parseDateFlexible(a.planned_end) || new Date(0);
     const eb = parseDateFlexible(b.planned_end) || new Date(0);
     return ea - eb;
   });
 
-  // store for other UI (chips, etc.)
-  mobileWizard.planAll = list;
-
-  // apply search query filter
-  const filtered = !query ? list : list.filter(p => {
-    const hay = [
-      p.plan_id,
-      p.product_code,
-      p.product_name,
-      p.process_name
-    ].map(x => String(x || '').toLowerCase()).join(' ');
-    return hay.includes(query);
-  });
-
   // rebuild options
   sel.innerHTML = `<option value="">-- 選択してください --</option>`;
-  filtered.forEach(p => {
+  list.forEach(p => {
     const opt = document.createElement('option');
     opt.value = String(p.plan_id || '');
     const end = p.planned_end ? String(p.planned_end).replace('T', ' ').slice(0, 16) : '';
@@ -3587,7 +3424,6 @@ function renderPlanTable() {
 
 function startScanForPlan(plan) {
   currentPlanForScan = plan;
-  saveRecentPlan_(plan);
 
   const codeEl = document.getElementById('log-product-code');
   const nameEl = document.getElementById('log-product-name');
