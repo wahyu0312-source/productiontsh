@@ -1637,3 +1637,38 @@ body.monitor-mode .monitor-kpi-right #process-chart {
   height: 100% !important;
   display: block;
 }
+/* ===========================================
+   STEPPER INPUT (Tombol + dan -)
+   =========================================== */
+.stepper-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Jarak antar tombol */
+}
+
+.stepper-btn {
+  width: 48px;      /* Lebar tombol */
+  height: 48px;     /* Tinggi tombol */
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #f3f4f6;
+  color: #111827;
+  font-size: 1.5rem; /* Ukuran font + - besar */
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  touch-action: manipulation; /* Supaya HP tidak zoom saat dipencet cepat */
+}
+
+.stepper-btn:active {
+  background-color: #d1d5db; /* Warna saat dipencet */
+}
+
+/* Mengubah input agar teks di tengah */
+.stepper-input {
+  text-align: center;
+  font-size: 1.25rem !important; /* Angka lebih besar */
+  font-weight: 700;
+}
