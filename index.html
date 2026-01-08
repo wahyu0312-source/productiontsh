@@ -17,7 +17,7 @@
     rel="stylesheet">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="style.css?v=20260106_1">
+<link rel="stylesheet" href="style.css?v=20260106_2">
 
   <!-- Libs -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -1211,11 +1211,12 @@
   </symbol>
 </svg>
 
-<script src="app.js?v=20260106_1"></script>
+<script src="app.js?v=20260106_2"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('service-worker.js?v=20260106_1').catch(function (err) {
+      // Ganti juga di sini
+      navigator.serviceWorker.register('service-worker.js?v=20260106_2').catch(function (err) {
         console.log('SW registration failed:', err);
       });
     });
