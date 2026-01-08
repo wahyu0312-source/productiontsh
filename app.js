@@ -3532,3 +3532,27 @@ window.addEventListener('load', () => {
   // Cek status saat pertama buka
   updateOnlineStatus();
 });
+/* ================================
+   SMART SUBMIT BUTTON
+   ================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  const submitBtn = document.getElementById('btn-submit-log');
+  
+  if (submitBtn) {
+    // Simpan teks asli tombol (misal: "生産記録を送信")
+    const originalText = submitBtn.innerHTML;
+
+    // Kita tambahkan fungsi pembantu untuk mematikan/menghidupkan tombol
+    window.setButtonLoading = function(isLoading) {
+      if (isLoading) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> 送信中...'; // "Sedang Mengirim..."
+        submitBtn.style.opacity = "0.7";
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        submitBtn.style.opacity = "1";
+      }
+    };
+  }
+});
