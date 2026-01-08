@@ -1518,6 +1518,14 @@ async function handleSaveLog() {
   }
 
   const status = document.getElementById('log-status').value;
+  // ===> TAMBAHKAN BLOK KODE INI <===
+  // PENGAMAN: Kalau statusnya "Selesai", tanya dulu!
+  if (status === '工程終了' || status === '終了') {
+    const yakin = confirm('ステータスが「終了」になっています。\n本当にこの作業を完了しますか？\n(まだ続く場合は「通常」を選んでください)');
+    if (!yakin) {
+      return; // Batalkan jika operator bilang "Cancel"
+    }
+  }
   const okInput = document.getElementById('log-qty-ok');
   const ngInput = document.getElementById('log-qty-ng');
   const totalInput = document.getElementById('log-qty-total');
@@ -1610,6 +1618,8 @@ async function handleSaveLog() {
     saveActiveSessions(sessions);
 
     showToast('ログを保存しました。', 'success');
+    // ===> TAMBAHKAN INI <===
+    triggerFlash('success'); // KILAT HIJAU!
     clearForm();
     loadDashboard();
     loadAnalytics();
@@ -1620,6 +1630,7 @@ async function handleSaveLog() {
       showToast('オフラインのためキューに保存しました。オンライン復帰後に自動送信します。', 'info');
     } else {
       showToast('ログ保存に失敗しました: ' + err.message, 'error');
+      triggerFlash('error'); // KILAT MERAH!
     }
   } finally {
     setGlobalLoading(false);
@@ -3556,3 +3567,28 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 });
+/* ================================
+   VISUAL FLASH LOGIC
+   ================================ */
+function triggerFlash(type) {
+  const overlay = document.getElementById('flash-overlay');
+  if (!overlay) return;
+
+  // Reset kelas lama
+  overlay.className = 'flash-overlay';
+
+  // Tambah warna
+  if (type === 'success') {
+    overlay.classList.add('flash-success');
+  } else {
+    overlay.classList.add('flash-error');
+  }
+
+  // Munculkan
+  overlay.style.opacity = '1';
+
+  // Hilangkan perlahan
+  setTimeout(() => {
+    overlay.style.opacity = '0';
+  }, 300);
+}
