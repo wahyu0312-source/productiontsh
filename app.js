@@ -3482,3 +3482,29 @@ try {
     window.exitMonitorModeCarousel = (typeof exitMonitorModeCarousel === 'function') ? exitMonitorModeCarousel : window.exitMonitorModeCarousel;
   }
 } catch (e) {}
+/* ================================
+   STEPPER LOGIC (Logika Tombol + -)
+   ================================ */
+
+function updateQty(inputId, change) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  // Ambil nilai sekarang, kalau kosong anggap 0
+  let currentVal = parseInt(input.value);
+  if (isNaN(currentVal)) currentVal = 0;
+
+  // Tambah atau Kurang
+  let newVal = currentVal + change;
+
+  // Cegah minus (tidak mungkin produksi negatif)
+  if (newVal < 0) newVal = 0;
+
+  // Update nilai di layar
+  input.value = newVal;
+
+  // PENTING: Beri tahu sistem bahwa nilai berubah
+  // (agar tombol simpan bisa mendeteksi perubahan)
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
