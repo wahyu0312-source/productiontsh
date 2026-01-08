@@ -1,13 +1,18 @@
 /* ProductionTSH Service Worker - versioned to prevent stale UI assets */
-const VERSION = '20260106_1';
+// UPDATE: Versi dinaikkan agar perubahan terdeteksi
+const VERSION = '20260106_2';
 const CACHE_NAME = `productiontsh-cache-${VERSION}`;
 
+// UPDATE: Menambahkan library eksternal (CDN) agar scan & chart bisa jalan offline
 const PRECACHE_URLS = [
   './',
-  './index.html?v=20260106_1',
-  './style.css?v=20260106_1',
-  './app.js?v=20260106_1',
-  './manifest.json'
+  './index.html?v=20260106_2',
+  './style.css?v=20260106_2',
+  './app.js?v=20260106_2',
+  './manifest.json',
+  'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -58,7 +63,8 @@ async function networkFirst(request) {
     if (cached) return cached;
     // Fallback for navigations
     if (request.mode === 'navigate') {
-      const fallback = await cache.match('./index.html?v=20260106_1', { ignoreSearch: false });
+      // UPDATE: Pastikan fallback juga menggunakan versi baru
+      const fallback = await cache.match('./index.html?v=20260106_2', { ignoreSearch: false });
       if (fallback) return fallback;
     }
     throw e;
@@ -83,7 +89,11 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Only handle same-origin GETs
-  if (request.method !== 'GET' || !isSameOrigin(request.url)) return;
+  // KECUALI untuk library CDN yang kita butuhkan, kita izinkan cache juga
+  if (request.method !== 'GET') return;
+  
+  const isCdnLib = PRECACHE_URLS.some(u => u.includes(url.hostname + url.pathname));
+  if (!isSameOrigin(request.url) && !isCdnLib) return;
 
   // Navigations: network-first for latest HTML
   if (request.mode === 'navigate') {
