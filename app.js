@@ -1243,15 +1243,17 @@ function startQrScan(mode) {
   html5Qrcode = new Html5Qrcode(readerElemId);
   const config = { fps: 10, qrbox: 250 };
 
-  const onScanSuccess = async (decodedText) => {
+const onScanSuccess = async (decodedText) => {
     try { await html5Qrcode.stop(); } catch (e) {}
     try { await handleDecodedText(decodedText, mode); } catch (err) {
-      alert('QR処理中にエラーが発生しました: ' + err.message);
+      // Ganti alert dengan showToast
+      showToast('QR処理中にエラーが発生しました: ' + err.message, 'error');
     }
   };
 
   html5Qrcode.start({ facingMode: 'environment' }, config, onScanSuccess)
-    .catch(err => alert('カメラの起動に失敗しました: ' + err));
+    // Ganti alert dengan showToast
+    .catch(err => showToast('カメラの起動に失敗しました: ' + err, 'error'));
 }
 
 async function handleDecodedText(decodedText, mode) {
