@@ -1672,3 +1672,24 @@ body.monitor-mode .monitor-kpi-right #process-chart {
   font-size: 1.25rem !important; /* Angka lebih besar */
   font-weight: 700;
 }
+/* ===========================================
+   INDIKATOR KONEKSI (Online/Offline)
+   =========================================== */
+.connection-status {
+  background-color: #dc2626; /* Merah bahaya */
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9999; /* Pastikan selalu di paling atas */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.connection-status.hidden {
+  display: none; /* Sembunyi kalau internet lancar */
+}
