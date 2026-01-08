@@ -1708,3 +1708,25 @@ body.monitor-mode .monitor-kpi-right #process-chart {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+/* ===========================================
+   VISUAL FLASH EFFECT
+   =========================================== */
+.flash-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Supaya bisa ditembus klik */
+  z-index: 9998; /* Di bawah loading, di atas konten */
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.flash-success {
+  background-color: rgba(34, 197, 94, 0.4); /* Hijau Transparan */
+}
+
+.flash-error {
+  background-color: rgba(239, 68, 68, 0.5); /* Merah Transparan */
+}
