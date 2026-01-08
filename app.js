@@ -3508,3 +3508,27 @@ function updateQty(inputId, change) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
   input.dispatchEvent(new Event('change', { bubbles: true }));
 }
+/* ================================
+   AUTO CONNECTION CHECK
+   ================================ */
+window.addEventListener('load', () => {
+  const statusEl = document.getElementById('connection-status');
+  
+  function updateOnlineStatus() {
+    if (navigator.onLine) {
+      statusEl.classList.add('hidden'); // Sembunyikan kalau online
+      // Coba kirim data yang tertunda (jika ada)
+      if (typeof processOfflineQueue === 'function') {
+        processOfflineQueue(); 
+      }
+    } else {
+      statusEl.classList.remove('hidden'); // Munculkan kalau offline
+    }
+  }
+
+  window.addEventListener('online',  updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  
+  // Cek status saat pertama buka
+  updateOnlineStatus();
+});
