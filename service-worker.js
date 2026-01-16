@@ -1,14 +1,14 @@
 /* ProductionTSH Service Worker - versioned to prevent stale UI assets */
 // UPDATE: Versi dinaikkan agar perubahan terdeteksi
-const VERSION = '20260106_2';
+const VERSION = '20260116_1';
 const CACHE_NAME = `productiontsh-cache-${VERSION}`;
 
 // UPDATE: Menambahkan library eksternal (CDN) agar scan & chart bisa jalan offline
 const PRECACHE_URLS = [
   './',
-  './index.html?v=20260106_2',
-  './style.css?v=20260106_2',
-  './app.js?v=20260106_2',
+  './index.html?v=20260116_1',
+  './style.css?v=20260116_1',
+  './app.js?v=20260116_1',
   './manifest.json',
   'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
