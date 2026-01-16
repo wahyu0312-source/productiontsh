@@ -1,5 +1,5 @@
 // =====================================
-// 生産進捗トラッキング フロントエンド (FIXED VERSION)
+// 生産進捗トラッキング フロントエンド
 // =====================================
 
 // ★Apps Script Web App URL（/exec）をセット
@@ -97,12 +97,12 @@ function getRoleLabel(role) {
 function iconMarkup(symbolId, extraClass = '') {
   const cls = ['icon', extraClass].filter(Boolean).join(' ');
   return `<svg class="${cls}" aria-hidden="true"><use href="#${symbolId}"></use></svg>`;
-}
+} // FIX: close iconMarkup so monitor carousel code runs in global scope
 
 /* ================================
    Monitor Carousel (Digital Signage)
    ================================ */
-// [BAGIAN INI TIDAK DIUBAH, HANYA DIPERBAIKI SINTAKSNYA AGAR AMAN]
+
 const monitorCarousel = {
   active: false,
   index: 0,
@@ -1503,375 +1503,171 @@ function selectTerminalById(terminalId) {
    Save Log (Plan + Terminal + User)
    ================================ */
 
+// ==========================================
+// [BAGIAN 1] GANTI FUNGSI handleSaveLog DENGAN INI
+// ==========================================
 async function handleSaveLog() {
+  // 1. Cek Kelengkapan Data Login & Terminal
   if (!currentUser) {
-    alert('まず右上メニューからユーザー認証を行ってください。');
+    alert('Silakan Login (Scan User QR) terlebih dahulu.');
     return;
   }
   if (!currentTerminal) {
-    alert('工程QRをスキャンして工程を選択してください。');
+    alert('Silakan Scan Terminal QR terlebih dahulu.');
     return;
   }
+  // Pastikan sudah pilih Plan
   if (!currentPlanForScan) {
-    alert('「生産一覧」から対象の生産計画を選び、「スキャン/更新」を押してください。');
+    alert('Silakan pilih Rencana Produksi (Plan) dari menu List.');
     return;
   }
 
-  const status = document.getElementById('log-status').value;
-  // ===> TAMBAHKAN BLOK KODE INI <===
-  // PENGAMAN: Kalau statusnya "Selesai", tanya dulu!
-  if (status === '工程終了' || status === '終了') {
-    const yakin = confirm('ステータスが「終了」になっています。\n本当にこの作業を完了しますか？\n(まだ続く場合は「通常」を選んでください)');
-    if (!yakin) {
-      return; // Batalkan jika operator bilang "Cancel"
-    }
+  const statusEl = document.getElementById('log-status');
+  const status = statusEl ? statusEl.value : '工程開始'; // Default Start
+
+  // 2. Konfirmasi Keamanan jika Status = Selesai
+  if (status === '工程終了' || status === '終了' || status === 'Finish') {
+    const yakin = confirm('Status: SELESAI.\nApakah Anda yakin pekerjaan ini sudah tuntas?');
+    if (!yakin) return;
   }
+
+  // 3. Ambil Data dari Input Form
   const okInput = document.getElementById('log-qty-ok');
   const ngInput = document.getElementById('log-qty-ng');
   const totalInput = document.getElementById('log-qty-total');
-  const lotInput = document.getElementById('log-lot-number');
   const noteInput = document.getElementById('log-note');
-
-  const qtyOk = Number(okInput.value || 0);
-  const qtyNg = Number(ngInput.value || 0);
-  const qtyTotal = qtyOk + qtyNg;
-  if (totalInput) totalInput.value = qtyTotal;
-
   const crewInput = document.getElementById('log-crew-size');
+  const lotInput = document.getElementById('log-lot-number'); // Tambahan: Lot Number
+
+  const qtyOk = Number(okInput ? okInput.value : 0);
+  const qtyNg = Number(ngInput ? ngInput.value : 0);
+  const qtyTotal = qtyOk + qtyNg;
+  
   let crewSize = 1;
-  if (crewInput) {
-    const rawCrew = Number(crewInput.value || 1);
-    crewSize = Number.isFinite(rawCrew) && rawCrew > 0 ? Math.round(rawCrew) : 1;
-    crewInput.value = String(crewSize);
+  if (crewInput && crewInput.value) {
+    crewSize = Number(crewInput.value);
+    if (crewSize < 1) crewSize = 1;
   }
 
-  [okInput, ngInput, totalInput].forEach(el => el && el.classList.remove('required-missing'));
-
-  const missing = [];
-  if (status === '工程終了' && qtyTotal <= 0) {
-    missing.push(totalInput);
-  }
-
-  if (missing.length > 0) {
-    missing.forEach(el => el && el.classList.add('required-missing'));
-    showToast('必須項目を入力してください。', 'error');
+  // 4. VALIDASI PENTING (Penyebab data tidak tersimpan)
+  // Jika status Selesai, Qty tidak boleh 0
+  if ((status === '工程終了' || status === '終了') && qtyTotal <= 0) {
+    showToast('GAGAL SIMPAN: Jumlah (Qty) tidak boleh 0 jika status Selesai!', 'error');
+    if (totalInput) totalInput.classList.add('required-missing');
+    // Jika ada triggerFlash
+    if (typeof triggerFlash === 'function') triggerFlash('error');
     return;
   }
 
-  const productCode = currentPlanForScan.product_code || '';
-  const productName = currentPlanForScan.product_name || '';
-  const planProcessName = currentPlanForScan.process_name || '';
+  // 5. Logika Durasi (Session Storage)
+  const productCode = currentPlanForScan.product_code;
+  // Kunci unik untuk sesi ini
+  const sessionKey = `${currentUser.user_id}__${currentTerminal.terminal_id}__${productCode}`;
+  
+  // Ambil data sesi yang sedang berjalan dari LocalStorage
+  let sessions = {};
+  try {
+    sessions = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY) || '{}');
+  } catch (e) { sessions = {}; }
 
   const now = new Date();
-  const sessionKey = buildSessionKey(currentUser.user_id, currentTerminal.terminal_id, productCode);
-  let sessions = loadActiveSessions();
 
-  if (status === '工程開始') {
+  // === SKENARIO A: TOMBOL START DITEKAN ===
+  if (status === '工程開始' || status === 'Start') {
+    // Simpan waktu mulai di browser HP/Laptop
     sessions[sessionKey] = now.toISOString();
-    saveActiveSessions(sessions);
-    showToast('工程開始を記録しました。終了時に同じ計画と工程で保存してください。', 'info');
-    return;
+    localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(sessions));
+    
+    // Beri notifikasi visual bahwa Start berhasil
+    showToast('⏱️ Waktu MULAI dicatat. Silakan bekerja, scan lagi saat SELESAI.', 'success');
+    if (typeof triggerFlash === 'function') triggerFlash('success');
+    
+    // PENTING: Kita return (berhenti) di sini karena Start tidak dikirim ke Google Sheet
+    // (Google Sheet hanya menerima data saat pekerjaan Selesai/Log Event final)
+    return; 
   }
 
+  // === SKENARIO B: TOMBOL SELESAI (END) DITEKAN ===
+  // Hitung durasi dari Start sampai Sekarang
   const startIso = sessions[sessionKey];
-  if (!startIso && !confirm('開始時刻が見つかりません。現在時刻を開始として保存しますか？')) {
-    return;
+  let start = now; 
+  let durationSec = 0;
+
+  if (startIso) {
+    start = new Date(startIso);
+    durationSec = Math.round((now - start) / 1000); // Selisih dalam detik
+  } else {
+    // Jika user lupa scan Start sebelumnya
+    const lanjut = confirm('Waktu MULAI tidak ditemukan (mungkin lupa scan Start?).\nGunakan waktu sekarang sebagai waktu mulai (Durasi 0)?');
+    if (!lanjut) return;
   }
 
-  const start = startIso ? new Date(startIso) : now;
-  const end = now;
-  const durationSec = Math.round((end - start) / 1000);
-
+  // Siapkan Data untuk dikirim
   const location = currentTerminal.location || '';
   const isExternal = /外注|subcon|vendor/i.test(String(location).toLowerCase());
   const workType = isExternal ? '外注' : '社内';
 
   const log = {
     product_code: productCode,
-    product_name: productName,
-    lot_number: lotInput ? lotInput.value.trim() : '',
-    plan_process_name: planProcessName,
+    product_name: currentPlanForScan.product_name,
     process_name: currentTerminal.process_name,
     terminal_id: currentTerminal.terminal_id,
     terminal_name: currentTerminal.name_ja,
     user_id: currentUser.user_id,
     user_name: currentUser.name_ja,
-    role: currentUser.role,
+    role: currentUser.role, // Tambahan: Role
     status: status,
     qty_total: qtyTotal,
     qty_ok: qtyOk,
     qty_ng: qtyNg,
     crew_size: crewSize,
-    note: noteInput ? noteInput.value.trim() : '',
+    note: noteInput ? noteInput.value : '',
+    lot_number: lotInput ? lotInput.value : '', // Tambahan: Lot Number
     timestamp_start: formatDateTime(start),
-    timestamp_end: formatDateTime(end),
+    timestamp_end: formatDateTime(now),
     duration_sec: durationSec,
-    location,
-    work_type: workType
+    location: location,
+    work_type: workType // Tambahan: Work Type
   };
 
+  // 6. Kirim ke Server (Google Apps Script)
   try {
-    setGlobalLoading(true, '実績を保存中...');
+    // Nyalakan Loading
+    setGlobalLoading(true, 'Menyimpan data...');
+    
+    // Panggil API
     await callApi('logEvent', { log });
 
-    delete sessions[sessionKey];
-    saveActiveSessions(sessions);
+    // Jika sukses: Hapus sesi Start dari memori karena sudah selesai
+    if (status === '工程終了' || status === '終了') {
+      delete sessions[sessionKey];
+      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(sessions));
+    }
 
-    showToast('ログを保存しました。', 'success');
-    // ===> TAMBAHKAN INI <===
-    triggerFlash('success'); // KILAT HIJAU!
+    // Reset Form & Refresh Dashboard
+    showToast('✅ Data BERHASIL disimpan!', 'success');
+    if (typeof triggerFlash === 'function') triggerFlash('success');
     clearForm();
-    loadDashboard();
-    loadAnalytics();
+    
+    // Refresh tabel dashboard & analytics
+    if (typeof loadDashboard === 'function') loadDashboard();
+    if (typeof loadAnalytics === 'function') loadAnalytics();
+
   } catch (err) {
     console.error(err);
-    if (!navigator.onLine) {
+    // Offline handling
+    if (!navigator.onLine && typeof enqueueOfflineLog === 'function') {
       enqueueOfflineLog(log);
-      showToast('オフラインのためキューに保存しました。オンライン復帰後に自動送信します。', 'info');
+      showToast('Offline: Data disimpan di antrian. Akan dikirim saat online.', 'info');
     } else {
-      showToast('ログ保存に失敗しました: ' + err.message, 'error');
-      triggerFlash('error'); // KILAT MERAH!
+      showToast('Gagal menyimpan: ' + err.message, 'error');
+      if (typeof triggerFlash === 'function') triggerFlash('error');
     }
   } finally {
+    // Matikan Loading (Wajib, agar tombol bisa dipencet lagi kalau gagal)
     setGlobalLoading(false);
   }
 }
-/* ================================
-   Export logs CSV (per product)
-   ================================ */
-
-async function handleExportProduct() {
-  const productCode = prompt('エクスポートする製品番号を入力してください:');
-  if (!productCode) return;
-
-  await handleExportProductForCode(productCode);
-}
-
-async function handleExportProductForCode(productCode) {
-  try {
-    const data = await callApi('exportLogsByProduct', { productCode });
-    const csv = data.csv || '';
-    if (!csv) {
-      alert('対象データがありません。');
-      return;
-    }
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const now = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    a.href = url;
-    a.download = `logs_${productCode}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error(err);
-    alert('エクスポートに失敗しました: ' + err.message);
-  }
-}
-
-/* ================================
-   Log edit / delete
-   ================================ */
-
-function openEditModal(log) {
-  document.getElementById('edit-log-id').value = log.log_id;
-  document.getElementById('edit-qty-total').value = log.qty_total || 0;
-  document.getElementById('edit-qty-ok').value = log.qty_ok || 0;
-  document.getElementById('edit-qty-ng').value = log.qty_ng || 0;
-  document.getElementById('edit-status').value = log.status || '通常';
-  document.getElementById('edit-modal').classList.remove('hidden');
-}
-
-function closeEditModal() {
-  document.getElementById('edit-modal').classList.add('hidden');
-}
-
-async function handleEditSave() {
-  const logId = document.getElementById('edit-log-id').value;
-  const qtyTotal = Number(document.getElementById('edit-qty-total').value || 0);
-  const qtyOk = Number(document.getElementById('edit-qty-ok').value || 0);
-  const qtyNg = Number(document.getElementById('edit-qty-ng').value || 0);
-  const status = document.getElementById('edit-status').value;
-
-  try {
-    await callApi('updateLog', {
-      log: { log_id: logId, qty_total: qtyTotal, qty_ok: qtyOk, qty_ng: qtyNg, status }
-    });
-    alert('ログを更新しました。');
-    closeEditModal();
-    loadDashboard();
-    loadAnalytics();
-  } catch (err) {
-    console.error(err);
-    alert('ログ更新に失敗しました: ' + err.message);
-  }
-}
-
-async function handleDeleteLog(log) {
-  if (!confirm('このログを削除しますか？')) return;
-  try {
-    await callApi('deleteLog', { logId: log.log_id });
-    alert('ログを削除しました。');
-    loadDashboard();
-    loadAnalytics();
-  } catch (err) {
-    console.error(err);
-    alert('ログ削除に失敗しました: ' + err.message);
-  }
-}
-
-/* ================================
-   Plans (生産計画) Delete / Save
-   ================================ */
-
-async function handleDeletePlan(plan) {
-  if (!plan.plan_id) {
-    alert('この生産計画にはIDがありません。');
-    return;
-  }
-  if (!confirm('この生産計画を削除しますか？')) return;
-
-  try {
-    await callApi('deletePlan', { planId: plan.plan_id });
-    alert('生産計画を削除しました。');
-    await loadPlans();
-    await loadAnalytics();
-    await loadDashboard();
-  } catch (err) {
-    console.error(err);
-    alert('生産計画の削除に失敗しました: ' + err.message);
-  }
-}
-
-async function handleSavePlan() {
-  const product_code = document.getElementById('plan-product-code').value.trim();
-  const product_name = document.getElementById('plan-product-name').value.trim();
-  const process_name = document.getElementById('plan-process').value;
-  const planned_qty = Number(document.getElementById('plan-qty').value || 0);
-  const planned_start = document.getElementById('plan-start').value;
-  const planned_end = document.getElementById('plan-end').value;
-  const status = document.getElementById('plan-status').value;
-
-  if (!product_code) {
-    alert('製品番号を入力してください。');
-    return;
-  }
-
-  const plan = { product_code, product_name, process_name, planned_qty, planned_start, planned_end, status };
-
-  try {
-    await callApi('upsertPlan', { plan });
-    alert('生産計画を保存しました。');
-    clearPlanForm();
-    await loadPlans();
-    await loadAnalytics();
-    await loadDashboard();
-  } catch (err) {
-    console.error(err);
-    alert('生産計画の保存に失敗しました: ' + err.message);
-  }
-}
-
-function clearPlanForm() {
-  document.getElementById('plan-product-code').value = '';
-  document.getElementById('plan-product-name').value = '';
-  document.getElementById('plan-process').value = '準備工程';
-  document.getElementById('plan-qty').value = 0;
-  document.getElementById('plan-start').value = '';
-  document.getElementById('plan-end').value = '';
-  document.getElementById('plan-status').value = '計画中';
-}
-
-async function handleImportPlans() {
-  const text = document.getElementById('plan-import-text').value.trim();
-  if (!text) {
-    alert('CSVテキストを貼り付けてください。');
-    return;
-  }
-  try {
-    const data = await callApi('importPlansCsv', { csvText: text });
-    alert(`インポートしました: ${data.imported} 件`);
-    document.getElementById('plan-import-text').value = '';
-    loadPlans();
-    loadAnalytics();
-  } catch (err) {
-    console.error(err);
-    alert('インポートに失敗しました: ' + err.message);
-  }
-}
-
-/* ================================
-   Admin Visibility (Menu Toggle)
-   ================================ */
-
-function updateAdminVisibility() {
-  const adminContent = document.getElementById('admin-content');
-  const guard = document.getElementById('admin-guard-message');
-  const userListCard = document.getElementById('admin-user-list-card');
-  const terminalListCard = document.getElementById('admin-terminal-list-card');
-  const userManagementCard = document.getElementById('admin-user-management-card');
-
-  const adminLinks = document.querySelectorAll('.sidebar-link.admin-only');
-
-  const isAdmin = !!(currentUser && currentUser.role === 'admin');
-  const canUseCreateUser = !!(isAdmin && FEATURE_FLAGS.enableCreateUser);
-
-  if (isAdmin) {
-    if (adminContent) adminContent.classList.remove('hidden');
-    if (guard) guard.classList.add('hidden');
-    if (userListCard) userListCard.classList.remove('hidden');
-    if (terminalListCard) terminalListCard.classList.remove('hidden');
-
-    adminLinks.forEach(link => link.classList.add('visible'));
-
-    if (userManagementCard) {
-      if (canUseCreateUser) {
-        userManagementCard.classList.remove('hidden');
-        if (!userManagementCard.dataset.loaded) {
-          userManagementCard.dataset.loaded = 'true';
-          loadUserList().catch(err => console.error('loadUserList error:', err));
-        }
-      } else {
-        userManagementCard.classList.add('hidden');
-      }
-    }
-
-    // Pastikan fungsi ini ada/sudah didefinisikan di bagian atas file
-    if(typeof renderAdminUserList === 'function') renderAdminUserList();
-    if(typeof renderAdminTerminalList === 'function') renderAdminTerminalList();
-  } else {
-    if (adminContent) adminContent.classList.add('hidden');
-    if (guard) guard.classList.remove('hidden');
-    if (userListCard) userListCard.classList.add('hidden');
-    if (terminalListCard) terminalListCard.classList.add('hidden');
-
-    if (userManagementCard) {
-      userManagementCard.classList.add('hidden');
-      userManagementCard.dataset.loaded = '';
-    }
-
-    adminLinks.forEach(link => link.classList.remove('visible'));
-  }
-}
-
-/* ================================
-   Modal Help
-   ================================ */
-
-function openHelpModal() {
-  const modal = document.getElementById('help-modal');
-  if (modal) modal.classList.remove('hidden');
-}
-
-function closeHelpModal() {
-  const modal = document.getElementById('help-modal');
-  if (modal) modal.classList.add('hidden');
-}
-
 /* ================================
    Active session (durasi)
    ================================ */
@@ -3778,26 +3574,31 @@ window.addEventListener('load', () => {
   updateOnlineStatus();
 });
 /* ================================
-   SMART SUBMIT BUTTON (FIXED ID)
+   SMART SUBMIT BUTTON (PERBAIKAN ID)
    ================================ */
 document.addEventListener('DOMContentLoaded', () => {
-  // PERBAIKAN: Gunakan ID 'btn-save-log' agar cocok dengan HTML dan Event Listener di atas
+  // PERBAIKAN: Gunakan ID yang benar 'btn-save-log' (sesuai HTML Anda)
+  // JANGAN gunakan 'btn-submit-log'
   const submitBtn = document.getElementById('btn-save-log'); 
   
   if (submitBtn) {
-    // Simpan teks asli tombol (misal: "送信")
+    // Simpan teks asli tombol (misal: "保存")
     const originalText = submitBtn.innerHTML;
 
-    // Fungsi global untuk mengatur status tombol
+    // Kita tambahkan fungsi pembantu untuk mematikan/menghidupkan tombol
     window.setButtonLoading = function(isLoading) {
       if (isLoading) {
-        submitBtn.disabled = true; // Matikan tombol agar tidak diklik 2x
-        submitBtn.innerHTML = '<span class="spinner"></span> 送信中...'; // Ubah teks jadi "Mengirim..."
+        submitBtn.disabled = true;
+        // Ganti teks tombol jadi loading
+        submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
         submitBtn.style.opacity = "0.7";
+        submitBtn.style.cursor = "not-allowed";
       } else {
-        submitBtn.disabled = false; // Hidupkan kembali
-        submitBtn.innerHTML = originalText; // Kembalikan teks asli
+        submitBtn.disabled = false;
+        // Kembalikan teks asli
+        submitBtn.innerHTML = originalText;
         submitBtn.style.opacity = "1";
+        submitBtn.style.cursor = "pointer";
       }
     };
   } else {
@@ -3805,9 +3606,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setButtonLoading = function() {}; 
   }
 });
-
 /* ================================
-   VISUAL FLASH LOGIC (Efek Kilat Layar)
+   VISUAL FLASH LOGIC
    ================================ */
 function triggerFlash(type) {
   const overlay = document.getElementById('flash-overlay');
@@ -3816,7 +3616,7 @@ function triggerFlash(type) {
   // Reset kelas lama
   overlay.className = 'flash-overlay';
 
-  // Tambah warna (Hijau untuk sukses, Merah untuk error)
+  // Tambah warna
   if (type === 'success') {
     overlay.classList.add('flash-success');
   } else {
@@ -3826,7 +3626,7 @@ function triggerFlash(type) {
   // Munculkan
   overlay.style.opacity = '1';
 
-  // Hilangkan perlahan setelah 0.3 detik
+  // Hilangkan perlahan
   setTimeout(() => {
     overlay.style.opacity = '0';
   }, 300);
