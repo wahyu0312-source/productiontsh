@@ -1503,171 +1503,141 @@ function selectTerminalById(terminalId) {
    Save Log (Plan + Terminal + User)
    ================================ */
 
-// ==========================================
-// [BAGIAN 1] GANTI FUNGSI handleSaveLog DENGAN INI
-// ==========================================
 async function handleSaveLog() {
-  // 1. Cek Kelengkapan Data Login & Terminal
   if (!currentUser) {
-    alert('Silakan Login (Scan User QR) terlebih dahulu.');
+    alert('まず右上メニューからユーザー認証を行ってください。');
     return;
   }
   if (!currentTerminal) {
-    alert('Silakan Scan Terminal QR terlebih dahulu.');
+    alert('工程QRをスキャンして工程を選択してください。');
     return;
   }
-  // Pastikan sudah pilih Plan
   if (!currentPlanForScan) {
-    alert('Silakan pilih Rencana Produksi (Plan) dari menu List.');
+    alert('「生産一覧」から対象の生産計画を選び、「スキャン/更新」を押してください。');
     return;
   }
 
-  const statusEl = document.getElementById('log-status');
-  const status = statusEl ? statusEl.value : '工程開始'; // Default Start
-
-  // 2. Konfirmasi Keamanan jika Status = Selesai
-  if (status === '工程終了' || status === '終了' || status === 'Finish') {
-    const yakin = confirm('Status: SELESAI.\nApakah Anda yakin pekerjaan ini sudah tuntas?');
-    if (!yakin) return;
+  const status = document.getElementById('log-status').value;
+  // ===> TAMBAHKAN BLOK KODE INI <===
+  // PENGAMAN: Kalau statusnya "Selesai", tanya dulu!
+  if (status === '工程終了' || status === '終了') {
+    const yakin = confirm('ステータスが「終了」になっています。\n本当にこの作業を完了しますか？\n(まだ続く場合は「通常」を選んでください)');
+    if (!yakin) {
+      return; // Batalkan jika operator bilang "Cancel"
+    }
   }
-
-  // 3. Ambil Data dari Input Form
   const okInput = document.getElementById('log-qty-ok');
   const ngInput = document.getElementById('log-qty-ng');
   const totalInput = document.getElementById('log-qty-total');
+  const lotInput = document.getElementById('log-lot-number');
   const noteInput = document.getElementById('log-note');
-  const crewInput = document.getElementById('log-crew-size');
-  const lotInput = document.getElementById('log-lot-number'); // Tambahan: Lot Number
 
-  const qtyOk = Number(okInput ? okInput.value : 0);
-  const qtyNg = Number(ngInput ? ngInput.value : 0);
+  const qtyOk = Number(okInput.value || 0);
+  const qtyNg = Number(ngInput.value || 0);
   const qtyTotal = qtyOk + qtyNg;
-  
+  if (totalInput) totalInput.value = qtyTotal;
+
+  const crewInput = document.getElementById('log-crew-size');
   let crewSize = 1;
-  if (crewInput && crewInput.value) {
-    crewSize = Number(crewInput.value);
-    if (crewSize < 1) crewSize = 1;
+  if (crewInput) {
+    const rawCrew = Number(crewInput.value || 1);
+    crewSize = Number.isFinite(rawCrew) && rawCrew > 0 ? Math.round(rawCrew) : 1;
+    crewInput.value = String(crewSize);
   }
 
-  // 4. VALIDASI PENTING (Penyebab data tidak tersimpan)
-  // Jika status Selesai, Qty tidak boleh 0
-  if ((status === '工程終了' || status === '終了') && qtyTotal <= 0) {
-    showToast('GAGAL SIMPAN: Jumlah (Qty) tidak boleh 0 jika status Selesai!', 'error');
-    if (totalInput) totalInput.classList.add('required-missing');
-    // Jika ada triggerFlash
-    if (typeof triggerFlash === 'function') triggerFlash('error');
+  [okInput, ngInput, totalInput].forEach(el => el && el.classList.remove('required-missing'));
+
+  const missing = [];
+  if (status === '工程終了' && qtyTotal <= 0) {
+    missing.push(totalInput);
+  }
+
+  if (missing.length > 0) {
+    missing.forEach(el => el && el.classList.add('required-missing'));
+    showToast('必須項目を入力してください。', 'error');
     return;
   }
 
-  // 5. Logika Durasi (Session Storage)
-  const productCode = currentPlanForScan.product_code;
-  // Kunci unik untuk sesi ini
-  const sessionKey = `${currentUser.user_id}__${currentTerminal.terminal_id}__${productCode}`;
-  
-  // Ambil data sesi yang sedang berjalan dari LocalStorage
-  let sessions = {};
-  try {
-    sessions = JSON.parse(localStorage.getItem(ACTIVE_SESSION_KEY) || '{}');
-  } catch (e) { sessions = {}; }
+  const productCode = currentPlanForScan.product_code || '';
+  const productName = currentPlanForScan.product_name || '';
+  const planProcessName = currentPlanForScan.process_name || '';
 
   const now = new Date();
+  const sessionKey = buildSessionKey(currentUser.user_id, currentTerminal.terminal_id, productCode);
+  let sessions = loadActiveSessions();
 
-  // === SKENARIO A: TOMBOL START DITEKAN ===
-  if (status === '工程開始' || status === 'Start') {
-    // Simpan waktu mulai di browser HP/Laptop
+  if (status === '工程開始') {
     sessions[sessionKey] = now.toISOString();
-    localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(sessions));
-    
-    // Beri notifikasi visual bahwa Start berhasil
-    showToast('⏱️ Waktu MULAI dicatat. Silakan bekerja, scan lagi saat SELESAI.', 'success');
-    if (typeof triggerFlash === 'function') triggerFlash('success');
-    
-    // PENTING: Kita return (berhenti) di sini karena Start tidak dikirim ke Google Sheet
-    // (Google Sheet hanya menerima data saat pekerjaan Selesai/Log Event final)
-    return; 
+    saveActiveSessions(sessions);
+    showToast('工程開始を記録しました。終了時に同じ計画と工程で保存してください。\n\n[ID] Catatan: Ini baru menyimpan waktu MULAI di perangkat (localStorage). Data akan benar-benar tersimpan ke server & muncul di dashboard saat Anda menyimpan dengan status 工程終了.', 'info');
+    return;
   }
 
-  // === SKENARIO B: TOMBOL SELESAI (END) DITEKAN ===
-  // Hitung durasi dari Start sampai Sekarang
   const startIso = sessions[sessionKey];
-  let start = now; 
-  let durationSec = 0;
-
-  if (startIso) {
-    start = new Date(startIso);
-    durationSec = Math.round((now - start) / 1000); // Selisih dalam detik
-  } else {
-    // Jika user lupa scan Start sebelumnya
-    const lanjut = confirm('Waktu MULAI tidak ditemukan (mungkin lupa scan Start?).\nGunakan waktu sekarang sebagai waktu mulai (Durasi 0)?');
-    if (!lanjut) return;
+  if (!startIso && !confirm('開始時刻が見つかりません。現在時刻を開始として保存しますか？\n\n[ID] Waktu mulai tidak ditemukan. Simpan dengan waktu sekarang sebagai waktu mulai?')) {
+    return;
   }
 
-  // Siapkan Data untuk dikirim
+  const start = startIso ? new Date(startIso) : now;
+  const end = now;
+  const durationSec = Math.round((end - start) / 1000);
+
   const location = currentTerminal.location || '';
   const isExternal = /外注|subcon|vendor/i.test(String(location).toLowerCase());
   const workType = isExternal ? '外注' : '社内';
 
   const log = {
     product_code: productCode,
-    product_name: currentPlanForScan.product_name,
+    product_name: productName,
+    lot_number: lotInput ? lotInput.value.trim() : '',
+    plan_process_name: planProcessName,
     process_name: currentTerminal.process_name,
     terminal_id: currentTerminal.terminal_id,
     terminal_name: currentTerminal.name_ja,
     user_id: currentUser.user_id,
     user_name: currentUser.name_ja,
-    role: currentUser.role, // Tambahan: Role
+    role: currentUser.role,
     status: status,
     qty_total: qtyTotal,
     qty_ok: qtyOk,
     qty_ng: qtyNg,
     crew_size: crewSize,
-    note: noteInput ? noteInput.value : '',
-    lot_number: lotInput ? lotInput.value : '', // Tambahan: Lot Number
+    note: noteInput ? noteInput.value.trim() : '',
     timestamp_start: formatDateTime(start),
-    timestamp_end: formatDateTime(now),
+    timestamp_end: formatDateTime(end),
     duration_sec: durationSec,
-    location: location,
-    work_type: workType // Tambahan: Work Type
+    location,
+    work_type: workType
   };
 
-  // 6. Kirim ke Server (Google Apps Script)
   try {
-    // Nyalakan Loading
-    setGlobalLoading(true, 'Menyimpan data...');
-    
-    // Panggil API
+    setGlobalLoading(true, '実績を保存中...');
     await callApi('logEvent', { log });
 
-    // Jika sukses: Hapus sesi Start dari memori karena sudah selesai
-    if (status === '工程終了' || status === '終了') {
-      delete sessions[sessionKey];
-      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(sessions));
-    }
+    delete sessions[sessionKey];
+    saveActiveSessions(sessions);
 
-    // Reset Form & Refresh Dashboard
-    showToast('✅ Data BERHASIL disimpan!', 'success');
-    if (typeof triggerFlash === 'function') triggerFlash('success');
+    showToast('ログを保存しました。', 'success');
+    // ===> TAMBAHKAN INI <===
+    triggerFlash('success'); // KILAT HIJAU!
     clearForm();
-    
-    // Refresh tabel dashboard & analytics
-    if (typeof loadDashboard === 'function') loadDashboard();
-    if (typeof loadAnalytics === 'function') loadAnalytics();
-
+    loadDashboard();
+    loadAnalytics();
   } catch (err) {
     console.error(err);
-    // Offline handling
-    if (!navigator.onLine && typeof enqueueOfflineLog === 'function') {
+    if (!navigator.onLine) {
       enqueueOfflineLog(log);
-      showToast('Offline: Data disimpan di antrian. Akan dikirim saat online.', 'info');
+      showToast('オフラインのためキューに保存しました。オンライン復帰後に自動送信します。', 'info');
     } else {
-      showToast('Gagal menyimpan: ' + err.message, 'error');
-      if (typeof triggerFlash === 'function') triggerFlash('error');
+      showToast('ログ保存に失敗しました: ' + err.message, 'error');
+      triggerFlash('error'); // KILAT MERAH!
     }
   } finally {
-    // Matikan Loading (Wajib, agar tombol bisa dipencet lagi kalau gagal)
     setGlobalLoading(false);
   }
 }
+
+
 /* ================================
    Active session (durasi)
    ================================ */
@@ -1725,6 +1695,13 @@ async function flushOfflineQueue() {
     loadDashboard();
     loadAnalytics();
   }
+}
+
+// Backward-compat: beberapa bagian UI lama memanggil processOfflineQueue().
+// Di versi ini, kita arahkan ke flushOfflineQueue() agar data yang tersimpan saat offline
+// benar-benar terkirim saat online kembali.
+function processOfflineQueue() {
+  return flushOfflineQueue();
 }
 
 /* ================================
@@ -1830,8 +1807,9 @@ function renderDashboardTable() {
   function getBaseDate(log) {
     const s = log.timestamp_start || log.timestamp_end || log.planned_start || log.created_at || '';
     if (!s) return null;
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
+    // FIX: gunakan parser yang lebih fleksibel agar format 'YYYY-MM-DD HH:mm:ss' tidak dianggap invalid
+    // di beberapa browser (terutama Safari/iOS).
+    return parseDateFlexible(s);
   }
 
   const filtered = rows.filter(log => {
@@ -3574,36 +3552,27 @@ window.addEventListener('load', () => {
   updateOnlineStatus();
 });
 /* ================================
-   SMART SUBMIT BUTTON (PERBAIKAN ID)
+   SMART SUBMIT BUTTON
    ================================ */
 document.addEventListener('DOMContentLoaded', () => {
-  // PERBAIKAN: Gunakan ID yang benar 'btn-save-log' (sesuai HTML Anda)
-  // JANGAN gunakan 'btn-submit-log'
-  const submitBtn = document.getElementById('btn-save-log'); 
+  const submitBtn = document.getElementById('btn-submit-log');
   
   if (submitBtn) {
-    // Simpan teks asli tombol (misal: "保存")
+    // Simpan teks asli tombol (misal: "生産記録を送信")
     const originalText = submitBtn.innerHTML;
 
     // Kita tambahkan fungsi pembantu untuk mematikan/menghidupkan tombol
     window.setButtonLoading = function(isLoading) {
       if (isLoading) {
         submitBtn.disabled = true;
-        // Ganti teks tombol jadi loading
-        submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
+        submitBtn.innerHTML = '<span class="spinner"></span> 送信中...'; // "Sedang Mengirim..."
         submitBtn.style.opacity = "0.7";
-        submitBtn.style.cursor = "not-allowed";
       } else {
         submitBtn.disabled = false;
-        // Kembalikan teks asli
         submitBtn.innerHTML = originalText;
         submitBtn.style.opacity = "1";
-        submitBtn.style.cursor = "pointer";
       }
     };
-  } else {
-    // Fallback jika tombol tidak ditemukan agar tidak error
-    window.setButtonLoading = function() {}; 
   }
 });
 /* ================================
